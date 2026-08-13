@@ -1,0 +1,10 @@
+{
+  "riskModelVersion": "risk-snn-example",
+  "detectorModelVersion": "detector-example",
+  "validated": false,
+  "datasets": [
+    "Custom SNN Risk Dataset",
+    "BDD100K",
+    "RDD2022"
+  ]
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "fixture": "SYNTHETIC_DEMO_ONLY",
+    "routeCoordinates": [{"lat":17.385,"lng":78.4867},{"lat":17.39,"lng":78.48},{"lat":17.395,"lng":78.475}],
+    "distance": 2450,
+    "travelTime": 420,
+    "traffic": "LIGHT",
+    "hazards": 1,
+    "averageRisk": 0.22,
+    "maximumRisk": 0.48,
+    "reroutes": 0,
+    "journeySuccess": true,
+    "familiarity": 0.67,
+    "historicalSafety": 0.82,
+    "userFeedback": 0.9,
+    "timestamp": "2026-08-01T08:00:00Z"
+  }
+]

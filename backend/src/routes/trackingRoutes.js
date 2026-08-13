@@ -1,0 +1,1 @@
+const r=require('express').Router();const {authenticate}=require('../middleware/auth');const v=require('../validators/domainValidators');const validate=require('../middleware/validate');r.post('/update',authenticate,v.tracking,validate,require('../controllers/trackingController').update);module.exports=r;

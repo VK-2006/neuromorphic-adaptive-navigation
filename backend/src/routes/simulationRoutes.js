@@ -1,0 +1,2 @@
+const r=require('express').Router();const sim=require('../services/simulationService');const c=require('../controllers/simulationController');const {authenticate}=require('../middleware/auth');const validate=require('../middleware/validate');const v=require('../validators/domainValidators');
+r.get('/status',(req,res)=>res.json({success:true,data:sim.status()}));r.post('/step',authenticate,v.simulationStep,validate,c.step);module.exports=r;

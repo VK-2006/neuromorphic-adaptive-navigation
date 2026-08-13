@@ -1,0 +1,18 @@
+const r=require('express').Router();
+const c=require('../controllers/adminController');
+const g=require('../controllers/genericController');
+const {authenticate,authorize}=require('../middleware/auth');
+const v=require('../validators/adminValidators');
+const validate=require('../middleware/validate');
+r.use(authenticate,authorize('ADMIN'));
+r.get('/overview',c.overview);
+r.get('/health',c.health);
+r.get('/users',g.users);
+r.get('/devices',c.devices);
+r.patch('/users/:id',v.userUpdate,validate,c.updateUser);
+r.get('/hazards',c.hazards);
+r.post('/hazards/:id/verify',v.hazardReview,validate,c.verifyHazard);
+r.get('/chat/reports',c.chatReports);
+r.patch('/chat/reports/:id',v.chatReview,validate,c.reviewChatReport);
+r.get('/audit',c.audit);
+module.exports=r;

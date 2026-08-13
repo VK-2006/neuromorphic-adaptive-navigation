@@ -1,0 +1,6 @@
+const jwt=require('jsonwebtoken');const env=require('../config/env');const User=require('../models/User');
+function tokenFrom(req){let token=req.cookies?.navora_access;const h=req.headers.authorization;if(!token&&h?.startsWith('Bearer '))token=h.slice(7);return token}
+async function resolveUser(token){const p=jwt.verify(token,env.jwtAccessSecret,{issuer:'navora'});const user=await User.findById(p.sub);if(!user||user.disabledAt)throw new Error('Session invalid');return {p,user}}
+async function authenticate(req,res,next){try{const token=tokenFrom(req);if(!token)return res.status(401).json({success:false,message:'Authentication required'});const {p,user}=await resolveUser(token);req.auth=p;req.user=user;next()}catch(e){res.status(401).json({success:false,message:'Invalid or expired access token'})}}
+async function optional(req,res,next){const token=tokenFrom(req);if(!token)return next();try{const {p,user}=await resolveUser(token);req.auth=p;req.user=user}catch{}next()}
+const authorize=(...roles)=>(req,res,next)=>roles.includes(req.user?.role)?next():res.status(403).json({success:false,message:'Forbidden'});module.exports={authenticate,optional,authorize};
