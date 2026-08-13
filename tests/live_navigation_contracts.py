@@ -19,6 +19,6 @@ need('backend/src/controllers/trackingController.js','arrivalThreshold','destina
 need('backend/src/controllers/hazardController.js','safetyEligible','LIVE_REQUIRE_VALIDATED_AI' if False else 'liveRequireValidatedAi','allowPersistence')
 need('ai-service/app/schemas/detection.py','validated:bool=False')
 need('ai-service/app/schemas/risk.py','validated:bool=False')
-need('frontend/service-worker.js','navora-shell-v8-live-field','/assets/js/journey.js')
+need('frontend/service-worker.js','navora-shell-v9-stack-compliance','/assets/js/journey.js')
 need('frontend/manifest.json','display_override','Live Journey')
 print('LIVE_NAVIGATION_CONTRACTS PASS: foreground field GPS, wake lock, HTTPS/camera readiness, live-provider readiness, offline latest-fix recovery, arrival completion, validated-AI safety gating, PWA field shell')

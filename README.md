@@ -54,11 +54,11 @@ During an active journey:
 - `datasets/derived-risk-data/risk-training.csv`: normalized SNN training fixture.
 - `datasets/demo-data/crm-journeys.json`: synthetic/demo-only CRM journey fixture.
 
-Large public datasets and trained weights are intentionally not redistributed. `scripts/prepare_detection_data.py`, `scripts/train_detector.py` and `scripts/train_snn.py` provide the local preparation/training path.
+Large public datasets and trained weights are intentionally not redistributed. `scripts/prepare_detection_data.py`, `scripts/train_detector.py` and `scripts/train_snn.py` provide preparation/training; `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` enforce held-out validation gates. Training never marks a model validated.
 
 ### SNN truthfulness rule
 
-`ai-service/app/models/snn.py` contains the real snnTorch LIF architecture and the risk engine contains temporal/spike/membrane processing. If trained `risk_snn.pt` weights are absent, `/model/info` reports `validated: false` and prediction responses report `development/heuristic-fallback`; they are never represented as validated AI.
+`ai-service/app/models/snn.py` contains the real snnTorch LIF architecture and the risk engine contains temporal/spike/membrane processing. Detector and SNN validation are independent (`detectorValidated` and `riskValidated`); global safety validation is true only when both held-out evaluation gates pass. Missing/unvalidated weights remain explicitly research/development output.
 
 ## Authentication and security
 
@@ -106,21 +106,21 @@ python -m uvicorn app.main:app --reload --port 8000
 
 ## Testing
 
-Dependency-light checks:
+Use the consolidated verifier from the repository root:
 
 ```bash
-node scripts/check-backend.js
-python tests/frontend_contracts.py
-python tests/failure_contracts.py
-node tests/pure-smoke.js
-node tests/performance_smoke.js
-python tests/static_assets.py
-python scripts/repository_crosscheck.py
-python scripts/master_prompt_crosscheck.py
-python -m pytest ai-service/tests -q
+python scripts/final_verify.py
 ```
 
-With npm dependencies installed, also run `cd backend && npm test`. See `docs/testing.md` and `TEST_RESULTS.md` for the exact latest environment results.
+With local MongoDB and installed backend dependencies, include the isolated runtime E2E flow:
+
+```bash
+python scripts/final_verify.py --runtime
+```
+
+That runtime test covers registration/OTP/login/refresh, route comparison/ACO, persisted journeys, GPS tracking, reroute, Socket.IO + World Chat, live readiness, trusted-contact SOS, completion/CRM/replay, password reset and admin RBAC. See `docs/testing.md`.
+
+For the final merge, `scripts/apply_final_release.ps1 -Target <repo> -Verify` preserves local runtime state, removes obsolete tracked artifacts and runs the consolidated verifier. Before commit, `python scripts/prepush_audit.py` checks tracked secrets, backups/generated artifacts and `package.json`/`package-lock.json` direct dependency consistency.
 
 ## Docker
 
@@ -140,12 +140,14 @@ Future backend target:
 - Start Command: `npm start`
 - Code: `const PORT = process.env.PORT || 5000;`
 
-`npm ci` requires a checked-in `backend/package-lock.json`. The current sandbox could not reach/cache every npm package, so it could not honestly generate that lockfile. Run `npm install` once on a networked development machine, review the generated lockfile, run the Jest suite, and then Render can use `npm ci` without major source changes.
+The user's Git working repository already preserves `backend/package-lock.json`; the final pre-push audit verifies its direct dependency specifications match `package.json` before push.
 
 ## Limitations / validation boundary
 
-No validated BDD100K/RDD2022 model weights are bundled. Browser camera/GPS/Bluetooth/WebRTC/passkeys depend on secure context, device support and permissions. Public OSRM does not supply traffic. Real emergency-service dispatch is not claimed. Full Mongo/Jest/Docker/browser-device/credential-dependent validation could not all be executed in this sandbox because npm registry access, MongoDB/Docker and stable Chromium rendering are unavailable here. These are explicitly recorded in the readiness report.
+No fabricated BDD100K/RDD2022 or SNN validation is claimed. Browser camera/GPS/Screen Wake Lock/Bluetooth/WebRTC/passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
 
-## Deployment status
+The source contains training/evaluation/runtime-validation tooling so those gates can be completed without redesigning the application.
 
-The repository intentionally stops at **DEPLOYMENT READY SOURCE**. It does **not** configure real environment secrets, Git push, Render deployment, production MongoDB Atlas, DNS or production OAuth redirect URLs.
+## Pre-push / deployment status
+
+All identified source/compliance cleanup is consolidated into the final pre-push build. The user performs the Git commit/push after `final_verify.py --runtime` and `prepush_audit.py` pass. Render/Atlas/production secrets remain a separate later step.

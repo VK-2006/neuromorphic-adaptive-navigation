@@ -8,7 +8,7 @@ class Detector:
         self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS)
         if settings.metadata_path.exists():
             try:
-                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.validated=bool(m.get('validated',False));self.targets=m.get('detectorClasses') or self.targets
+                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.validated=bool(m.get('detectorValidated',m.get('validated',False)));self.targets=m.get('detectorClasses') or self.targets
             except Exception:pass
         if torch is not None and settings.detector_weights.exists():
             try:

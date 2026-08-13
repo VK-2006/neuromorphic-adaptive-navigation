@@ -1,80 +1,56 @@
-# TEST RESULTS — Navora Master-Prompt Completion Pass
+# Navora Final Pre-Push Validation Results
 
-Date: 2026-08-12
+Date: 2026-08-13
 
-## Executed and passed
+## Confirmed on the user's Windows working environment
 
-| Check | Result |
-|---|---|
-| Backend source syntax (`node scripts/check-backend.js`) | **PASS — 82 JS files, 0 failures** |
-| Frontend/integration source contracts | **PASS** |
-| Admin + Render source contracts | **PASS** |
-| Failure/degraded-mode source contracts | **PASS** |
-| Pure DTW/EMA/map-match/geofence/ACO/XAI smoke | **PASS** |
-| Algorithm performance smoke | **PASS** — 40 ACO runs ~37.1 ms; 60 DTW runs ~12.4 ms; 10k map matches ~1.0 ms in this sandbox run |
-| Static local assets/links | **PASS — 28 HTML pages** |
-| Frontend HTTP page smoke | **PASS — 28/28 pages returned HTTP 200** |
-| Repository secret/required-file cross-check | **PASS** |
-| Master-prompt source cross-check | **PASS — 24/24 required pages, 20/20 required models and representative routing/AI/privacy/auth/PWA/Three/Render contracts** |
-| Python compile (`ai-service/app`, tests, scripts) | **PASS** |
-| AI Pytest | **PASS — 6/6** |
-| AI HTTP `/health` | **PASS — 200** |
-| AI HTTP `/model/info` | **PASS — 200; development fallback explicitly `validated:false`** |
-| AI HTTP `/api/v1/risk/predict` | **PASS — 200; explicit `development/heuristic-fallback` and unvalidated note** |
-| AI fallback performance smoke | **PASS — 500 predictions ~6.74 ms total in this sandbox run** |
-| Frontend JavaScript syntax | **PASS — 19 files** |
-| Manifest/Lottie/Postman JSON | **PASS** |
-| Postman inventory | **PASS — 82 requests** |
+- Backend Jest: **9/9 suites passed, 25/25 tests passed**.
+- `npm audit`: **0 vulnerabilities**.
+- Clean release `repository_crosscheck.py`: **PASS**.
+- Frontend world-class UI contracts: **PASS (28/28 pages)**.
+- DOM preservation: **PASS (168 IDs)**.
+- Static assets: **PASS (28 pages)**.
+- Frontend feature/admin/render/accessibility/live-navigation contracts: **PASS**.
 
-Performance values are machine-specific smoke measurements, not formal production benchmarks.
+## Confirmed in the final build environment
 
-## Bugs found and fixed during this implementation/retest cycle
+- `scripts/master_prompt_crosscheck.py`: **PASS**.
+- `scripts/repository_crosscheck.py`: **PASS** on clean distribution.
+- Bootstrap 5 + GSAP + AOS + Lottie frontend-stack contract: **PASS**.
+- Hazard type/proximity/time/journey/detection-similarity contract: **PASS**.
+- DTW/EMA/map-match/geofence/ACO/XAI pure smoke: **PASS**.
+- Performance smoke: **PASS**.
+- AI fallback/API Pytest: **6 passed**.
+- JavaScript/Python syntax checks: **PASS**.
+- Repository secret/backup-artifact cross-check: **PASS**.
+- v7.2 clean-release vs Git-working-tree verifier-context regression: **PASS**.
+- Portable Playwright runtime QA: **12/12 targeted cases PASS**.
+- Portable responsive/theme matrix: **168/168 cases PASS** (28 pages × 2 themes × 3 widths; 1440/768/320).
 
-- Mongo hazard query syntax mismatch.
-- Segment map-matching/geofencing false rejection caused by nearest-vertex projection.
-- Simulation route duplicate identifier regression.
-- Forgot-password OTP verification return-contract bug.
-- Reroute distance-covered continuity after route switch.
-- WebRTC target socket journey-room isolation.
-- Community hazard journey ownership, self-confirm and proximity checks.
-- SOS location validation.
-- WebAuthn challenge expiration.
-- OTP development browser-storage plaintext persistence removed.
-- Device/contact ownership fields hardened with update allowlists.
-- Mongo-backed hashed password-reset grant.
-- Async controller error-flow aligned to Express 5.
-- Chat NEARBY room uniqueness corrected to coarse region cell.
-- Replay original-route preservation and route-history events.
-- Simulation perception/SNN/hazard/reroute/completion wiring.
-- Admin health navigation and admin mutation validation.
-- Exact Render `const PORT = process.env.PORT || 5000;` source contract.
+## Consolidated verification
 
-## Not executable in this sandbox — warnings, not false PASS values
+Run from the project root:
 
-### Backend Jest / Mongo integration
+```powershell
+python scripts\final_verify.py
+```
 
-`backend/node_modules` is absent. Registry/cache access was insufficient to finish `npm install`/generate `package-lock.json`; a lockfile attempt timed out and offline resolution previously lacked cached packages. `npm test` therefore exits with `jest: not found`. Backend Jest test files are generated, but their runtime result remains **WARNING — DEPENDENCIES REQUIRED**.
+For the local Mongo-backed runtime flow (auth → routes → journey → tracking → reroute → Socket.IO/chat → SOS → CRM/replay → reset → admin):
 
-### MongoDB runtime
+```powershell
+python scripts\final_verify.py --runtime
+```
 
-`mongod` is not installed in this sandbox. Mongo-backed authentication, database integration and live Socket.IO ownership flows therefore remain **WARNING — LOCAL MONGODB/ATLAS REQUIRED FOR FULL RUNTIME E2E**. Source ownership/index/degraded-mode contracts were cross-checked.
+The runtime option requires MongoDB and `backend/node_modules`. Optional Playwright visual QA can be included with `--browser` after Playwright/Chromium are installed.
 
-### Docker
+## Truthful external gates
 
-Docker is unavailable here. Dockerfiles/Compose are generated, but `docker compose up --build` is **WARNING — DOCKER ENVIRONMENT REQUIRED**.
+These are not hidden as PASS:
 
-### Trained SNN/detector weights
+- Google production authentication requires production credentials/origin configuration.
+- Brevo production delivery requires credentials and verified sender configuration.
+- TomTom live traffic requires credentials if that provider is selected.
+- Validated camera/SNN safety AI requires real held-out evaluation of trained weights. The repository deliberately remains **research/development fallback** until both detector and SNN validation gates pass.
+- Physical phone GPS/camera/Screen Wake Lock/Web Bluetooth behavior requires secure HTTPS and real hardware/browser permission testing.
 
-`snntorch` is not installed and validated weights are not bundled. The real LIF architecture/training/loading path exists; only the prompt-approved development fallback was runtime-tested. Status: **WARNING — TRAINED WEIGHTS + SNNTORCH REQUIRED FOR TRAINED-MODEL VALIDATION**.
-
-### Google / Brevo / live traffic
-
-Source integration is present but no real credentials were configured by design. Status: **NEEDS CREDENTIALS**.
-
-### Browser visual/device cross-check
-
-A Chromium screenshot attempt failed in this container with DBus/zygote errors and timed out. Static responsive/theme/accessibility contracts and page serving passed, but pixel-level desktop/tablet/mobile LIGHT/DARK rendering plus real GPS/camera/Bluetooth/WebRTC/passkey device permission flows are **WARNING — REAL BROWSER/DEVICE TEST REQUIRED**.
-
-## Overall test conclusion
-
-All tests that can honestly execute with the available sandbox dependencies pass after the final fixes. Environment/credential/hardware-dependent checks are explicitly retained as warnings instead of being marked PASS.
+- Verifier-context fixture portability: PASS (clean fixture excludes local runtime env/caches; strict mode still rejects injected env files; working-tree mode accepts only ignored/untracked env files).

@@ -1,71 +1,52 @@
-# DEPLOYMENT READINESS REPORT
+# Navora — Final Deployment Readiness Report
 
-Date: 2026-08-12
+Date: 2026-08-13
 
-This report distinguishes **source implementation readiness** from **live external-environment validation**. No Git push, Render deployment, production MongoDB Atlas setup or real secret configuration was performed.
+This report separates **source readiness**, **locally verified behavior**, and **external production gates**. No production secrets are stored in source.
 
-| Area | Status | Notes |
+| Area | Status | Evidence / boundary |
 |---|---|---|
-| Frontend | **PASS source / WARNING visual-device runtime** | 28 pages, assets/HTTP/syntax/contracts pass; Chromium pixel test blocked by container DBus/zygote |
-| Backend | **PASS source / WARNING dependency runtime** | 82 JS files syntax pass; Express 5; full Jest blocked because npm dependencies unavailable |
-| Database | **PASS schema/source / WARNING runtime** | 20 required Mongoose models/index rules; no `mongod` in sandbox |
-| AI Service | **PASS fallback runtime / WARNING trained model** | Pytest 6/6 and HTTP smoke pass; snnTorch/trained weights unavailable |
-| Routing | **PASS source** | OSRM, GraphHopper, Valhalla, labelled mock adapters |
-| Geocoding | **PASS source** | Search/autocomplete + reverse; provider runtime depends on network |
-| Traffic | **PASS source / NEEDS CREDENTIALS** | TomTom adapter + UNKNOWN/degraded/simulation labels |
-| Socket.IO | **PASS source / WARNING full integration** | Private ownership rooms/events; npm/Mongo live integration not executable |
-| Authentication | **PASS source / WARNING DB runtime** | Email/password, JWT, rotating refresh, hashed OTP/reset/session revocation |
-| Authorization | **PASS source** | USER/ADMIN RBAC, ownership guards, admin validation |
-| Google Auth | **NEEDS CREDENTIALS** | GIS frontend ID token → backend `verifyIdToken` path implemented |
-| Brevo | **NEEDS CREDENTIALS** | Email verification/reset/SOS email architecture implemented |
-| Passkeys | **PASS source / WARNING browser runtime** | WebAuthn challenge TTL + register/auth flows |
-| GPS Tracking | **PASS source / WARNING device runtime** | Single watcher, map matching, speed/heading/progress/deviation |
-| Camera | **PASS source / WARNING device runtime** | Explicit Detection OFF, selection/start/stop, no raw recording |
-| WebRTC / Bluetooth | **PASS source / WARNING device runtime** | Journey-scoped P2P signaling; optional GATT control/sensor path |
-| Object Detection | **PASS fallback path / WARNING trained model** | Target detector loading + explicit development fallback |
-| SNN | **PASS architecture/fallback / WARNING trained model** | snnTorch LIF + training/loading code; fallback tested |
-| CRM | **PASS** | Journey completion update and future scoring connection |
-| DTW | **PASS** | Pure tests pass |
-| EMA | **PASS** | Pure tests pass |
-| ACO | **PASS** | Multi-ant/pheromone/exploration/deposit/evaporation; pure/perf smoke pass |
-| Explainable AI | **PASS** | Actual SNN/hazard/traffic/DTW/EMA/history/preference/ACO metrics |
-| Hazards | **PASS source** | Dedup/report/detect/nearby/confirm/admin verify |
-| Reputation | **PASS source** | Verified/rejected/false/nearby counters and score |
-| Geofencing | **PASS** | Route corridor + distance ahead + direction/heading |
-| Dynamic Rerouting | **PASS source** | Trigger set, cooldown, comparison, user switch, distance continuity |
-| Voice Navigation | **PASS source** | Web Speech ON/OFF/language/volume/voice + duplicate suppression |
-| SOS | **PASS source / NEEDS BREVO for live mail** | User-confirmed trusted-contact flow; no emergency-service claim |
-| Trusted Contacts | **PASS source** | CRUD/share permission + expiring/revocable journey link |
-| World Chat | **PASS source** | Rooms/history/pagination/typing/presence/reactions/replies/edit/delete/block/report/moderation |
-| Journey Replay | **PASS source** | Original/current/reroute/GPS/hazard/SNN/ACO/XAI/CRM event replay |
-| Simulation | **PASS source** | GPS/traffic/detection/SNN/hazard/reroute/completion visibly labelled |
-| PWA | **PASS static** | Manifest/icons/SW/offline/recent routes/settings; no stale live claims |
-| Three.js | **PASS source/static lifecycle / WARNING pixel runtime** | Landing + SNN/ACO/CRM, single state/RAF, disposal/reduced motion/adaptive quality |
-| Animations | **PASS source** | Three/GSAP/AOS/Lottie/CSS/WAAPI paths |
-| Light Theme | **PASS static / WARNING pixel runtime** | Tokens + SYSTEM persistence; real visual matrix still needs browser/device |
-| Dark Theme | **PASS static / WARNING pixel runtime** | Same |
-| Responsive UI | **PASS static / WARNING pixel runtime** | Responsive CSS present; 390px Chromium screenshot blocked by container |
-| Accessibility | **PASS source/static / WARNING manual audit** | focus states, labels/ARIA, contrast-oriented tokens, reduced motion |
-| Security | **PASS source/static** | blank secrets, hashing, RBAC, validation, rate limits, ownership, GPS/camera privacy |
-| Performance | **PASS smoke / WARNING production benchmark** | algorithm + fallback inference smoke pass; browser/camera/network load not benchmarked |
-| Tests | **PASS available / WARNING full Jest-Mongo** | See `TEST_RESULTS.md` |
-| Postman | **PASS** | 82 requests |
-| Docker Configuration | **PASS source / WARNING runtime** | Docker unavailable in sandbox |
-| Render-ready backend source | **PASS source / WARNING lockfile** | exact PORT/start/build docs; `npm ci` needs package-lock generated on networked machine |
+| Frontend | **PASS** | 28 pages; static/UI/DOM/accessibility/live-navigation contracts pass |
+| Backend | **PASS locally** | Windows Jest 9/9 suites, 25/25 tests |
+| Dependency security | **PASS locally** | `npm audit` reports 0 vulnerabilities |
+| Database architecture | **PASS source/local** | Mongo/Mongoose models, indexes, TTL/geospatial rules; runtime E2E tooling provided |
+| AI service | **PASS fallback/API** | Pytest 6/6; real LIF SNN architecture; truthful fallback when weights absent |
+| Routing | **PASS source/algorithm** | OSRM/GraphHopper/Valhalla/mock; shortest/fastest/safest/familiar/adaptive pipeline |
+| Traffic | **PASS source / NEEDS CREDENTIALS for live TomTom** | Explicit UNKNOWN/degraded/simulation labeling |
+| GPS / journey | **PASS source/contracts** | Single watcher, map matching, distance/ETA/progress/deviation/arrival/reroute |
+| Camera / WebRTC / Bluetooth | **PASS source / HARDWARE VALIDATION REQUIRED** | Explicit opt-in camera; no raw recording; WebRTC and appropriate GATT use |
+| Detector | **PASS architecture / DATASET VALIDATION REQUIRED** | BDD100K/RDD2022 preparation/training/evaluation scripts; unvalidated output cannot drive live safety |
+| SNN | **PASS architecture / DATASET VALIDATION REQUIRED** | snnTorch LIF + train/evaluate scripts; separate `riskValidated` gate |
+| CRM / DTW / EMA / ACO / XAI | **PASS** | Connected route scoring and journey-completion learning; pure tests pass |
+| Hazards / reputation / geofence | **PASS** | Type+proximity+time+journey+detection-similarity dedup; trust and route-aware alerts |
+| Socket.IO / chat | **PASS source** | Authenticated ownership rooms, chat/privacy flows; runtime E2E script tests round-trip when Mongo is available |
+| Auth / authorization | **PASS** | Password, OTP, reset, rotating refresh, RBAC, Google path, passkey path |
+| Brevo | **SOURCE COMPLETE / NEEDS PRODUCTION CREDENTIALS** | Development fallback does not expose OTP in production |
+| Google Auth | **SOURCE COMPLETE / NEEDS PRODUCTION CREDENTIALS** | GIS ID token → backend verification path |
+| SOS / trusted contacts | **PASS source** | User-authorized contact notification flow; no emergency-service claim |
+| PWA / offline | **PASS static** | Manifest/service worker/offline shell; live API/socket data not cached as stale truth |
+| Three.js / animations / themes | **PASS source/contracts** | Bootstrap + GSAP + AOS + Lottie + Three.js; reduced motion and cleanup lifecycle |
+| Security | **PASS source/static** | Helmet/CORS/rate limits/validation/RBAC/ownership/secret audit/privacy rules |
+| Docker | **SOURCE READY** | Backend/AI Dockerfiles + compose; runtime depends on Docker availability |
+| Render | **SOURCE READY** | `backend`, `npm ci`, `npm start`, `process.env.PORT` contract |
+| Git hygiene | **PRE-PUSH TOOLING READY** | cleanup + tracked-secret/lock consistency audit + GitHub Actions CI included |
 
-## External-credential statuses required by the master prompt
+## Final code state
 
-- Google Authentication: **IMPLEMENTATION COMPLETE — CREDENTIALS REQUIRED**
-- Brevo: **IMPLEMENTATION COMPLETE — CREDENTIALS REQUIRED**
-- Traffic Provider: **IMPLEMENTATION COMPLETE — CREDENTIALS REQUIRED**
-- MongoDB Atlas: **DEPLOYMENT CONFIG READY — ATLAS URI REQUIRED**
+All code/compliance errors identified in the repository audit have been consolidated into the final pre-push source. Historical update artifacts, backup files and generated QA screenshots are excluded/ignored. QA paths are clone-relative rather than sandbox-specific. Frontend stack requirements and hazard detection-similarity are part of the master cross-check.
 
-## Render lockfile warning
+## Production gates that cannot be fabricated
 
-The source uses the required future Render settings: root `backend`, build `npm ci`, start `npm start`, and `const PORT = process.env.PORT || 5000;`. `npm ci` requires `package-lock.json`. The sandbox could not reach/cache all npm packages, and repeated lockfile generation could not complete. No fake lockfile was generated. On a normal networked machine, run `npm install` in `backend`, review/commit the generated lockfile, then run `npm test` before actual deployment.
+A codebase cannot truthfully manufacture external credentials, a real BDD100K/RDD2022 held-out evaluation, or physical phone permissions. The final source therefore provides explicit configuration, training/evaluation and runtime-test paths rather than claiming those external conditions already happened.
 
-## Final stop boundary
+## Ready-for-Git condition
 
-**DEPLOYMENT READY SOURCE — STOP.**
+Before pushing the user's working repository, run:
 
-Not performed: real `.env` secret setup, Git push, remote branch/PR, Render deployment, production MongoDB Atlas, DNS or production OAuth redirect configuration.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\cleanup_for_git.ps1
+python .\scripts\final_verify.py --runtime
+python .\scripts\prepush_audit.py
+```
+
+When all required checks pass, the repository is ready for the user's Git commit/push. Production deployment remains a separate later step.

@@ -13,12 +13,12 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Journey lifecycle | IMPLEMENTED | Plan/start/pause/resume/reroute/complete + CRM update |
 | Camera privacy | IMPLEMENTED / VERIFIED static | Explicit Detection OFF default; no inference/hazard creation while off; no MediaRecorder storage |
 | Device connectivity | IMPLEMENTED | MediaDevices, WebRTC P2P camera, optional documented Web Bluetooth GATT control/sensor reads |
-| Object / road-damage detection | IMPLEMENTED | TorchScript model path; explicit OpenCV development fallback if weights absent |
-| SNN | IMPLEMENTED / AI tests VERIFIED fallback | snnTorch LIF architecture, temporal encoding, spike/membrane decode, training path |
+| Object / road-damage detection | IMPLEMENTED / DATASET GATE | BDD100K/RDD2022 prep/train/evaluate path; independent detectorValidated gate; explicit OpenCV fallback |
+| SNN | IMPLEMENTED / AI tests VERIFIED fallback / DATASET GATE | snnTorch LIF, temporal encoding, spike/membrane decode, train/evaluate path, independent riskValidated gate |
 | CRM + DTW + EMA | IMPLEMENTED / VERIFIED algorithms | Completed journeys update memory; future route scoring uses history and route similarity |
 | ACO | IMPLEMENTED / VERIFIED algorithms | Multi-ant exploration, pheromone/deposit/evaporation/iterations, route-specific utility |
 | Explainable AI | IMPLEMENTED / VERIFIED algorithms | Real SNN/hazard/traffic/DTW/EMA/history/preference/ACO metrics and reasons |
-| Community hazards | IMPLEMENTED | Dedup, reporter reputation, 500 m proximity confirmation, admin verify/reject |
+| Community hazards | IMPLEMENTED / VERIFIED CONTRACTS | Type + geographic proximity + time window + journey + detection similarity dedup, reporter reputation, 500 m confirmation, admin verify/reject |
 | Smart geofencing | IMPLEMENTED / VERIFIED algorithms | Route corridor + direction/heading + distance ahead + risk |
 | Dynamic rerouting | IMPLEMENTED | Critical obstacle/blockage/severe traffic/deviation/safety drop/better alternative + cooldown + comparison |
 | Turn-by-turn + voice | IMPLEMENTED | Provider steps, next maneuver, Web Speech language/volume/voice selection + duplicate suppression |
@@ -36,6 +36,6 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Socket.IO | IMPLEMENTED | Authenticated rooms, ownership checks, journey/GPS/device/hazard/SNN/route/chat/notification events |
 | Admin | IMPLEMENTED | Dashboard, users/RBAC, hazard verification, chat moderation, devices, health, audit |
 | Security | IMPLEMENTED / VERIFIED static | Helmet/CORS/rate limits/validation/RBAC/ownership, no committed real secrets, private-location rules |
-| Tests | GENERATED / PARTIALLY RUNTIME VERIFIED | Node test files, AI Pytest, pure algorithm/static/compliance suites; npm dependency install blocked in sandbox |
+| Tests | GENERATED / VERIFIED LOCALLY | Windows Jest 9/9 suites, 25/25 tests; AI Pytest 6/6; static/algorithm/compliance suites; consolidated runtime E2E + CI included |
 | Docker | GENERATED / ENV | Compose + backend/AI Dockerfiles; Docker daemon unavailable in sandbox |
-| Render readiness | SOURCE READY / ENV WARNING | Exact PORT/start contract and docs; `npm ci` requires lockfile generation when npm registry is reachable |
+| Render readiness | SOURCE READY | Exact PORT/start contract; pre-push audit verifies the preserved checked-in `backend/package-lock.json` matches direct dependency specs |

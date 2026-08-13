@@ -1,3 +1,17 @@
-# Cross-stack tests
+# Navora Test Suite
 
-Backend Jest tests cover algorithms, API health/simulation routing, authorization, Socket.IO module loading, frontend serving/PWA, themes, Three.js lifecycle indicators and camera-storage privacy. AI Pytest covers health/model metadata, risk ordering/batch and detection input. Browser-only permission flows still require manual/device testing.
+Primary entry point:
+
+```bash
+python scripts/final_verify.py
+```
+
+Full local runtime entry point:
+
+```bash
+python scripts/final_verify.py --runtime
+```
+
+The dependency-light tests under this directory cover frontend stack/UI/DOM/static assets, feature contracts, failure paths, accessibility, live field behavior, algorithms and performance. Backend Jest lives under `backend/tests`; AI Pytest lives under `ai-service/tests`.
+
+Optional Playwright visual checks live under `qa-screens/` and generate ignored screenshots.

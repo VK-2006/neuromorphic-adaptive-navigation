@@ -1,6 +1,6 @@
 # Navora Backend
 
-Node.js/Express 5 orchestration service. Express 5 is used so rejected async route-handler promises flow to the central error middleware. It owns authentication/RBAC, MongoDB, route/geocode/traffic provider abstractions, journey/GPS orchestration, hazards/reputation, CRM/DTW/EMA/ACO/XAI, Socket.IO, trusted sharing/SOS, chat and admin operations. The FastAPI AI service remains separate.
+Node.js/Express 5 orchestration service. It owns authentication/RBAC, MongoDB, routing/geocoding/traffic abstractions, journey/GPS orchestration, hazards/reputation, CRM/DTW/EMA/ACO/XAI, Socket.IO, trusted sharing/SOS, World Chat and admin operations. The FastAPI AI service remains separate.
 
 ## Local
 
@@ -9,7 +9,16 @@ npm install
 npm start
 ```
 
-The backend serves the static frontend and uses `const PORT = process.env.PORT || 5000;`. If MongoDB is temporarily unavailable, the HTTP service starts in degraded mode and performs background reconnect attempts instead of crashing the whole application.
+The backend serves the static frontend and uses `const PORT = process.env.PORT || 5000;`. If MongoDB is temporarily unavailable, HTTP can start in degraded mode and background reconnect attempts continue.
+
+## Verification
+
+```bash
+npm test
+npm audit --audit-level=high
+```
+
+From the repository root, `python scripts/final_verify.py --runtime` also runs the isolated Mongo-backed full runtime flow.
 
 ## Render-ready source contract
 
@@ -19,4 +28,4 @@ The backend serves the static frontend and uses `const PORT = process.env.PORT |
 - Start: `npm start`
 - Port: `process.env.PORT || 5000`
 
-`npm ci` requires `backend/package-lock.json`. The current sandbox could not reach the npm registry/cache for all packages, so lockfile generation is an environment warning rather than a fabricated artifact. Run `npm install` once on a networked development machine, commit the generated lockfile only after review, then use `npm ci` for Render.
+Keep the checked-in `backend/package-lock.json`. `scripts/prepush_audit.py` verifies its direct dependency specifications match `package.json` before Git push.

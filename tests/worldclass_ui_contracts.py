@@ -18,7 +18,9 @@ for page in pages:
     assert '/assets/js/worldclass-ui.js' in text, f'{page.name}: world-class runtime missing'
     assert '/assets/css/premium.css' not in text and '/assets/css/cinematic.css' not in text, f'{page.name}: legacy CSS still loaded'
     assert '/assets/js/premium-ui.js' not in text and '/assets/js/cinematic-ui.js' not in text, f'{page.name}: legacy UI runtime still loaded'
-    assert 'bootstrap@5.3.3' not in text, f'{page.name}: unused Bootstrap dependency still loaded'
+    assert 'bootstrap@5.3.3' in text, f'{page.name}: Bootstrap 5 stack requirement missing'
+    assert 'gsap@3.12.5' in text, f'{page.name}: GSAP stack requirement missing'
+    assert 'aos@2.3.4' in text, f'{page.name}: AOS stack requirement missing'
     assert '<meta name="description"' in text or 'name="description"' in text, f'{page.name}: description metadata missing'
 
 # First-class light and dark product identities.
@@ -51,10 +53,11 @@ for signal in [
 ]:
     assert signal in JS, f'worldclass runtime missing {signal}'
 
-# No old general-purpose animation libraries are required on the landing page.
+# Master prompt requires Bootstrap 5, GSAP, AOS and Lottie in addition to the custom Navora system.
 index=(PUBLIC/'index.html').read_text(errors='ignore')
-for legacy in ['gsap.min.js','aos.js','lottie.min.js','motion.js']:
-    assert legacy not in index, f'index still loads avoidable animation dependency {legacy}'
+for required in ['bootstrap@5.3.3','gsap@3.12.5','aos@2.3.4','lottie-web@5.12.2']:
+    assert required in index, f'index missing required frontend stack dependency {required}'
+assert 'motion.js' not in index, 'deprecated local motion runtime must stay removed'
 assert 'three.min.js' in index and '/assets/js/three-scenes.js' in index, 'meaningful Three.js hero visualization must remain'
 
 # Map / journey / AI identity must stay explicit without changing core DOM contracts.
@@ -74,7 +77,7 @@ for source,name in [(THREE,'hero'),(RESEARCH,'research')]:
         assert signal in source, f'Three.js {name} missing {signal}'
 
 # PWA shell must cache the new UI rather than deleted legacy layers.
-assert 'navora-shell-v8-live-field' in SW
+assert 'navora-shell-v9-stack-compliance' in SW
 assert '/assets/css/worldclass.css' in SW and '/assets/js/worldclass-ui.js' in SW
 assert 'premium.css' not in SW and 'cinematic.css' not in SW
 

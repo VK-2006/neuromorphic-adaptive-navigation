@@ -41,6 +41,10 @@ def main():
     out=ROOT/'ai-service/trained_models';out.mkdir(parents=True,exist_ok=True);state=out/'detector_state.pt';torch.save(model.state_dict(),state)
     # TorchVision detection models support scripting. The AI service also understands scripted tuple/list-dict output.
     model.eval().cpu();scripted=torch.jit.script(model);scripted.save(str(out/'detector.pt'))
-    meta={'detectorModelVersion':'bdd100k-rdd2022-fasterrcnn-dev-1','detectorClasses':CLASSES[1:],'validated':False,'trainingSources':['BDD100K','RDD2022'],'note':'Set validated=true only after your own held-out evaluation.'}
-    (out/'metadata.json').write_text(json.dumps(meta,indent=2));print('saved',out/'detector.pt')
+    meta_path=out/'metadata.json'
+    try: meta=json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    except Exception: meta={}
+    meta.update({'detectorModelVersion':'bdd100k-rdd2022-fasterrcnn-trained-v1','detectorClasses':CLASSES[1:],'detectorValidated':False,'trainingSources':['BDD100K','RDD2022'],'note':'Training never implies validation. Run evaluate_detector.py on held-out real data.'})
+    meta['validated']=bool(meta.get('detectorValidated',False) and meta.get('riskValidated',False))
+    meta_path.write_text(json.dumps(meta,indent=2));print('saved',out/'detector.pt');print('validation remains FALSE; evaluate on held-out data before live safety use')
 if __name__=='__main__': main()

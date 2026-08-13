@@ -1448,3 +1448,17 @@ body.wc-nav-open { overflow:hidden; }
 .navora-route-live{stroke-linecap:round;stroke-dasharray:18 10;animation:wcRouteDash 1.15s linear infinite}.navora-route-covered{stroke:var(--wc-success);stroke-linecap:round}.navora-live-position{fill:var(--wc-accent);stroke:#fff;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--wc-accent) 60%,transparent))}.navora-heading-line{stroke:var(--wc-accent-2)}
 @media(max-width:768px){.field-navigation-page .navora-nav{display:none}.live-field-bar{top:.45rem;width:calc(100vw - .7rem);border-radius:18px}.field-navigation-page .journey-layout{height:100dvh;padding-top:3.7rem}.field-navigation-page .wc-mobile-bottom{display:none!important}.field-navigation-page .camera-controls,.field-navigation-page .journey-actions{padding-bottom:calc(.55rem + env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){.navora-route-live{animation:none}}
+
+/* Master-compliance Step 2: Bootstrap remains the structural utility layer while Navora owns the visual language. */
+.navora-nav.container-fluid { --bs-gutter-x: 0; }
+#lottie-status {
+  position:absolute;
+  left:50%; top:50%;
+  width:min(34%,150px); height:min(34%,150px);
+  transform:translate(-50%,-50%);
+  z-index:2;
+  pointer-events:none;
+  opacity:.82;
+  filter:drop-shadow(0 0 22px color-mix(in srgb,var(--wc-accent) 32%,transparent));
+}
+@media (prefers-reduced-motion: reduce){ #lottie-status{display:none!important;} }

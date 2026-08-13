@@ -11,7 +11,7 @@ class RiskEngine:
         self.version='risk-snn-dev-1';self.mode='development/heuristic-fallback';self.validated=False;self.model=None
         if settings.metadata_path.exists():
             try:
-                m=json.loads(settings.metadata_path.read_text());self.version=m.get('riskModelVersion',self.version);self.validated=bool(m.get('validated',False))
+                m=json.loads(settings.metadata_path.read_text());self.version=m.get('riskModelVersion',self.version);self.validated=bool(m.get('riskValidated',m.get('validated',False)))
             except Exception: pass
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:

@@ -1,15 +1,39 @@
+# JavaScript dependencies / coverage
 node_modules/
+coverage/
+
+# Runtime environment / secrets
 .env
 .env.*
 !.env.example
+
+# Python environments / caches
 __pycache__/
 .pytest_cache/
 .venv/
 venv/
 *.pyc
-coverage/
+
+# Logs / OS noise
 logs/
+*.log
 .DS_Store
 Thumbs.db
+
+# Generated / local QA output
+qa-screens/*.png
+qa-screens/*.jpg
+qa-screens/*.jpeg
+
+# Local backup / migration artifacts
+*.backup
+*.before-*
+*before-zip-update*
+
+# Trained weights are generated locally and may be large.
 ai-service/trained_models/*.pt
 !ai-service/trained_models/README.md
+
+# Dataset payloads are not redistributed; keep only documented fixtures/manifests.
+datasets/raw/
+datasets/downloads/

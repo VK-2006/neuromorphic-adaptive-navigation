@@ -1,9 +1,9 @@
-const CACHE='navora-shell-v8-live-field';
+const CACHE='navora-shell-v9-stack-compliance';
 const SHELL=[
   '/','/index.html','/login.html','/dashboard.html','/map.html','/journey.html','/history.html','/memory.html','/journey-replay.html',
   '/notifications.html','/profile.html','/settings.html','/devices.html','/world-chat.html','/offline.html','/manifest.json',
   '/assets/css/main.css','/assets/css/worldclass.css','/assets/js/theme.js','/assets/js/api.js','/assets/js/app-shell.js','/assets/js/worldclass-ui.js',
-  '/assets/js/offline.js','/assets/js/map.js','/assets/js/journey.js','/assets/icons/navora.svg','/assets/icons/navora-192.png','/assets/icons/navora-512.png'
+  '/assets/js/offline.js','/assets/js/map.js','/assets/js/journey.js','/assets/animations/navora-pulse.json','/assets/icons/navora.svg','/assets/icons/navora-192.png','/assets/icons/navora-512.png'
 ];
 self.addEventListener('install',event=>event.waitUntil(
   caches.open(CACHE)

@@ -1,6 +1,9 @@
 from pathlib import Path
-import json, re, sys
+import argparse, json, re, subprocess, sys
 ROOT=Path(__file__).resolve().parents[1]
+parser=argparse.ArgumentParser(description='Navora master-prompt source/compliance cross-check.')
+parser.add_argument('--working-tree',action='store_true',help='Allow local runtime .env files only when Git ignores them and they are untracked.')
+args=parser.parse_args()
 fail=[]
 
 def need(name, cond, detail=''):
@@ -9,7 +12,7 @@ def need(name, cond, detail=''):
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8',errors='ignore')
 def exists(rel): return (ROOT/rel).exists()
 
-required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']
+required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','camera-share.html','shared-journey.html','offline.html']
 for p in required_pages: need(f'page:{p}', exists(f'frontend/public/{p}'))
 required_models=['User','RefreshToken','OtpVerification','PasskeyCredential','TrustedContact','Device','Route','Journey','JourneyLocationPoint','Hazard','HazardConfirmation','RouteMemory','Notification','ChatRoom','ChatMessage','ChatReaction','ChatReport','BlockedUser','UserReputation','AuditLog']
 for m in required_models: need(f'model:{m}', exists(f'backend/src/models/{m}.js'))
@@ -92,11 +95,55 @@ need('docker compose',exists('docker-compose.yml'))
 need('backend Dockerfile',exists('backend/Dockerfile'))
 need('AI Dockerfile',exists('ai-service/Dockerfile'))
 
+
+# Exact hazard-dedup and frontend-stack compliance added during final hardening.
+hsim=text('backend/src/services/hazardSimilarity.js')
+for key in ['detectionSimilarity','boxSimilarity','DETECTION_SIMILARITY_THRESHOLD']:
+    need(f'hazard-dedup:{key}',key in hsim)
+hazard_controller=text('backend/src/controllers/hazardController.js')
+need('hazard detection evidence','boundingBox' in hazard_controller and 'approximateDistance' in hazard_controller)
+
+stack_pages=''.join(text(f'frontend/public/{p}') for p in required_pages)
+for key in ['bootstrap@5.3.3','gsap@3.12.5','aos@2.3.4','lottie-web@5.12.2']:
+    need(f'frontend-stack:{key}',key in stack_pages)
+wc=text('frontend/assets/js/worldclass-ui.js')
+for key in ['window.gsap','window.AOS','window.lottie']:
+    need(f'frontend-runtime:{key}',key in wc)
+need('Lottie asset',exists('frontend/assets/animations/navora-pulse.json'))
+
+# QA and repository tooling must work from arbitrary clone paths, not sandbox-specific paths.
+qa=text('qa-screens/render_qa.py')+text('qa-screens/render_journey_map.py')
+need('portable QA paths','/mnt/data' not in qa and 'BeautifulSoup' not in qa and 'bs4' not in qa)
+for tool in ['scripts/final_verify.py','scripts/prepush_audit.py','scripts/apply_final_release.ps1','scripts/runtime_e2e.js','scripts/model_readiness.py','scripts/evaluate_detector.py','scripts/evaluate_snn.py','.github/workflows/ci.yml']:
+    need(f'final-tooling:{tool}',exists(tool))
+
+# Validation metadata must distinguish detector and SNN status so one cannot validate the other accidentally.
+meta=text('ai-service/trained_models/metadata.example.json')
+need('separate detector/risk validation flags','detectorValidated' in meta and 'riskValidated' in meta)
+need('risk validation flag runtime',"riskValidated" in text('ai-service/app/services/risk_service.py'))
+need('detector validation flag runtime',"detectorValidated" in text('ai-service/app/services/detection_service.py'))
+
 # Secrets: examples may name variables, but no non-empty values for secret/key fields.
 envexample=text('backend/.env.example')
 for var in ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET','BREVO_API_KEY','GOOGLE_CLIENT_SECRET','TRAFFIC_API_KEY','ROUTING_API_KEY']:
     m=re.search(rf'^{var}=(.*)$',envexample,re.M); need(f'blank secret:{var}',bool(m) and not m.group(1).strip())
-need('no real .env',not exists('backend/.env') and not exists('ai-service/.env'))
+# Clean distributions must not contain real .env files. In a developer working tree,
+# local runtime .env files are acceptable only when Git ignores them and does not track them.
+def git_result(*cmd):
+    try:
+        return subprocess.run(['git',*cmd],cwd=ROOT,text=True,capture_output=True,check=False)
+    except FileNotFoundError:
+        return None
+
+env_paths=[rel for rel in ['backend/.env','ai-service/.env'] if exists(rel)]
+if args.working_tree:
+    for rel in env_paths:
+        tracked=git_result('ls-files','--error-unmatch',rel)
+        ignored=git_result('check-ignore','-q',rel)
+        need(f'untracked runtime env:{rel}', not tracked or tracked.returncode!=0, 'tracked by Git')
+        need(f'ignored runtime env:{rel}', bool(ignored) and ignored.returncode==0, 'not ignored by Git')
+else:
+    need('no real .env',not env_paths, ', '.join(env_paths) if env_paths else '')
 
 # Dataset fields requested by master prompt.
 raw=text('datasets/demo-data/snn-risk-raw.csv').splitlines()[0].split(',')
@@ -111,4 +158,4 @@ if fail:
     for x in fail: print(' -',x)
     sys.exit(1)
 print('MASTER PROMPT CROSS-CHECK: PASS')
-print(f'Pages={len(required_pages)} required, Models={len(required_models)} required; core routing/AI/algorithms/privacy/auth/PWA/Three/Render contracts present.')
+print(f'Pages={len(required_pages)} required, Models={len(required_models)} required; routing/AI/algorithms/privacy/auth/PWA/Three/frontend-stack/hazard-dedup/QA/CI contracts present.')

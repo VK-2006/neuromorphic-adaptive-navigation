@@ -1,15 +1,15 @@
-# Render Deployment Guide — Future Only
+# Render Deployment Guide — Future Production Step
 
-Do **not** deploy as part of the current implementation task.
+The source is prepared for a later deployment; this guide does not create cloud resources or secrets.
 
-Future Node service settings:
+Backend Render settings:
 
 - Environment: Node
 - Root Directory: `backend`
 - Build Command: `npm ci`
 - Start Command: `npm start`
-- Application port: `const PORT = process.env.PORT || 5000;`
+- Port contract: `const PORT = process.env.PORT || 5000;`
 
-Production configuration must provide MongoDB Atlas URI, strong JWT secrets, production frontend/socket origins, separate FastAPI AI URL, Google identity credentials, Brevo credentials and any chosen routing/traffic credentials. Use HTTPS/WSS and secure cookies. Keep the FastAPI AI service separate.
+The Git working repository must keep the verified `backend/package-lock.json`. The final pre-push audit checks that its direct dependency specifications match `package.json` so `npm ci` will not fail because of a stale lockfile.
 
-`npm ci` requires a checked-in `package-lock.json`. This sandbox could not obtain every npm package from registry/cache, so it could not honestly generate the lockfile. On a networked development machine run `npm install` in `backend`, review the generated lockfile, run the full Jest suite, then future Render builds may use `npm ci` without source-code redesign.
+Production configuration must supply MongoDB Atlas, strong JWT secrets, HTTPS frontend/socket origins, the separately deployed FastAPI AI URL, Google/Brevo credentials and any live traffic/routing credentials. Use HTTPS/WSS and secure cookies. Do not commit those values.
