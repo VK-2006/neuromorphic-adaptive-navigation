@@ -83,7 +83,7 @@ for key in ['requestAnimationFrame','dispose','prefers-reduced-motion','renderer
 need('Three landing','three-hero' in text('frontend/public/index.html'))
 need('Three research','three-research' in text('frontend/public/memory.html') or 'research' in text('frontend/public/memory.html').lower())
 
-css=text('frontend/assets/css/main.css'); theme=text('frontend/assets/js/theme.js')
+css=text('frontend/assets/css/main.css')+text('frontend/assets/css/navora-v7.css'); theme=text('frontend/assets/js/theme.js')
 need('light/dark themes','data-theme="dark"' in css and 'light' in theme.lower() and 'system' in theme.lower())
 need('reduced motion','prefers-reduced-motion' in css)
 
@@ -106,9 +106,10 @@ need('hazard detection evidence','boundingBox' in hazard_controller and 'approxi
 stack_pages=''.join(text(f'frontend/public/{p}') for p in required_pages)
 for key in ['bootstrap@5.3.3','gsap@3.12.5','aos@2.3.4','lottie-web@5.12.2']:
     need(f'frontend-stack:{key}',key in stack_pages)
-wc=text('frontend/assets/js/worldclass-ui.js')
-for key in ['window.gsap','window.AOS','window.lottie']:
-    need(f'frontend-runtime:{key}',key in wc)
+v7=text('frontend/assets/js/app-shell.js')+text('frontend/assets/css/navora-v7.css')
+for key in ['protectedPages','buildAppNav','navora:returnTo','--nav-sidebar','.map-layout','.journey-layout','.chat-layout']:
+    need(f'frontend-v7:{key}',key in v7)
+need('retired showcase runtime not loaded','/assets/js/worldclass-ui.js' not in stack_pages and '/assets/css/worldclass.css' not in stack_pages)
 need('Lottie asset',exists('frontend/assets/animations/navora-pulse.json'))
 
 # QA and repository tooling must work from arbitrary clone paths, not sandbox-specific paths.

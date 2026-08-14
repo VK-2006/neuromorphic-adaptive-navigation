@@ -171,3 +171,7 @@ The smoke verifier does not print secrets. It checks backend/Mongo health, front
 ### Production geocoding policy
 
 Navora does not use the public OSMF Nominatim endpoint for autocomplete. Nominatim remains available for rate-limited, cached manual search/reverse geocoding. If a TomTom key is available, predictive place suggestions use TomTom Search; the dedicated `GEOCODING_API_KEY` is optional and falls back to the existing `TRAFFIC_API_KEY`.
+
+## Navora V7 functional product UI
+
+Production pages use `navora-v7.css` and the domain JavaScript modules. The previous `worldclass.css` / `worldclass-ui.js` showcase layer is no longer loaded. V7 prioritizes authenticated workflow state, map/journey usability, visible form/error states, responsive navigation, cache-safe updates and real Playwright browser wiring checks.

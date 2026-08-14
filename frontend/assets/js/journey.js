@@ -9,6 +9,10 @@ let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=fal
 const jid=()=>sessionStorage.getItem('journeyId');
 const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
+const journeyControlIds=['start-camera','stop-camera','detection-toggle','start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','connect-webrtc','accept-reroute','decline-reroute'];
+function setJourneyControls(enabled){journeyControlIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!enabled});const share=document.getElementById('open-mobile-share');if(share){share.setAttribute('aria-disabled',String(!enabled));share.style.pointerEvents=enabled?'':'none';share.style.opacity=enabled?'':'0.55'}}
+function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${message}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
+
 async function init(){
   if(!document.getElementById('journey-map'))return;
   if(window.L){
@@ -22,6 +26,7 @@ async function init(){
   window.speechSynthesis?.addEventListener?.('voiceschanged',loadVoices);
   const id=jid();
   if(!id){
+    showNoJourneyState();
     document.getElementById('journey-title').textContent='No active journey';
     setFieldChip('field-mode','NO JOURNEY');
     toast('Plan a real route first, then start a saved journey.','warning');
@@ -29,7 +34,7 @@ async function init(){
   }
   try{
     const d=await api(`/journeys/${id}`);
-    journey=d.journey;routeDoc=d.route;
+    journey=d.journey;routeDoc=d.route;setJourneyControls(true);
     voiceEnabled=localStorage.getItem('navora:voice-enabled')!=='false'&&journey.mode==='LIVE';
     updateVoiceButton();
     renderJourney();
