@@ -1,13 +1,58 @@
-import{api,toast}from'./api.js';const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+import{api,toast}from'./api.js';
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const arr=v=>Array.isArray(v)?v:[];
 const bt={device:null,server:null,control:null,sensor:null,savedId:null};
 const val=id=>document.getElementById(id)?.value?.trim()||'';
 function controls(enabled){document.querySelectorAll('[data-bt-command]').forEach(b=>b.disabled=!enabled);const read=document.querySelector('[data-bt-read]');if(read)read.disabled=!bt.sensor}
 function resetBt(){bt.device=null;bt.server=null;bt.control=null;bt.sensor=null;bt.savedId=null;controls(false);const out=document.getElementById('bt-sensor-output');if(out)out.textContent='No custom GATT controller connected.'}
-async function pair(){if(!navigator.bluetooth)return toast('Web Bluetooth is not supported in this browser.','error');try{const serviceUuid=val('bt-service'),controlUuid=val('bt-control'),sensorUuid=val('bt-sensor');if((controlUuid||sensorUuid)&&!serviceUuid)throw new Error('Custom service UUID is required when using control/sensor characteristics.');const optionalServices=['battery_service',...(serviceUuid?[serviceUuid]:[])];const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices});const server=await device.gatt.connect();bt.device=device;bt.server=server;let battery=null;try{const svc=await server.getPrimaryService('battery_service'),ch=await svc.getCharacteristic('battery_level'),v=await ch.readValue();battery=v.getUint8(0)}catch{}
-  const capabilities=['PAIRING','IDENTITY'];if(battery!=null)capabilities.push('BATTERY');
-  if(serviceUuid){const svc=await server.getPrimaryService(serviceUuid);if(controlUuid){bt.control=await svc.getCharacteristic(controlUuid);if(!bt.control.properties?.write&&!bt.control.properties?.writeWithoutResponse)throw new Error('Configured control characteristic is not writable.');capabilities.push('START_STOP','DETECTION_CONTROL')}if(sensorUuid){bt.sensor=await svc.getCharacteristic(sensorUuid);if(!bt.sensor.properties?.read)throw new Error('Configured sensor characteristic is not readable.');capabilities.push('SENSOR_METADATA')}}
-  const saved=await api('/devices',{method:'POST',body:JSON.stringify({name:device.name||'Bluetooth sensor',deviceType:'BLUETOOTH_SENSOR',externalId:device.id,battery,capabilities,enabled:true})});bt.savedId=saved._id;controls(!!bt.control);const read=document.querySelector('[data-bt-read]');if(read)read.disabled=!bt.sensor;toast(`Paired ${device.name||'Bluetooth device'}${battery==null?'':` · Battery ${battery}%`}`);device.addEventListener('gattserverdisconnected',()=>{toast(`${device.name||'Device'} disconnected`);resetBt()});await load()}catch(e){resetBt();toast(`Bluetooth: ${e.message}`,'error')}}
-async function sendCommand(command){if(!bt.control)return toast('Pair a device with a writable control characteristic first.','error');try{const bytes=new TextEncoder().encode(command);if(bt.control.properties.write)await bt.control.writeValueWithResponse(bytes);else await bt.control.writeValueWithoutResponse(bytes);toast(`Bluetooth command sent: ${command}`)}catch(e){toast(`Bluetooth command failed: ${e.message}`,'error')}}
-async function readSensor(){if(!bt.sensor)return toast('No readable sensor characteristic is configured.','error');try{const data=await bt.sensor.readValue();const bytes=new Uint8Array(data.buffer,data.byteOffset,data.byteLength);let text='';try{text=new TextDecoder().decode(bytes).replace(/\0+$/,'')}catch{}const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join(' ');document.getElementById('bt-sensor-output').textContent=`Sensor metadata: ${text&&/[\x20-\x7E]/.test(text)?text:`0x ${hex}`}`;if(bt.savedId)await api(`/devices/${bt.savedId}`,{method:'PATCH',body:JSON.stringify({enabled:true})})}catch(e){toast(`Sensor read failed: ${e.message}`,'error')}}
-async function load(){const h=document.getElementById('device-list');if(!h)return;try{const d=await api('/devices');h.innerHTML=d.length?d.map(x=>`<div class="data-row"><div style="display:flex;justify-content:space-between"><strong>${esc(x.name)}</strong><span>${x.battery==null?'':esc(x.battery)+'%'}</span></div><div class="muted">${esc(x.deviceType)} · ${(x.capabilities||[]).map(esc).join(' · ')}</div><div class="toolbar"><button class="btn-navora btn-ghost" data-device-remove="${x._id}">Remove</button></div></div>`).join(''):'<div class="empty-state">No saved devices.</div>';h.querySelectorAll('[data-device-remove]').forEach(b=>b.addEventListener('click',async()=>{await api('/devices/'+b.dataset.deviceRemove,{method:'DELETE'});load()}))}catch(e){toast(e.message,'error')}}
-document.querySelector('[data-bluetooth-pair]')?.addEventListener('click',pair);document.querySelectorAll('[data-bt-command]').forEach(b=>b.addEventListener('click',()=>sendCommand(b.dataset.btCommand)));document.querySelector('[data-bt-read]')?.addEventListener('click',readSensor);addEventListener('pagehide',()=>{try{bt.device?.gatt?.disconnect()}catch{}});load();
+async function pair(){
+  if(!navigator.bluetooth)return toast('Web Bluetooth is not supported in this browser.','error');
+  try{
+    const serviceUuid=val('bt-service'),controlUuid=val('bt-control'),sensorUuid=val('bt-sensor');
+    if((controlUuid||sensorUuid)&&!serviceUuid)throw new Error('Custom service UUID is required when using control/sensor characteristics.');
+    const optionalServices=['battery_service',...(serviceUuid?[serviceUuid]:[])];
+    const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices});
+    if(!device?.gatt)throw new Error('Selected Bluetooth device does not expose GATT.');
+    const server=await device.gatt.connect();bt.device=device;bt.server=server;
+    let battery=null;try{const svc=await server.getPrimaryService('battery_service'),ch=await svc.getCharacteristic('battery_level'),v=await ch.readValue();battery=v.getUint8(0)}catch{}
+    const capabilities=['PAIRING','IDENTITY'];if(battery!=null)capabilities.push('BATTERY');
+    if(serviceUuid){
+      const svc=await server.getPrimaryService(serviceUuid);
+      if(controlUuid){bt.control=await svc.getCharacteristic(controlUuid);if(!bt.control?.properties?.write&&!bt.control?.properties?.writeWithoutResponse)throw new Error('Configured control characteristic is not writable.');capabilities.push('START_STOP','DETECTION_CONTROL')}
+      if(sensorUuid){bt.sensor=await svc.getCharacteristic(sensorUuid);if(!bt.sensor?.properties?.read)throw new Error('Configured sensor characteristic is not readable.');capabilities.push('SENSOR_METADATA')}
+    }
+    const saved=(await api('/devices',{method:'POST',body:JSON.stringify({name:device.name||'Bluetooth sensor',deviceType:'BLUETOOTH_SENSOR',externalId:device.id,battery,capabilities,enabled:true})}))||{};
+    bt.savedId=saved._id||null;controls(Boolean(bt.control));const read=document.querySelector('[data-bt-read]');if(read)read.disabled=!bt.sensor;
+    toast(`Paired ${device.name||'Bluetooth device'}${battery==null?'':` · Battery ${battery}%`}`,'success');
+    device.addEventListener?.('gattserverdisconnected',()=>{toast(`${device.name||'Device'} disconnected`,'warning');resetBt()});
+    await load();
+  }catch(e){resetBt();toast(`Bluetooth: ${e.message}`,'error')}
+}
+async function sendCommand(command){
+  if(!bt.control)return toast('Pair a device with a writable control characteristic first.','error');
+  try{const bytes=new TextEncoder().encode(command);if(bt.control.properties?.write)await bt.control.writeValueWithResponse(bytes);else await bt.control.writeValueWithoutResponse(bytes);toast(`Bluetooth command sent: ${command}`,'success')}catch(e){toast(`Bluetooth command failed: ${e.message}`,'error')}
+}
+async function readSensor(){
+  if(!bt.sensor)return toast('No readable sensor characteristic is configured.','error');
+  try{
+    const data=await bt.sensor.readValue(),bytes=new Uint8Array(data.buffer,data.byteOffset,data.byteLength);
+    let text='';try{text=new TextDecoder().decode(bytes).replace(/\0+$/,'')}catch{}
+    const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join(' '),out=document.getElementById('bt-sensor-output');
+    if(out)out.textContent=`Sensor metadata: ${text&&/[\x20-\x7E]/.test(text)?text:`0x ${hex}`}`;
+    if(bt.savedId)await api(`/devices/${encodeURIComponent(bt.savedId)}`,{method:'PATCH',body:JSON.stringify({enabled:true})});
+  }catch(e){toast(`Sensor read failed: ${e.message}`,'error')}
+}
+async function load(){
+  const h=document.getElementById('device-list');if(!h)return;
+  try{
+    const rows=arr(await api('/devices'));
+    h.innerHTML=rows.length?rows.map(x=>`<div class="data-row"><div style="display:flex;justify-content:space-between"><strong>${esc(x?.name)}</strong><span>${x?.battery==null?'':esc(x.battery)+'%'}</span></div><div class="muted">${esc(x?.deviceType)} · ${arr(x?.capabilities).map(esc).join(' · ')}</div><div class="toolbar"><button class="btn-navora btn-ghost" type="button" data-device-remove="${esc(x?._id)}">Remove</button></div></div>`).join(''):'<div class="empty-state">No saved devices.</div>';
+    h.querySelectorAll('[data-device-remove]').forEach(b=>b.addEventListener('click',async()=>{try{await api('/devices/'+encodeURIComponent(b.dataset.deviceRemove),{method:'DELETE'});await load()}catch(e){toast(e.message,'error')}}));
+  }catch(e){h.innerHTML='<div class="empty-state">Saved devices are temporarily unavailable.</div>';toast(e.message,'error')}
+}
+document.querySelector('[data-bluetooth-pair]')?.addEventListener('click',pair);
+document.querySelectorAll('[data-bt-command]').forEach(b=>b.addEventListener('click',()=>sendCommand(b.dataset.btCommand)));
+document.querySelector('[data-bt-read]')?.addEventListener('click',readSensor);
+addEventListener('pagehide',()=>{try{bt.device?.gatt?.disconnect()}catch{}});
+load();
+// Commands intentionally remain explicit for the Bluetooth control contract: DETECTION_ON / DETECTION_OFF.

@@ -34,10 +34,10 @@ async function init(){
   }
   try{
     const d=await api(`/journeys/${id}`);
-    journey=d.journey;routeDoc=d.route;setJourneyControls(true);
+    journey=d?.journey||null;routeDoc=d?.route||null;if(!journey)throw new Error('Journey data is unavailable.');
     voiceEnabled=localStorage.getItem('navora:voice-enabled')!=='false'&&journey.mode==='LIVE';
     updateVoiceButton();
-    renderJourney();
+    renderJourney();setJourneyControls(true);
     connectSocket();
     await loadLiveReadiness();
     startAdaptiveReevaluation();
@@ -52,7 +52,7 @@ async function init(){
         requestWakeLock();
       }
     }
-  }catch(e){toast(e.message,'error')}
+  }catch(e){setJourneyControls(false);showNoJourneyState(e.message);toast(e.message,'error')}
 }
 
 function bind(){
@@ -115,7 +115,7 @@ function renderJourney(){
 
 function drawRoute(){
   routeLine?.remove();coveredLine?.remove();remainingLine?.remove();
-  if(!route.length)return;
+  if(!route.length||!map||!window.L)return;
   routeLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:9,opacity:.28,className:'navora-route-base'}).addTo(map);
   remainingLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:7,opacity:.94,className:'navora-route-live'}).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[40,40]});
@@ -123,7 +123,7 @@ function drawRoute(){
 
 function connectSocket(){
   if(!window.io||!jid())return;
-  socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:800,reconnectionDelayMax:5000});
+  socket=window.io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:800,reconnectionDelayMax:5000});
   socket.on('connect',()=>setFieldChip('socket-state','REALTIME ON'));
   socket.on('disconnect',()=>setFieldChip('socket-state','REALTIME RETRY'));
   socket.emit('journey:join',{journeyId:jid()},ack=>{if(!ack?.ok)toast('Journey socket authorization failed','error')});
@@ -135,9 +135,10 @@ function connectSocket(){
 
 async function connectWebRtcReceiver(){
   if(!socket)return toast('Journey socket not connected','error');
+  if(!window.RTCPeerConnection)return toast('WebRTC is not supported in this browser.','error');
   try{
     if(webrtcPc)webrtcPc.close();
-    webrtcPc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    webrtcPc=new window.RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
     webrtcPc.ontrack=e=>{stream=e.streams[0];const v=document.getElementById('camera-video');v.srcObject=stream;v.play();document.getElementById('camera-state').textContent='Mobile WebRTC ON';startInferenceLoop()};
     webrtcPc.onicecandidate=e=>{if(e.candidate&&webrtcPeerId)socket.emit('webrtc:signal',{journeyId:jid(),targetId:webrtcPeerId,signal:{type:'candidate',candidate:e.candidate}})};
     webrtcPc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(webrtcPc.connectionState))document.getElementById('camera-state').textContent='Mobile WebRTC disconnected'};
@@ -343,7 +344,7 @@ function applyProgress(r){
 function geoDistance(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),la1=rad(a.lat),la2=rad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 
 function splitRouteByDistance(distanceCovered){
-  if(route.length<2||!window.L)return;let remaining=Math.max(0,Number(distanceCovered)||0),cut={...route[0]},idx=0;
+  if(route.length<2||!window.L||!map)return;let remaining=Math.max(0,Number(distanceCovered)||0),cut={...route[0]},idx=0;
   for(let i=0;i<route.length-1;i++){const len=geoDistance(route[i],route[i+1]);if(remaining<=len){const t=len?Math.max(0,Math.min(1,remaining/len)):0;cut={lat:route[i].lat+(route[i+1].lat-route[i].lat)*t,lng:route[i].lng+(route[i+1].lng-route[i].lng)*t};idx=i;break}remaining-=len;idx=i+1;cut={...route[Math.min(i+1,route.length-1)]}}
   const covered=[...route.slice(0,idx+1),cut].filter((p,i,a)=>i===0||p.lat!==a[i-1].lat||p.lng!==a[i-1].lng),left=[cut,...route.slice(idx+1)];
   coveredLine?.remove();remainingLine?.remove();
