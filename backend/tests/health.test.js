@@ -2,3 +2,5 @@ const request=require('supertest');process.env.NODE_ENV='test';const {createApp}
 
 test('health exposes deployment commit metadata without secrets',async()=>{const r=await request(app).get('/health');expect(r.status).toBe(200);expect(r.body).toHaveProperty('commit')});
 test('public readiness status uses explicit booleans',async()=>{const a=await request(app).get('/api/v1/auth/config');expect(a.status).toBe(200);expect(typeof a.body.data.passkeys.enabled).toBe('boolean');expect(typeof a.body.data.email.brevoConfigured).toBe('boolean');const t=await request(app).get('/api/v1/traffic/status');expect(t.status).toBe(200);expect(typeof t.body.data.live).toBe('boolean')});
+
+test('geocoding status exposes policy-aware typeahead',async()=>{const g=await request(app).get('/api/v1/geocoding/status');expect(g.status).toBe(200);expect(typeof g.body.data.typeahead).toBe('boolean');expect(['nominatim','graphhopper','tomtom']).toContain(g.body.data.effective)});

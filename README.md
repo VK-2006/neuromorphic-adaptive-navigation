@@ -166,3 +166,8 @@ python .\scripts\production_smoke.py `
 ```
 
 The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates.
+
+
+### Production geocoding policy
+
+Navora does not use the public OSMF Nominatim endpoint for autocomplete. Nominatim remains available for rate-limited, cached manual search/reverse geocoding. If a TomTom key is available, predictive place suggestions use TomTom Search; the dedicated `GEOCODING_API_KEY` is optional and falls back to the existing `TRAFFIC_API_KEY`.

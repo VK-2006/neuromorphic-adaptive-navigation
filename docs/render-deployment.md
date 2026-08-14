@@ -26,3 +26,8 @@ python .\scripts\production_smoke.py `
 ```
 
 This verifies the exact Render commit, backend/Mongo health, static PWA pages, non-secret Google/Brevo/WebAuthn configuration, routing/geocoding, live TomTom annotation, Socket.IO, AI health/model metadata and risk inference. Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone hardware remain separate evidence gates.
+
+
+## Nominatim policy-safe geocoding
+
+The public OSMF Nominatim service is retained as a configurable manual-search/reverse provider and is rate-limited/cached server-side. It is not used for keystroke autocomplete. When a TomTom geocoding key or the existing TomTom traffic key is available, Navora uses TomTom Search predictive typeahead for production place suggestions. `GEOCODING_API_KEY` is optional; if omitted, `TRAFFIC_API_KEY` is reused when that key is valid for the TomTom Search service.
