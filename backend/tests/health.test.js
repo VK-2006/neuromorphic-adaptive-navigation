@@ -7,3 +7,5 @@ test('geocoding status exposes policy-aware typeahead',async()=>{const g=await r
 
 test('email provider status is non-secret and explicit',async()=>{const r=await request(app).get('/api/v1/auth/email/status');expect(r.status).toBe(200);expect(typeof r.body.data.configured).toBe('boolean');expect(r.body.data).not.toHaveProperty('apiKey')});
 test('chat status exposes realtime and REST fallback capabilities',async()=>{const r=await request(app).get('/api/v1/chat/status');expect(r.status).toBe(200);expect(r.body.data.available).toBe(true);expect(r.body.data.restFallback).toBe(true)});
+
+test('google auth pages allow popup opener communication',async()=>{const r=await request(app).get('/login.html');expect(r.status).toBe(200);expect(r.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups')});
