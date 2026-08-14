@@ -131,6 +131,10 @@ async function main(){
   assert(Array.isArray(rr?.data?.routes),'Reroute comparison missing route alternatives');
 
   await socketRoundTrip(journeyId);
+  const restChat=await request('/api/v1/chat/messages/global',{method:'POST',body:{content:`Navora REST chat ${Date.now()}`},expectStatus:201});
+  assert(restChat?.data?.content,'REST chat fallback failed');
+  const chatHistory=await request('/api/v1/chat/messages/global');
+  assert((chatHistory?.data?.messages||[]).some(x=>x.id===restChat.data.id),'REST chat message was not persisted');
   const readiness=await request('/api/v1/live/readiness');assert(readiness?.data?.ai,'Live readiness response missing AI state');
 
   await request('/api/v1/trusted-contacts',{method:'POST',body:{name:'E2E Contact',phone:'+910000000000',relationship:'Test',sharePermission:true},expectStatus:201});

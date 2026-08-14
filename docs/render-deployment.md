@@ -31,3 +31,8 @@ This verifies the exact Render commit, backend/Mongo health, static PWA pages, n
 ## Nominatim policy-safe geocoding
 
 The public OSMF Nominatim service is retained as a configurable manual-search/reverse provider and is rate-limited/cached server-side. It is not used for keystroke autocomplete. When a TomTom geocoding key or the existing TomTom traffic key is available, Navora uses TomTom Search predictive typeahead for production place suggestions. `GEOCODING_API_KEY` is optional; if omitted, `TRAFFIC_API_KEY` is reused when that key is valid for the TomTom Search service.
+
+
+## OTP and World Chat production diagnostics
+
+`GET /api/v1/auth/email/status` returns only non-secret Brevo readiness booleans. Failed production OTP sends now return a retryable error instead of redirecting to an unusable verification page, and failed sends do not consume the resend cooldown. World Chat now uses authenticated REST for durable message creation plus Socket.IO for realtime fan-out, presence and typing; `GET /api/v1/chat/status` exposes non-secret transport readiness.

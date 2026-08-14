@@ -23,14 +23,14 @@ function init(io){
     socket.on('webrtc:signal',({journeyId,targetId,signal})=>{const room=`webrtc:${journeyId}`;if(!socket.rooms.has(room))return;const payload={journeyId,fromId:socket.id,signal};if(targetId){const target=io.sockets.sockets.get(String(targetId));if(!target?.rooms?.has(room))return;target.emit('webrtc:signal',payload)}else socket.to(room).emit('webrtc:signal',payload)});
     socket.on('chat:join',async({roomId='global'},ack)=>{try{const room=await getRoom(roomId);const allowed=await canJoinChat(socket.user,room);if(allowed){if(socket.data.chatAlias)socket.leave(`chat:${socket.data.chatAlias}`);if(socket.data.chatDbId)socket.leave(`chat:${socket.data.chatDbId}`);socket.join(`chat:${roomId}`);socket.join(`chat:${String(room._id)}`);socket.data.chatAlias=roomId;socket.data.chatDbId=String(room._id)}ack?.({ok:!!allowed,roomId:allowed?roomId:null,dbRoomId:allowed?String(room._id):null})}catch{ack?.({ok:false})}});
     socket.on('chat:typing',({roomId,typing})=>{if(socket.rooms.has(`chat:${roomId}`))socket.to(`chat:${roomId}`).emit('chat:typing',{userId:uid,name:socket.user.name,typing:!!typing})});
-    socket.on('chat:send',async({roomId='global',content,replyTo})=>{try{
+    socket.on('chat:send',async({roomId='global',content,replyTo},ack)=>{try{
       if(Date.now()-lastMessageAt<650)throw new Error('Slow down');lastMessageAt=Date.now();content=String(content||'').trim().replace(/<[^>]*>/g,'');if(!content||content.length>1000)throw new Error('Invalid message');
       const room=await getRoom(roomId);if(!await canJoinChat(socket.user,room))throw new Error('Room unavailable');
       let reply=null;if(replyTo){reply=await ChatMessage.findOne({_id:replyTo,roomId:room._id,deletedAt:null}).populate('userId','name');if(!reply)throw new Error('Reply target unavailable')}
       const msg=await ChatMessage.create({roomId:room._id,userId:socket.user._id,content,replyTo:reply?._id});
       const payload={id:String(msg._id),roomId,dbRoomId:String(room._id),content,replyTo:reply?{id:String(reply._id),content:reply.content,user:{id:String(reply.userId?._id),name:reply.userId?.name}}:null,createdAt:msg.createdAt,user:{id:uid,name:socket.user.name,avatarUrl:socket.user.avatarUrl},reactions:[]};
-      const excluded=await blockedUserRooms(uid);io.to(`chat:${roomId}`).except(excluded).emit('chat:message',payload);if(['GLOBAL','NEARBY','REGION'].includes(room.type))io.to('authenticated').except([`user:${uid}`,...excluded]).emit('chat:unread',{roomId,roomName:room.name,senderId:uid});
-    }catch(e){socket.emit('chat:error',{message:e.message})}});
+      const excluded=await blockedUserRooms(uid);io.to(`chat:${roomId}`).except(excluded).emit('chat:message',payload);if(['GLOBAL','NEARBY','REGION'].includes(room.type))io.to('authenticated').except([`user:${uid}`,...excluded]).emit('chat:unread',{roomId,roomName:room.name,senderId:uid});ack?.({ok:true,message:payload});
+    }catch(e){ack?.({ok:false,message:e.message});socket.emit('chat:error',{message:e.message})}});
     socket.on('disconnect',()=>{const n=(presence.get(uid)||1)-1;if(n<=0){presence.delete(uid);io.to('authenticated').emit('presence:user',{userId:uid,online:false})}else presence.set(uid,n);io.to('authenticated').emit('presence:count',{onlineUsers:presence.size})});
   });
   return io;
