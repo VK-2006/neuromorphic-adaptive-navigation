@@ -13,7 +13,7 @@
     "verify": "npm test && npm audit --audit-level=high"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.16.0 <23"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.1.2",

@@ -132,12 +132,13 @@ Google Identity, Brevo and live traffic are source-complete but require user-sup
 
 ## Render-ready source contract
 
-Future backend target:
+Current integrated backend + frontend Render target:
 
 - Environment: Node
-- Root Directory: `backend`
-- Build Command: `npm ci`
-- Start Command: `npm start`
+- Root Directory: leave blank (repository root; the backend serves `frontend/` at runtime)
+- Build Command: `cd backend && npm ci`
+- Start Command: `cd backend && npm start`
+- Health Check Path: `/health`
 - Code: `const PORT = process.env.PORT || 5000;`
 
 The user's Git working repository already preserves `backend/package-lock.json`; the final pre-push audit verifies its direct dependency specifications match `package.json` before push.
