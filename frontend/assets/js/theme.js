@@ -15,4 +15,11 @@
   document.addEventListener('DOMContentLoaded',()=>render(window.NavoraTheme.get()),{once:true});
   document.addEventListener('click',event=>{const button=event.target.closest?.('[data-theme-toggle]');if(!button)return;const current=window.NavoraTheme.get();apply(order[(order.indexOf(current)+1)%order.length])});
   media()?.addEventListener?.('change',()=>{if(window.NavoraTheme.get()==='system')apply('system')});
+
+  // V9 functional enhancement layer is a module and is evaluated only once even if
+  // a page also includes it explicitly before a critical workflow module.
+  if(!document.querySelector('script[data-navora-v9]')){
+    const s=document.createElement('script');s.type='module';s.src='/assets/js/v9-functional.js';s.dataset.navoraV9='true';
+    document.head.appendChild(s);
+  }
 })();

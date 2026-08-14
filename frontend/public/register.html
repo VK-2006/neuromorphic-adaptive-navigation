@@ -1,3 +1,33 @@
 <!DOCTYPE html>
-
-<html lang="en"><head><link href="https://cdn.jsdelivr.net" rel="preconnect"/><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><meta content="#ffffff" name="theme-color"/><meta content="Register in Navora — neuromorphic adaptive navigation, route memory and swarm intelligence." name="description"/><link href="/manifest.json" rel="manifest"/><link href="https://unpkg.com" rel="preconnect"/><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/><link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet"/><link href="/assets/css/main.css" rel="stylesheet"/><link href="/assets/css/navora-v7.css" rel="stylesheet"/><script src="/assets/js/theme.js"></script><title>Register · Navora</title></head><body><nav class="navora-nav container-fluid"><a class="brand" href="index.html"><span class="brand-mark"></span><span>NAVORA</span></a><div class="nav-links"><a href="dashboard.html">Dashboard</a><a href="map.html">Navigate</a><a href="journey.html">Live Journey</a><a href="world-chat.html">World Chat</a><a href="devices.html">Devices</a><a href="memory.html">Memory</a><a href="history.html">History</a></div><button aria-label="Change theme" class="icon-btn" data-theme-toggle="">◐ Theme</button></nav><main class="auth-shell"><form class="card auth-card" id="register-form"><span class="chip">Create identity</span><h1>Join Navora</h1><div class="form-status hidden" data-form-status aria-live="polite"></div><label for="name">Name</label><input autocomplete="name" class="input" id="name" required=""/><br/><label for="email">Email</label><input autocomplete="email" class="input" id="email" required="" type="email"/><br/><label for="password">Password</label><input autocomplete="new-password" class="input" id="password" minlength="8" required="" type="password"/><div class="toolbar"><button class="btn-navora" type="submit">Create account</button><a class="btn-navora btn-ghost" href="login.html">I already have an account</a></div></form></main><script src="/assets/js/app-shell.js" type="module"></script><script src="/assets/js/auth.js" type="module"></script><script defer="defer" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script defer="defer" src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script><script defer="defer" src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#ffffff"><meta name="description" content="Create a Navora account.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+  <link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="/assets/css/navora-v7.css">
+  <script src="/assets/js/theme.js"></script>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <title>Register · Navora</title>
+</head>
+<body>
+<nav class="navora-nav container-fluid"><a class="brand" href="index.html"><span class="brand-mark"></span><span>NAVORA</span></a><button aria-label="Change theme" class="icon-btn" data-theme-toggle>◐ Theme</button></nav>
+<main class="auth-shell">
+  <form class="card auth-card" id="register-form">
+    <span class="chip">Create identity</span><h1>Join Navora</h1>
+    <div class="form-status hidden" data-form-status aria-live="polite"></div>
+    <label for="name">Name</label><input autocomplete="name" class="input" id="name" minlength="2" maxlength="80" required>
+    <br><label for="email">Email</label><input autocomplete="email" class="input" id="email" required type="email">
+    <br><label for="password">Password</label><input autocomplete="new-password" class="input" id="password" minlength="8" maxlength="128" required type="password">
+    <br><label for="confirm-password">Confirm password</label><input autocomplete="new-password" class="input" id="confirm-password" minlength="8" maxlength="128" required type="password">
+    <div class="toolbar"><button class="btn-navora" type="submit">Create account</button><a class="btn-navora btn-ghost" href="login.html">I already have an account</a></div>
+    <div class="divider"></div>
+    <div id="google-signin" data-google-mode="signup"><span class="muted">Checking Google sign-up configuration…</span></div>
+    <p class="muted" id="google-status" style="font-size:.82rem"></p>
+  </form>
+</main>
+<script src="/assets/js/app-shell.js" type="module"></script><script src="/assets/js/auth.js" type="module"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+</body></html>

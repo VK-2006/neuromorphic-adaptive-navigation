@@ -19,13 +19,13 @@ async function main(){
   await p.route('**/api/v1/auth/email/status',r=>fulfill(r,{configured:true,providerReachable:true,senderRegistered:true,senderActive:true}));
   await p.route('**/api/v1/auth/verify-email',r=>fulfill(r,{verified:true}));
   await p.route('**/api/v1/auth/login',r=>fulfill(r,{loggedIn:true}));
-  // email-password flow isolates Google GIS; Google wiring is tested separately below.
   await p.route('**/api/v1/auth/config',r=>fulfill(r,{google:{enabled:false,clientId:null}}));
   await p.route('https://accounts.google.com/gsi/client',r=>r.fulfill({status:200,contentType:'text/javascript',body:''}));
   await p.goto(BASE+'/register.html',{waitUntil:'domcontentloaded',timeout:60000});await waitClass(p,'navora-auth');
-  assert(await p.locator('link[href="/assets/css/navora-v7.css"]').count()===1,'V7 CSS missing');
+  assert(await p.locator('link[href="/assets/css/navora-v7.css"]').count()===1,'V7/V9 application CSS missing');
   assert(await p.locator('script[src="/assets/js/worldclass-ui.js"]').count()===0,'old runtime loaded');
-  await p.fill('#name','Browser User');await p.fill('#email','browser@example.com');await p.fill('#password','StrongPass123!');
+  await p.fill('#name','Browser User');await p.fill('#email','browser@example.com');
+  await p.fill('#password','StrongPass123!');await p.fill('#confirm-password','StrongPass123!');
   await p.click('#register-form button[type="submit"]');await p.waitForURL(/verify-email\.html/,{timeout:10000});
   await p.fill('#otp','123456');await p.click('#verify-form button[type="submit"]');await p.waitForURL(/login\.html/,{timeout:10000});
   await p.route('**/api/v1/users/me',r=>fulfill(r,{id:'u1',name:'Browser User',email:'browser@example.com',role:'USER',emailVerified:true,preferences:{}}));
@@ -35,25 +35,16 @@ async function main(){
   assert(errs.length===0,'page errors: '+errs.join(' | '));await c.close();
  });
 
-
  await test('Google GIS wiring uses window.google without name shadowing',async()=>{
   const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage(),errs=[];
   p.on('pageerror',e=>errs.push(e.stack||e.message));
   await p.route('https://accounts.google.com/gsi/client',r=>r.fulfill({status:200,contentType:'text/javascript',body:''}));
-  await p.addInitScript(()=>{
-    window.__navoraGoogleInit=false;
-    window.google={accounts:{id:{
-      initialize(options){window.__navoraGoogleInit=!!options?.client_id},
-      renderButton(host){host.dataset.googleRendered='true'}
-    }}};
-  });
+  await p.addInitScript(()=>{window.__navoraGoogleInit=false;window.google={accounts:{id:{initialize(options){window.__navoraGoogleInit=!!options?.client_id},renderButton(host){host.dataset.googleRendered='true'}}}}});
   await p.route('**/api/v1/auth/config',r=>fulfill(r,{google:{enabled:true,clientId:'browser-google-client'}}));
-  await p.goto(BASE+'/login.html',{waitUntil:'domcontentloaded',timeout:60000});
-  await waitClass(p,'navora-auth');
+  await p.goto(BASE+'/login.html',{waitUntil:'domcontentloaded',timeout:60000});await waitClass(p,'navora-auth');
   await p.waitForFunction(()=>document.querySelector('#google-signin')?.dataset.googleRendered==='true',null,{timeout:10000});
   assert(await p.evaluate(()=>window.__navoraGoogleInit)===true,'Google GIS initialize was not called with client id');
-  assert(errs.length===0,'Google wiring page errors: '+errs.join(' | '));
-  await c.close();
+  assert(errs.length===0,'Google wiring page errors: '+errs.join(' | '));await c.close();
  });
 
  await test('map route selection -> journey browser wiring',async()=>{
@@ -79,14 +70,17 @@ async function main(){
   await p.route('**/api/v1/chat/rooms*',r=>fulfill(r,[{_id:'global-db',name:'Global',type:'GLOBAL'}]));
   await p.route('**/api/v1/chat/blocks',r=>fulfill(r,[]));
   await p.route('**/api/v1/chat/messages/global?*',r=>fulfill(r,{room:{_id:'global-db',name:'Global',type:'GLOBAL'},messages:[],hasMore:false}));
-  await p.route('**/api/v1/chat/messages/global',r=>r.request().method()==='POST'?fulfill(r,{id:'m1',roomId:'global',content:'Hello Navora V7',createdAt:new Date().toISOString(),user:{id:'u1',name:'Chat User'},reactions:[]},201):r.continue());
+  await p.route('**/api/v1/chat/messages/global',r=>r.request().method()==='POST'?fulfill(r,{id:'m1',roomId:'global',content:'Hello Navora V9',createdAt:new Date().toISOString(),user:{id:'u1',name:'Chat User'},reactions:[]},201):r.continue());
   await p.goto(BASE+'/world-chat.html',{waitUntil:'domcontentloaded',timeout:60000});await waitClass(p,'navora-app');await p.locator('#chat-input').waitFor({timeout:15000});
-  await p.fill('#chat-input','Hello Navora V7');await p.click('#chat-form button[type="submit"]');await p.waitForFunction(()=>document.querySelector('#message-list')?.textContent.includes('Hello Navora V7'),null,{timeout:10000});await c.close();
+  await p.fill('#chat-input','Hello Navora V9');await p.click('#chat-form button[type="submit"]');await p.waitForFunction(()=>document.querySelector('#message-list')?.textContent.includes('Hello Navora V9'),null,{timeout:10000});await c.close();
  });
 
- await test('service worker uses V7 network-first build',async()=>{const r=await fetch(BASE+'/service-worker.js',{headers:{'cache-control':'no-cache'}}),t=await r.text();assert(r.ok,'HTTP '+r.status);assert(t.includes('navora-v7-functional-product-1'),'cache id missing');assert(t.includes('networkFirst'),'networkFirst missing')});
+ await test('service worker uses V9 network-first build',async()=>{
+  const r=await fetch(BASE+'/service-worker.js',{headers:{'cache-control':'no-cache'}}),t=await r.text();
+  assert(r.ok,'HTTP '+r.status);assert(t.includes('navora-v9-functional-e2e-1'),'V9 cache id missing');assert(t.includes('networkFirst'),'networkFirst missing');
+ });
  await browser.close();
- if(fail.length){console.error('\nNAVORA V7 BROWSER E2E: FAIL');fail.forEach(x=>console.error(' - '+x));process.exit(1)}
- console.log('\nNAVORA V7 BROWSER E2E: PASS');
+ if(fail.length){console.error('\nNAVORA CORE BROWSER E2E: FAIL');fail.forEach(x=>console.error(' - '+x));process.exit(1)}
+ console.log('\nNAVORA CORE BROWSER E2E: PASS');
 }
 main().catch(e=>{console.error(e);process.exit(1)});

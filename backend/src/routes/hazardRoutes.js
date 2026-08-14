@@ -1,1 +1,14 @@
-const r=require('express').Router();const c=require('../controllers/hazardController');const {authenticate}=require('../middleware/auth');const v=require('../validators/domainValidators');const validate=require('../middleware/validate');r.use(authenticate);r.post('/detect',v.detect,validate,c.detect);r.get('/nearby',c.nearby);r.post('/report',v.hazardReport,validate,c.report);r.post('/:id/confirm',v.hazardConfirm,validate,c.confirm);module.exports=r;
+const r=require('express').Router();
+const c=require('../controllers/hazardController');
+const metadata=require('../controllers/hazardMetadataController');
+const {authenticate}=require('../middleware/auth');
+const v=require('../validators/domainValidators');
+const mv=require('../validators/hazardMetadataValidators');
+const validate=require('../middleware/validate');
+r.use(authenticate);
+r.post('/detect',v.detect,validate,c.detect);
+r.post('/analyze',mv.analyze,validate,metadata.analyze);
+r.get('/nearby',c.nearby);
+r.post('/report',v.hazardReport,validate,c.report);
+r.post('/:id/confirm',v.hazardConfirm,validate,c.confirm);
+module.exports=r;
