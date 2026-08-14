@@ -14,11 +14,14 @@ async function main(){
  });
 
  await test('register -> verify -> login -> dashboard button wiring',async()=>{
-  const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage(),errs=[];p.on('pageerror',e=>errs.push(e.message));
+  const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage(),errs=[];p.on('pageerror',e=>errs.push(e.stack||e.message));
   await p.route('**/api/v1/auth/register',r=>fulfill(r,{delivery:{delivery:'live'}}));
   await p.route('**/api/v1/auth/email/status',r=>fulfill(r,{configured:true,providerReachable:true,senderRegistered:true,senderActive:true}));
   await p.route('**/api/v1/auth/verify-email',r=>fulfill(r,{verified:true}));
   await p.route('**/api/v1/auth/login',r=>fulfill(r,{loggedIn:true}));
+  // email-password flow isolates Google GIS; Google wiring is tested separately below.
+  await p.route('**/api/v1/auth/config',r=>fulfill(r,{google:{enabled:false,clientId:null}}));
+  await p.route('https://accounts.google.com/gsi/client',r=>r.fulfill({status:200,contentType:'text/javascript',body:''}));
   await p.goto(BASE+'/register.html',{waitUntil:'domcontentloaded',timeout:60000});await waitClass(p,'navora-auth');
   assert(await p.locator('link[href="/assets/css/navora-v7.css"]').count()===1,'V7 CSS missing');
   assert(await p.locator('script[src="/assets/js/worldclass-ui.js"]').count()===0,'old runtime loaded');
@@ -30,6 +33,27 @@ async function main(){
   await p.fill('#email','browser@example.com');await p.fill('#password','StrongPass123!');await p.click('#login-form button[type="submit"]');
   await p.waitForURL(/dashboard\.html/,{timeout:10000});await waitClass(p,'navora-app');assert(await p.locator('.nav-links a[href="map.html"]').count()===1,'application navigation missing');
   assert(errs.length===0,'page errors: '+errs.join(' | '));await c.close();
+ });
+
+
+ await test('Google GIS wiring uses window.google without name shadowing',async()=>{
+  const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage(),errs=[];
+  p.on('pageerror',e=>errs.push(e.stack||e.message));
+  await p.route('https://accounts.google.com/gsi/client',r=>r.fulfill({status:200,contentType:'text/javascript',body:''}));
+  await p.addInitScript(()=>{
+    window.__navoraGoogleInit=false;
+    window.google={accounts:{id:{
+      initialize(options){window.__navoraGoogleInit=!!options?.client_id},
+      renderButton(host){host.dataset.googleRendered='true'}
+    }}};
+  });
+  await p.route('**/api/v1/auth/config',r=>fulfill(r,{google:{enabled:true,clientId:'browser-google-client'}}));
+  await p.goto(BASE+'/login.html',{waitUntil:'domcontentloaded',timeout:60000});
+  await waitClass(p,'navora-auth');
+  await p.waitForFunction(()=>document.querySelector('#google-signin')?.dataset.googleRendered==='true',null,{timeout:10000});
+  assert(await p.evaluate(()=>window.__navoraGoogleInit)===true,'Google GIS initialize was not called with client id');
+  assert(errs.length===0,'Google wiring page errors: '+errs.join(' | '));
+  await c.close();
  });
 
  await test('map route selection -> journey browser wiring',async()=>{

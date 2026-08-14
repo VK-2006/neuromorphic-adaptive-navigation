@@ -14,8 +14,60 @@ $('reset-form')?.addEventListener('submit',e=>{e.preventDefault();const f=e.curr
 async function passkey(){try{if(!window.NavoraWebAuthn)throw new Error('Passkey helper failed to load.');const options=await api('/auth/passkeys/register/options',{method:'POST'});const c=await navigator.credentials.create({publicKey:window.NavoraWebAuthn.decodeCreationOptions?.(options)||options});await api('/auth/passkeys/register/verify',{method:'POST',body:JSON.stringify(window.NavoraWebAuthn.credentialToJSON(c))});toast('Passkey registered','success')}catch(e){toast(`Passkey: ${e.message}`,'error')}}
 async function passkeyLogin(){try{if(!window.NavoraWebAuthn)throw new Error('Passkey helper failed to load.');const d=await api('/auth/passkeys/auth/options',{method:'POST',body:JSON.stringify({email:val('email')})});const c=await navigator.credentials.get({publicKey:window.NavoraWebAuthn.decodeRequestOptions(d.options)});await api('/auth/passkeys/auth/verify',{method:'POST',body:JSON.stringify({userId:d.userId,response:window.NavoraWebAuthn.credentialToJSON(c)})});location.assign(target())}catch(e){toast(`Passkey: ${e.message}`,'error')}}
 document.querySelector('[data-passkey]')?.addEventListener('click',passkey);document.querySelector('[data-passkey-login]')?.addEventListener('click',passkeyLogin);
-async function google(){const host=$('google-signin'),s=$('google-status');if(!host)return;try{const cfg=await api('/auth/config');if(!cfg.google?.enabled||!cfg.google.clientId){host.innerHTML='<button class="btn-navora btn-ghost" disabled>Continue with Google</button>';s.textContent='Google sign-in is not configured.';return}let n=0;const go=()=>{if(!window.google?.accounts?.id){if(n++<40)return setTimeout(go,150);s.textContent='Google Identity Services could not load.';return}google.accounts.id.initialize({client_id:cfg.google.clientId,callback:async r=>{try{await api('/auth/google',{method:'POST',body:JSON.stringify({idToken:r.credential})});location.assign(target())}catch(e){toast(e.message,'error')}}});host.innerHTML='';google.accounts.id.renderButton(host,{theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',size:'large',shape:'rectangular',text:'continue_with',width:320});s.textContent='Google tokens are verified by the Navora backend.'};go()}catch(e){host.textContent='Google sign-in unavailable';s.textContent=e.message}}
+async function initGoogle(){
+  const host=$('google-signin'),s=$('google-status');
+  if(!host)return;
+  try{
+    const cfg=await api('/auth/config');
+    if(!cfg.google?.enabled||!cfg.google.clientId){
+      host.innerHTML='<button class="btn-navora btn-ghost" disabled>Continue with Google</button>';
+      s.textContent='Google sign-in is not configured.';
+      return;
+    }
+    let attempts=0;
+    const render=()=>{
+      const gis=window.google?.accounts?.id;
+      if(!gis){
+        if(attempts++<40)return setTimeout(render,150);
+        host.innerHTML='<button class="btn-navora btn-ghost" disabled>Continue with Google</button>';
+        s.textContent='Google Identity Services could not load. Use email/password or passkey.';
+        return;
+      }
+      try{
+        gis.initialize({
+          client_id:cfg.google.clientId,
+          callback:async response=>{
+            try{
+              if(!response?.credential)throw new Error('Google did not return an ID token.');
+              await api('/auth/google',{method:'POST',body:JSON.stringify({idToken:response.credential})});
+              location.assign(target());
+            }catch(e){
+              toast(`Google sign-in: ${e.message}`,'error');
+            }
+          }
+        });
+        host.innerHTML='';
+        gis.renderButton(host,{
+          theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',
+          size:'large',
+          shape:'rectangular',
+          text:'continue_with',
+          width:320
+        });
+        s.textContent='Google tokens are verified by the Navora backend.';
+      }catch(e){
+        host.innerHTML='<button class="btn-navora btn-ghost" disabled>Continue with Google</button>';
+        s.textContent='Google sign-in could not initialize. Use email/password or passkey.';
+        console.warn('Navora Google GIS initialization failed:',e);
+      }
+    };
+    render();
+  }catch(e){
+    host.innerHTML='<button class="btn-navora btn-ghost" disabled>Continue with Google</button>';
+    s.textContent=`Google sign-in unavailable: ${e.message}`;
+  }
+}
 $('resend-verification')?.addEventListener('click',async()=>{const b=$('resend-verification');try{const email=val('email')||sessionStorage.getItem('pendingEmail');if(!email)throw new Error('Enter the registered email.');b.disabled=true;await api('/auth/resend-verification',{method:'POST',body:JSON.stringify({email})});toast('Verification email accepted. Check Inbox and Spam/Junk.','success');cooldown(b)}catch(e){b.disabled=false;toast(e.message,'error')}});
 if($('verify-form'))$('email').value=sessionStorage.getItem('pendingEmail')||'';
 (async()=>{const el=$('email-delivery-status');if(!el)return;try{const x=await api('/auth/email/status');el.textContent=x.configured&&x.providerReachable&&x.senderRegistered&&x.senderActive?'Email service ready. If delayed, check Spam/Junk or use Resend code.':(x.note||'Email delivery unavailable.')}catch{el.textContent='Email provider status unavailable.'}})();
-google();
+initGoogle();

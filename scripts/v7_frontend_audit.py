@@ -10,6 +10,11 @@ for p in pages:
 shell=(ROOT/'frontend/assets/js/app-shell.js').read_text(encoding='utf-8');assert all(x in shell for x in ['protectedPages','dashboard.html','map.html','journey.html','world-chat.html','navora:returnTo','location.replace'])
 auth=(ROOT/'frontend/assets/js/auth.js').read_text(encoding='utf-8');assert all(x in auth for x in ['Creating account','Verifying','Signing in','busy(','status('])
 api=(ROOT/'frontend/assets/js/api.js').read_text(encoding='utf-8');assert 'navora:auth-required' in api
+assert 'async function initGoogle()' in auth, 'Google GIS initializer must be named initGoogle'
+assert 'async function google()' not in auth, 'Function name google shadows window.google'
+assert 'const gis=window.google?.accounts?.id' in auth, 'Google GIS must be resolved from window.google'
+assert 'gis.initialize' in auth and 'gis.renderButton' in auth, 'Google GIS initialize/render wiring missing'
+assert 'google.accounts.id.initialize' not in auth and 'google.accounts.id.renderButton' not in auth, 'Unsafe shadowed Google GIS reference remains'
 assert 'beforeinstallprompt' in shell and 'serviceWorker.register' in shell
 sw=(ROOT/'frontend/service-worker.js').read_text(encoding='utf-8');assert 'navora-v7-functional-product-1' in sw and 'networkFirst' in sw and '/assets/js/journey.js' in sw
 journey=(ROOT/'frontend/assets/js/journey.js').read_text(encoding='utf-8');assert 'setJourneyControls' in journey and 'showNoJourneyState' in journey
