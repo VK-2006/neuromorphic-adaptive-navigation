@@ -152,3 +152,17 @@ The source contains training/evaluation/runtime-validation tooling so those gate
 ## Pre-push / deployment status
 
 All identified source/compliance cleanup is consolidated into the final pre-push build. The user performs the Git commit/push after `final_verify.py --runtime` and `prepush_audit.py` pass. Render/Atlas/production secrets remain a separate later step.
+
+
+## Production smoke verification
+
+After a production auto-deploy, verify the exact deployed Git commit and public integrations:
+
+```powershell
+python .\scripts\production_smoke.py `
+  --backend https://YOUR-BACKEND.onrender.com `
+  --ai https://YOUR-AI.onrender.com `
+  --expected-commit (git rev-parse HEAD)
+```
+
+The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates.

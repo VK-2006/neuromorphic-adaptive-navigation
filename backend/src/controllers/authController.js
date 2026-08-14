@@ -4,4 +4,5 @@ exports.resendVerification=async(req,res)=>{const u=await User.findOne({email:St
 exports.passkeyAuthOptions=async(req,res)=>ok(res,await webauthn.authenticationOptions(req.body.email));
 exports.passkeyAuthVerify=async(req,res)=>{const user=await webauthn.verifyAuthentication(req.body.userId,req.body.response);const access=tokens.accessToken(user),refresh=await tokens.createRefresh(user,meta(req));tokens.setAuthCookies(res,access,refresh);ok(res,{user:{id:user._id,name:user.name,email:user.email,role:user.role}})};
 
-exports.config=async(req,res)=>ok(res,{google:{enabled:!!env.googleClientId,clientId:env.googleClientId||null},passkeys:{enabled:true,rpId:env.webauthnRpId},email:{brevoConfigured:!!env.brevoApiKey}});
+function passkeysConfigured(){try{const origin=new URL(env.webauthnOrigin);return !!env.webauthnRpId&&origin.hostname===env.webauthnRpId&&(env.nodeEnv!=='production'||origin.protocol==='https:')}catch{return false}}
+exports.config=async(req,res)=>ok(res,{google:{enabled:!!env.googleClientId,clientId:env.googleClientId||null},passkeys:{enabled:passkeysConfigured(),rpId:env.webauthnRpId},email:{brevoConfigured:!!(env.brevoApiKey&&env.brevoSenderEmail)}});
