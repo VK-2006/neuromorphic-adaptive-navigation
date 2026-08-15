@@ -6,26 +6,37 @@ const Journey = require('../models/Journey');
 const hazards = require('../services/hazardService');
 const riskFeatures = require('../services/riskFeatureService');
 const { ok } = require('../utils/response');
+const logger = require('../config/logger');
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, Number(v) || 0));
 const finite = (v, d = 0) => Number.isFinite(Number(v)) ? Number(v) : d;
+
+const EARTH_RADIUS_METERS = 6378100;
+const VERIFIED_REPORT_RADIUS_METERS = 1200;
 
 async function verifiedNearby(location) {
   const lat = finite(location?.lat, NaN);
   const lng = finite(location?.lng, NaN);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 0;
+
   try {
     return await Hazard.countDocuments({
       status: 'VERIFIED',
       expiresAt: { $gt: new Date() },
       location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [lng, lat] },
-          $maxDistance: 1200,
+        $geoWithin: {
+          $centerSphere: [
+            [lng, lat],
+            VERIFIED_REPORT_RADIUS_METERS / EARTH_RADIUS_METERS,
+          ],
         },
       },
     });
-  } catch {
+  } catch (error) {
+    logger.warn({
+      event: 'verified_hazard_count_failed',
+      message: error.message,
+    });
     return 0;
   }
 }
