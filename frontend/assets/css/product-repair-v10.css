@@ -327,3 +327,94 @@ body.navora-admin .nav-account>.icon-btn{
   body.navora-app .nav-account .btn-navora,
   body.navora-admin .nav-account .btn-navora{min-height:36px !important;padding-block:7px !important}
 }
+
+/* NAVORA Sidebar Account True Left-Bottom Pin v16.2 */
+/* Desktop/tablet app shells: account is pinned to the viewport's left-bottom,
+   independent of page content height. Navigation links reserve space behind it. */
+@media (min-width:821px){
+  body.navora-app .navora-nav>.nav-links,
+  body.navora-admin .navora-nav>.nav-links{
+    padding-bottom:210px !important;
+  }
+
+  body.navora-app .navora-nav>.nav-account.nav-account-fixed,
+  body.navora-admin .navora-nav>.nav-account.nav-account-fixed{
+    position:fixed !important;
+    left:0 !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:0 !important;
+    width:var(--nav-sidebar-w,var(--ui-sidebar-w,268px)) !important;
+    max-width:var(--nav-sidebar-w,var(--ui-sidebar-w,268px)) !important;
+    min-width:0 !important;
+    margin:0 !important;
+    padding:
+      12px 16px
+      max(12px,env(safe-area-inset-bottom))
+      max(16px,env(safe-area-inset-left)) !important;
+    box-sizing:border-box !important;
+    z-index:1305 !important;
+    overflow:hidden !important;
+    border-top:1px solid var(--nav-line,var(--px-border)) !important;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb,var(--nav-sidebar-2,var(--nav-surface)) 94%,transparent),
+        var(--nav-sidebar-2,var(--nav-surface))
+      ) !important;
+    backdrop-filter:blur(18px) saturate(1.08);
+    -webkit-backdrop-filter:blur(18px) saturate(1.08);
+  }
+}
+
+/* Mobile app/admin drawer: keep the same account panel locked to the drawer bottom,
+   without leaking outside a closed/off-canvas navigation shell. */
+@media (max-width:820px){
+  body.navora-app .navora-nav>.nav-links,
+  body.navora-admin .navora-nav>.nav-links{
+    padding-bottom:210px !important;
+  }
+
+  body.navora-app .navora-nav>.nav-account.nav-account-fixed,
+  body.navora-admin .navora-nav>.nav-account.nav-account-fixed{
+    position:absolute !important;
+    left:0 !important;
+    right:0 !important;
+    top:auto !important;
+    bottom:0 !important;
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:
+      10px max(14px,env(safe-area-inset-right))
+      max(10px,env(safe-area-inset-bottom))
+      max(14px,env(safe-area-inset-left)) !important;
+    box-sizing:border-box !important;
+    z-index:1305 !important;
+    overflow:hidden !important;
+    border-top:1px solid var(--nav-line,var(--px-border)) !important;
+    background:var(--nav-sidebar-2,var(--nav-surface)) !important;
+  }
+}
+
+/* Keep long names/emails from changing the account panel geometry. */
+body.navora-app .nav-account-fixed .nav-user-summary,
+body.navora-admin .nav-account-fixed .nav-user-summary{
+  min-width:0 !important;
+  max-width:100% !important;
+}
+body.navora-app .nav-account-fixed .nav-user-copy,
+body.navora-admin .nav-account-fixed .nav-user-copy{
+  min-width:0 !important;
+  overflow:hidden !important;
+}
+body.navora-app .nav-account-fixed .nav-user-copy strong,
+body.navora-app .nav-account-fixed .nav-user-copy small,
+body.navora-admin .nav-account-fixed .nav-user-copy strong,
+body.navora-admin .nav-account-fixed .nav-user-copy small{
+  display:block !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
