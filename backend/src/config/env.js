@@ -13,6 +13,7 @@ const env={
   geocodingProvider:(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase(),geocodingApiUrl:process.env.GEOCODING_API_URL||'https://nominatim.openstreetmap.org',geocodingApiKey:process.env.GEOCODING_API_KEY||'',
   trafficProvider:(process.env.TRAFFIC_PROVIDER||'').toLowerCase(),trafficApiUrl:process.env.TRAFFIC_API_URL||'https://api.tomtom.com',trafficApiKey:process.env.TRAFFIC_API_KEY||'',
   weatherProvider:(process.env.WEATHER_PROVIDER||'openweathermap').toLowerCase(),openWeatherApiUrl:process.env.OPENWEATHER_API_URL||process.env.OPENWEATHER_BASE_URL||'https://api.openweathermap.org/data/2.5',openWeatherApiKey:process.env.OPENWEATHER_API_KEY||process.env.OPENWEATHERMAP_API_KEY||'',
+  roboflowApiKey:process.env.ROBOFLOW_API_KEY||'',roboflowWorkspace:process.env.ROBOFLOW_WORKSPACE||'',roboflowWorkflowId:process.env.ROBOFLOW_WORKFLOW_ID||'',roboflowWorkflowUrl:process.env.ROBOFLOW_WORKFLOW_URL||'',roboflowClasses:process.env.ROBOFLOW_CLASSES||'',roboflowTimeoutMs:num(process.env.ROBOFLOW_TIMEOUT_MS,15000),
   brevoApiKey:process.env.BREVO_API_KEY||'',brevoSenderEmail:process.env.BREVO_SENDER_EMAIL||'',brevoSenderName:process.env.BREVO_SENDER_NAME||'Navora',
   googleClientId:process.env.GOOGLE_CLIENT_ID||'',googleClientSecret:process.env.GOOGLE_CLIENT_SECRET||'',
   otpExpiryMinutes:num(process.env.OTP_EXPIRY_MINUTES,10),otpResendCooldownSeconds:num(process.env.OTP_RESEND_COOLDOWN_SECONDS,60),otpMaxAttempts:num(process.env.OTP_MAX_ATTEMPTS,5),
