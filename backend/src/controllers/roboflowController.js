@@ -1,4 +1,4 @@
-// NAVORA_ROBOFLOW_V11_4
+// NAVORA_ROBOFLOW_V11_4_2
 const crypto=require('crypto');
 const env=require('../config/env');
 const roboflow=require('../services/roboflowService');
@@ -63,6 +63,7 @@ exports.analyze=async(req,res)=>{
     context:req.body?.context||{},
     persist:req.body?.persist!==false
   });
+
   if(result.journeyUpdated){
     req.app.get('io')?.to(`journey:${req.body.journeyId}`).emit('snn:risk',{
       score:result.risk?.score,
@@ -74,6 +75,7 @@ exports.analyze=async(req,res)=>{
       cloudProcessed:true
     });
   }
+
   ok(res,{
     ...result,
     privacy:{
@@ -110,6 +112,7 @@ exports.probe=async(req,res)=>{
   });
 
   const snnOk=Number.isFinite(Number(result.risk?.score))&&Boolean(result.risk?.level);
+
   ok(res,{
     testOnly:true,
     imageSource:'official-roboflow-public-sample',
@@ -119,7 +122,9 @@ exports.probe=async(req,res)=>{
     endpoint:result.inference?.endpoint||null,
     classesTransport:result.inference?.classesTransport||null,
     snnOk,
-    risk:result.risk,
+    aiDegraded:result.aiDegraded,
+    snnError:result.aiError,
+    risk:result.risk||null,
     featuresUsed:result.featuresUsed,
     detectorValidated:false,
     riskValidated:result.riskValidated,

@@ -8,7 +8,7 @@ const env={
   jwtAccessExpires:process.env.JWT_ACCESS_EXPIRES_IN||'15m',jwtRefreshExpires:process.env.JWT_REFRESH_EXPIRES_IN||'7d',
   bcryptRounds:num(process.env.BCRYPT_ROUNDS,12),frontendUrl:process.env.FRONTEND_URL||'http://localhost:5000',
   socketOrigin:process.env.SOCKET_CORS_ORIGIN||process.env.FRONTEND_URL||'http://localhost:5000',
-  aiServiceUrl:process.env.AI_SERVICE_URL||'http://localhost:8000',
+  aiServiceUrl:process.env.AI_SERVICE_URL||'http://localhost:8000',aiRequestTimeoutMs:num(process.env.AI_REQUEST_TIMEOUT_MS,8000),aiColdStartTimeoutMs:num(process.env.AI_COLD_START_TIMEOUT_MS,45000),aiRetryTimeoutMs:num(process.env.AI_RETRY_TIMEOUT_MS,20000),
   routingProvider:(process.env.ROUTING_PROVIDER||'osrm').toLowerCase(),routingApiUrl:process.env.ROUTING_API_URL||'',routingApiKey:process.env.ROUTING_API_KEY||'',routingProfile:process.env.ROUTING_PROFILE||'car',
   geocodingProvider:(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase(),geocodingApiUrl:process.env.GEOCODING_API_URL||'https://nominatim.openstreetmap.org',geocodingApiKey:process.env.GEOCODING_API_KEY||'',
   trafficProvider:(process.env.TRAFFIC_PROVIDER||'').toLowerCase(),trafficApiUrl:process.env.TRAFFIC_API_URL||'https://api.tomtom.com',trafficApiKey:process.env.TRAFFIC_API_KEY||'',

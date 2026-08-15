@@ -1,4 +1,4 @@
-// NAVORA_ROBOFLOW_SNN_V11_4
+// NAVORA_ROBOFLOW_SNN_V11_4_2
 const env=require('../config/env');
 const roboflow=require('./roboflowService');
 const ai=require('./aiClient');
@@ -56,9 +56,11 @@ async function analyze({
   const inference=await roboflow.infer({image,classes});
   const top=topDetection(inference.detections);
   const features=buildFeatures(inference.detections,context,location||{});
-  const risk=await ai.predictRisk(features);
 
-  // No held-out validation evidence has been produced for this cloud detector yet.
+  // This path is intentionally more resilient than the low-latency browser-local path:
+  // if the separate AI Render service is asleep, warm it and retry once.
+  const risk=await ai.predictRiskResilient(features);
+
   const detectorValidated=false;
   const riskValidated=risk?.validated===true;
   const safetyEligible=detectorValidated&&riskValidated;
@@ -119,6 +121,8 @@ async function analyze({
     topDetection:top,
     featuresUsed:features,
     risk,
+    aiDegraded:risk?.degraded===true,
+    aiError:risk?.error||null,
     hazardId:hazard?._id||null,
     detectorValidated,
     riskValidated,
