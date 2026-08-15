@@ -37,3 +37,10 @@ ai-service/trained_models/*.pt
 # Dataset payloads are not redistributed; keep only documented fixtures/manifests.
 datasets/raw/
 datasets/downloads/
+
+# Generated local model evidence / release bundles (never commit trained artifacts)
+ai-service/trained_models/metadata.json
+ai-service/trained_models/*-evaluation.json
+ai-service/trained_models/validation-evidence.json
+ai-service/trained_models/data-gate-report.json
+model-artifacts/
