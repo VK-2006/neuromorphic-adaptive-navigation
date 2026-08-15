@@ -60,9 +60,9 @@ if package_path.exists() and lock_path.exists():
 secret_patterns=[
     ('Google API key',re.compile(r'AIza[0-9A-Za-z_-]{20,}')),
     ('MongoDB credential URI',re.compile(r'(?i)mongodb\+srv://[^\s:@]+:[^\s@]+@')),
-    ('Brevo key assignment',re.compile(r'(?im)^\s*BREVO_API_KEY\s*=\s*\S+')),
-    ('Google secret assignment',re.compile(r'(?im)^\s*GOOGLE_CLIENT_SECRET\s*=\s*\S+')),
-    ('JWT secret assignment',re.compile(r'(?im)^\s*JWT_(?:ACCESS|REFRESH)_SECRET\s*=\s*\S+')),
+    ('Brevo key assignment',re.compile(r'(?im)^[ \t]*BREVO_API_KEY[ \t]*=[ \t]*[^ \t\r\n#]+')),
+    ('Google secret assignment',re.compile(r'(?im)^[ \t]*GOOGLE_CLIENT_SECRET[ \t]*=[ \t]*[^ \t\r\n#]+')),
+    ('JWT secret assignment',re.compile(r'(?im)^[ \t]*JWT_(?:ACCESS|REFRESH)_SECRET[ \t]*=[ \t]*[^ \t\r\n#]+')),
 ]
 for rel in paths:
     p=ROOT/rel

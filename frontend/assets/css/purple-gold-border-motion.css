@@ -1,0 +1,370 @@
+
+/*
+ * NAVORA v9.2 - Purple x Gold Border Energy System
+ * Purple/gold are interaction-border accents; existing semantic fills remain intact.
+ */
+
+@property --pg-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --pg-purple: #8B5CF6;
+  --pg-purple-deep: #6D28D9;
+  --pg-purple-soft: rgba(139,92,246,.16);
+  --pg-gold: #F4C95D;
+  --pg-gold-deep: #C68A16;
+  --pg-gold-soft: rgba(244,201,93,.15);
+  --pg-ring-opacity: .62;
+  --pg-ring-size: 1px;
+  --pg-speed: 6.4s;
+  --pg-glow-purple: rgba(139,92,246,.18);
+  --pg-glow-gold: rgba(244,201,93,.16);
+}
+
+[data-theme="light"] {
+  --pg-purple: #6D28D9;
+  --pg-purple-deep: #5420A8;
+  --pg-gold: #B7791F;
+  --pg-gold-deep: #8A5A12;
+  --pg-ring-opacity: .72;
+  --pg-glow-purple: rgba(109,40,217,.12);
+  --pg-glow-gold: rgba(183,121,31,.12);
+}
+
+.pg-border-energy {
+  position: relative;
+  isolation: isolate;
+}
+
+.pg-border-energy::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  inset: -1px;
+  border-radius: inherit;
+  padding: var(--pg-ring-size);
+  opacity: var(--pg-ring-opacity);
+  background:
+    conic-gradient(
+      from var(--pg-angle),
+      transparent 0deg 30deg,
+      var(--pg-purple) 48deg,
+      var(--pg-gold) 96deg,
+      transparent 136deg 205deg,
+      var(--pg-gold) 235deg,
+      var(--pg-purple) 292deg,
+      transparent 332deg 360deg
+    );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter:
+    drop-shadow(0 0 4px var(--pg-glow-purple))
+    drop-shadow(0 0 4px var(--pg-glow-gold));
+  transition:
+    opacity 180ms ease,
+    filter 220ms ease,
+    inset 220ms cubic-bezier(.16,1,.3,1);
+}
+
+.pg-border-energy.pg-in-view::after {
+  animation: pgBorderOrbit var(--pg-speed) linear infinite;
+}
+
+.pg-border-btn {
+  --pg-speed: 3.4s;
+  --pg-ring-opacity: .78;
+  --pg-ring-size: 1px;
+}
+
+.pg-border-card {
+  --pg-speed: 7.8s;
+  --pg-ring-opacity: .54;
+}
+
+.pg-border-panel {
+  --pg-speed: 9.4s;
+  --pg-ring-opacity: .42;
+}
+
+.pg-route-signal {
+  --pg-speed: 2.8s;
+  --pg-ring-opacity: .82;
+}
+
+.pg-auth-aura {
+  --pg-speed: 8.6s;
+  --pg-ring-opacity: .62;
+  animation: pgAuthAura 5.6s ease-in-out infinite;
+}
+
+.pg-admin-restraint {
+  --pg-speed: 11s;
+  --pg-ring-opacity: .38;
+}
+
+.pg-metric-orbit {
+  --pg-speed: 5.2s;
+  --pg-ring-opacity: .66;
+  animation: pgMetricBloom 5.4s ease-in-out infinite;
+}
+
+.pg-danger-edge {
+  --pg-speed: 2.6s;
+  --pg-ring-opacity: .68;
+}
+
+.pg-danger-edge::after {
+  /* Preserve red danger meaning; purple/gold is only the animated edge. */
+  filter:
+    drop-shadow(0 0 3px rgba(239,68,68,.18))
+    drop-shadow(0 0 4px var(--pg-glow-gold));
+}
+
+.pg-table-edge {
+  border-color: color-mix(in srgb,var(--pg-purple) 28%,transparent) !important;
+  animation: pgTableEdge 6.8s ease-in-out infinite;
+}
+
+.pg-focus-energy {
+  transition:
+    border-color 170ms ease,
+    box-shadow 190ms ease,
+    transform 170ms cubic-bezier(.16,1,.3,1);
+}
+
+.pg-focus-energy:focus,
+.pg-focus-energy:focus-visible {
+  border-color: color-mix(in srgb,var(--pg-purple) 72%,var(--pg-gold)) !important;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb,var(--pg-purple) 15%,transparent),
+    0 0 0 4px color-mix(in srgb,var(--pg-gold) 9%,transparent) !important;
+  animation: pgFocusShift 1.6s ease-in-out infinite alternate;
+}
+
+.pg-chip-energy {
+  border-color: color-mix(in srgb,var(--pg-purple) 24%,var(--pg-gold)) !important;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(.16,1,.3,1);
+}
+
+.pg-active-nav {
+  text-shadow:
+    0 0 14px color-mix(in srgb,var(--pg-purple) 18%,transparent),
+    0 0 18px color-mix(in srgb,var(--pg-gold) 12%,transparent);
+}
+
+/* Page personalities ------------------------------------------------------ */
+
+.pg-page-home .pg-border-btn.pg-primary-energy {
+  --pg-speed: 2.7s;
+  animation: pgHeroComet 4.8s ease-in-out infinite;
+}
+
+.pg-page-auth .pg-auth-aura {
+  --pg-ring-size: 1.25px;
+}
+
+.pg-page-dashboard .pg-border-card,
+.pg-page-admin .pg-border-card {
+  transform-origin: 50% 50%;
+}
+
+.pg-page-map .pg-route-signal,
+.pg-page-journey .pg-route-signal {
+  animation: pgRouteSignal 3.6s ease-in-out infinite;
+}
+
+.pg-page-chat .pg-border-panel,
+.pg-page-devices .pg-border-panel {
+  --pg-ring-opacity: .5;
+}
+
+/* Fine-pointer behavior -------------------------------------------------- */
+
+@media (hover:hover) and (pointer:fine) {
+  .pg-border-btn:hover::after {
+    --pg-ring-size: 1.5px;
+    --pg-speed: 1.7s;
+    opacity: .98;
+    inset: -2px;
+    filter:
+      drop-shadow(0 0 7px var(--pg-glow-purple))
+      drop-shadow(0 0 8px var(--pg-glow-gold));
+  }
+
+  .pg-border-card:hover::after,
+  .pg-route-signal:hover::after,
+  .pg-border-panel:hover::after {
+    --pg-speed: 2.8s;
+    opacity: .9;
+    filter:
+      drop-shadow(0 0 8px var(--pg-glow-purple))
+      drop-shadow(0 0 8px var(--pg-glow-gold));
+  }
+
+  .pg-chip-energy:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb,var(--pg-purple) 52%,var(--pg-gold)) !important;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb,var(--pg-purple) 10%,transparent),
+      0 4px 16px color-mix(in srgb,var(--pg-gold) 9%,transparent);
+  }
+}
+
+/* Mobile/touch ----------------------------------------------------------- */
+
+@media (hover:none), (pointer:coarse) {
+  .pg-border-energy::after {
+    opacity: calc(var(--pg-ring-opacity) * .82);
+    filter: none;
+  }
+
+  .pg-border-energy.pg-in-view::after {
+    animation-duration: calc(var(--pg-speed) * 1.35);
+  }
+
+  .pg-border-btn:active::after {
+    opacity: 1;
+    animation-duration: 1.4s;
+  }
+}
+
+@media (max-width: 820px) {
+  :root {
+    --pg-ring-size: 1px;
+  }
+
+  .pg-auth-aura,
+  .pg-metric-orbit,
+  .pg-page-map .pg-route-signal,
+  .pg-page-journey .pg-route-signal {
+    animation-duration: 6s;
+  }
+}
+
+/* Reduced motion --------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-border-energy,
+  .pg-auth-aura,
+  .pg-metric-orbit,
+  .pg-route-signal,
+  .pg-table-edge,
+  .pg-focus-energy,
+  .pg-page-home .pg-border-btn.pg-primary-energy {
+    animation: none !important;
+  }
+
+  .pg-border-energy::after,
+  .pg-border-energy.pg-in-view::after {
+    animation: none !important;
+    background:
+      linear-gradient(
+        105deg,
+        var(--pg-purple),
+        color-mix(in srgb,var(--pg-purple) 45%,var(--pg-gold)),
+        var(--pg-gold)
+      );
+    opacity: .6;
+    filter: none;
+  }
+
+  .pg-focus-energy:focus,
+  .pg-focus-energy:focus-visible {
+    animation: none !important;
+  }
+}
+
+/* Keyframes -------------------------------------------------------------- */
+
+@keyframes pgBorderOrbit {
+  to { --pg-angle: 360deg; }
+}
+
+@keyframes pgAuthAura {
+  0%,100% {
+    box-shadow:
+      0 0 0 0 rgba(139,92,246,0),
+      0 0 0 0 rgba(244,201,93,0);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(139,92,246,.08),
+      0 0 42px rgba(244,201,93,.055);
+  }
+}
+
+@keyframes pgMetricBloom {
+  0%,100% {
+    box-shadow: 0 0 0 rgba(139,92,246,0);
+  }
+  50% {
+    box-shadow:
+      0 10px 32px rgba(139,92,246,.06),
+      0 8px 28px rgba(244,201,93,.045);
+  }
+}
+
+@keyframes pgRouteSignal {
+  0%,100% {
+    box-shadow:
+      inset 0 0 0 0 rgba(139,92,246,0),
+      0 0 0 rgba(244,201,93,0);
+  }
+  50% {
+    box-shadow:
+      inset 3px 0 14px rgba(139,92,246,.06),
+      0 0 22px rgba(244,201,93,.05);
+  }
+}
+
+@keyframes pgTableEdge {
+  0%,100% {
+    border-color: color-mix(in srgb,var(--pg-purple) 26%,transparent);
+    box-shadow: 0 0 0 rgba(139,92,246,0);
+  }
+  50% {
+    border-color: color-mix(in srgb,var(--pg-gold) 32%,transparent);
+    box-shadow: 0 0 18px rgba(244,201,93,.045);
+  }
+}
+
+@keyframes pgFocusShift {
+  from {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb,var(--pg-purple) 15%,transparent),
+      0 0 0 4px color-mix(in srgb,var(--pg-gold) 6%,transparent);
+  }
+  to {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb,var(--pg-gold) 13%,transparent),
+      0 0 0 4px color-mix(in srgb,var(--pg-purple) 8%,transparent);
+  }
+}
+
+@keyframes pgHeroComet {
+  0%,100% {
+    box-shadow:
+      0 8px 22px rgba(139,92,246,.045),
+      0 0 0 rgba(244,201,93,0);
+  }
+  50% {
+    box-shadow:
+      0 10px 30px rgba(139,92,246,.09),
+      0 0 22px rgba(244,201,93,.075);
+  }
+}
+
+@keyframes pgDangerEdgePulse {
+  0%,100% { filter: saturate(1); }
+  50% { filter: saturate(1.08); }
+}

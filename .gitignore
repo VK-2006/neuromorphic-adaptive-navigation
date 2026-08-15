@@ -6,6 +6,7 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Python environments / caches
 __pycache__/
@@ -49,3 +50,7 @@ model-artifacts/
 datasets/derived-risk-data/detection-train.jsonl
 datasets/derived-risk-data/detection-eval.jsonl
 datasets/derived-risk-data/bdd100k-hf-provenance.json
+.motion_v9_backup_*/
+**/.motion_v9_backup_*/
+.purple_gold_v9_backup_*/
+**/.purple_gold_v9_backup_*/

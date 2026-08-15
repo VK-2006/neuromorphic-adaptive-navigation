@@ -137,14 +137,13 @@ document.querySelector('[data-passkey]')?.addEventListener('click',passkey);
 document.querySelector('[data-passkey-login]')?.addEventListener('click',passkeyLogin);
 
 async function initGoogle(){
-  const host=$('google-signin'),s=$('google-status');
+  const host=document.getElementById('google-signin'),status=document.getElementById('google-status');
   if(!host)return;
-  const mode=host.dataset.googleMode==='signup'?'signup':'login';
   try{
     const cfg=await api('/auth/config');
     if(!cfg.google?.enabled||!cfg.google.clientId){
-      host.innerHTML=`<button class="btn-navora btn-ghost" disabled>${mode==='signup'?'Sign up':'Continue'} with Google</button>`;
-      if(s)s.textContent='Google authentication is not configured.';
+      host.innerHTML='<button class="btn-navora btn-ghost" type="button" disabled>Continue with Google</button>';
+      if(status)status.textContent='Google authentication is not configured for this environment.';
       return;
     }
     let attempts=0;
@@ -152,43 +151,34 @@ async function initGoogle(){
       const gis=window.google?.accounts?.id;
       if(!gis){
         if(attempts++<40)return setTimeout(render,150);
-        host.innerHTML=`<button class="btn-navora btn-ghost" disabled>${mode==='signup'?'Sign up':'Continue'} with Google</button>`;
-        if(s)s.textContent='Google Identity Services could not load. Use email/password or passkey.';
+        host.innerHTML='<button class="btn-navora btn-ghost" type="button" disabled>Continue with Google</button>';
+        if(status)status.textContent='Google Identity Services could not load. Use email/password or passkey.';
         return;
       }
       try{
         gis.initialize({
           client_id:cfg.google.clientId,
-          use_fedcm_for_button:true,
           callback:async response=>{
             try{
               if(!response?.credential)throw new Error('Google did not return an ID token.');
               await api('/auth/google',{method:'POST',body:JSON.stringify({idToken:response.credential})});
-              sessionStorage.removeItem('pendingEmail');
-              location.assign(target());
-            }catch(e){toast(`Google ${mode}: ${e.message}`,'error')}
+              location.assign('dashboard.html');
+            }catch(e){toast(`Google sign-in: ${e.message}`,'error')}
           }
         });
         host.innerHTML='';
-        gis.renderButton(host,{
-          theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',
-          size:'large',shape:'rectangular',
-          text:mode==='signup'?'signup_with':'continue_with',
-          width:320
-        });
-        if(s)s.textContent=mode==='signup'
-          ?'Google creates or links your verified Navora account; no email OTP is required for Google-verified email.'
-          :'Google tokens are verified by the Navora backend.';
+        gis.renderButton(host,{theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',size:'large',shape:'pill',text:'continue_with',width:320});
+        if(status)status.textContent='Google ID tokens are verified by the Navora backend before an application session is created.';
       }catch(e){
-        host.innerHTML=`<button class="btn-navora btn-ghost" disabled>${mode==='signup'?'Sign up':'Continue'} with Google</button>`;
-        if(s)s.textContent='Google authentication could not initialize. Use email/password or passkey.';
+        host.innerHTML='<button class="btn-navora btn-ghost" type="button" disabled>Continue with Google</button>';
+        if(status)status.textContent='Google sign-in could not initialize. Use email/password or passkey.';
         console.warn('Navora Google GIS initialization failed:',e);
       }
     };
     render();
   }catch(e){
-    host.innerHTML=`<button class="btn-navora btn-ghost" disabled>${mode==='signup'?'Sign up':'Continue'} with Google</button>`;
-    if(s)s.textContent=`Google authentication unavailable: ${e.message}`;
+    host.innerHTML='<button class="btn-navora btn-ghost" type="button" disabled>Continue with Google</button>';
+    if(status)status.textContent=`Google sign-in unavailable: ${e.message}`;
   }
 }
 
