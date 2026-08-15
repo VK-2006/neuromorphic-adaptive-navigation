@@ -81,8 +81,6 @@
       trafficDensity:trafficDensity(detections),
       hazardFrequency:clamp(frameHistory.reduce((s,x)=>s+x.count,0)/30),
       userSpeed:Math.max(0,Number(requestBody?.location?.speed)||0),
-      weatherRisk:0,
-      roadCondition:0,
       trafficSeverity:(document.getElementById('journey-traffic')?.textContent||'UNKNOWN').toUpperCase()
     };
   }

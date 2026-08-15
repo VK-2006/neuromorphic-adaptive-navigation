@@ -8,6 +8,8 @@ const { optimize } = require('./aco');
 const { explain } = require('./explainabilityService');
 const logger = require('../config/logger');
 
+const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+
 function routeTypes(routes, selectedId) {
   if (!routes.length) return routes;
   const by = (fn, dir = 1) => routes.reduce((a, b) => dir * fn(a) <= dir * fn(b) ? a : b);
@@ -25,6 +27,14 @@ function routeTypes(routes, selectedId) {
       r.id === selectedId && 'ADAPTIVE',
     ].filter(Boolean),
   }));
+}
+
+function combineRisk(baseRisk, weatherRisk, weatherWeight, weatherAvailable = true) {
+  const base = clamp01(baseRisk);
+  if (!weatherAvailable) return base;
+  const w = Math.max(0, Math.min(0.35, Number(weatherWeight) || 0));
+  const weatherPenalty = clamp01(weatherRisk);
+  return clamp01(base + w * weatherPenalty * (1 - base));
 }
 
 async function compare({ userId, source, destination, preferences = {}, simulation = false, journeyId = null }) {
@@ -57,9 +67,12 @@ async function compare({ userId, source, destination, preferences = {}, simulati
     );
 
     const weatherWeight = Math.max(0, Math.min(0.35, Number(env.weatherRouteRiskWeight) || 0.15));
-    const risk = weatherEvidence.weatherAvailable
-      ? Math.min(1, (1 - weatherWeight) * baseRisk + weatherWeight * weatherEvidence.weatherRisk)
-      : baseRisk;
+    const risk = combineRisk(
+      baseRisk,
+      weatherEvidence.weatherRisk,
+      weatherWeight,
+      weatherEvidence.weatherAvailable,
+    );
 
     return {
       ...route,
@@ -67,6 +80,7 @@ async function compare({ userId, source, destination, preferences = {}, simulati
       ...weatherEvidence,
       hazardExposure: evidence.exposure,
       snnHazardRisk: evidence.snnRisk,
+      baseRisk,
       risk,
       safetyScore: Math.max(0, 100 * (1 - risk)),
     };
@@ -113,9 +127,10 @@ async function compare({ userId, source, destination, preferences = {}, simulati
         configured: weather.status().configured,
         routeRiskWeight: env.weatherRouteRiskWeight,
         riskMethod: 'deterministic-observation-heuristic-v1',
+        combination: 'monotonic-additive-penalty-v1',
       },
     },
   };
 }
 
-module.exports = { compare };
+module.exports = { compare, combineRisk };
