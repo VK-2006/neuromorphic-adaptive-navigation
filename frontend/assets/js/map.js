@@ -179,10 +179,12 @@ function render(routes,recommendedId,mode){
   currentRoutes=routes;routeLayers.forEach(x=>x.remove());routeLayers=[];
   const list=document.getElementById('route-list');if(!list)return;list.innerHTML='';
   if(!routes.length){list.innerHTML='<div class="empty-state">No route candidates were returned.</div>';setStartEnabled(false);return}
-  const palette=['#7c7cff','#20c6b7','#ff9f43','#ff5f6d','#7f8c8d'];
+  const darkTheme=document.documentElement.dataset.theme==='dark';
+  const palette=darkTheme?['#A78BFA','#8B5CF6','#6D28D9','#C4B5FD','#8F839D']:['#8E5C8E','#6E3B6E','#B86B77','#A977A9','#8C808A'];
+  const selectedRouteColor=darkTheme?'#D4AF37':'#B58A32';
   routes.forEach((r,i)=>{
     const coords=validCoords(r);if(coords.length<2)return;
-    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:r.id===recommendedId?8:5,opacity:r.id===recommendedId?.95:.65,color:palette[i%palette.length]}).addTo(map);
+    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:r.id===recommendedId?8:5,opacity:r.id===recommendedId?.95:.65,color:r.id===recommendedId?selectedRouteColor:palette[i%palette.length]}).addTo(map);
     routeLayers.push(line);
     if(arr(r.congestedSegments).length>1){const congestion=window.L.polyline(r.congestedSegments.map(p=>[p.lat,p.lng]),{weight:9,opacity:.55,color:'#d64545',dashArray:'4 6'}).addTo(map);routeLayers.push(congestion)}
     line.on('click',()=>select(r.id));

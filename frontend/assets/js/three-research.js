@@ -1,7 +1,7 @@
 (function(){
  let state=null;const reduced=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
  function quality(){if(reduced())return 0;const m=navigator.deviceMemory||4;return innerWidth<700||m<=2?1:m<8?2:3}
- function palette(){return document.documentElement.dataset.theme==='dark'?{neural:0xc084fc,neural2:0xf6c453,memory:0x8b5cf6,memory2:0xf6c453,ants:0xffe8a3}:{neural:0x061b46,neural2:0x078f57,memory:0x0b2e68,memory2:0xff7a00,ants:0x078f57}}
+ function palette(){return document.documentElement.dataset.theme==='dark'?{neural:0xA78BFA,neural2:0xD4AF37,memory:0x8B5CF6,memory2:0xF2D675,ants:0xD4AF37}:{neural:0x6E3B6E,neural2:0xB58A32,memory:0x8E5C8E,memory2:0xD5B86A,ants:0xB86B77}}
  function telemetry(){return window.NavoraResearchTelemetry||{routeMemories:0,journeys:0,familiarity:0,historicalSafety:0,samples:[]}}
  async function init(){
   try{await window.NavoraResearchReady}catch{}
