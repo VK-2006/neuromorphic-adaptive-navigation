@@ -3,12 +3,12 @@
  * Product styling lives in worldclass.css.
  */
 :root{
-  --bg:#F6F5EF;--surface:#FFFFFF;--text:#18201D;--muted:#65706B;--line:#D9DED9;
-  --brand:#087F68;--brand2:#B56332;--danger:#C63E48;--warning:#B97808;--success:#168B62;
+  --bg:#f6f8fc;--surface:#fff;--text:#07152f;--muted:#6a7891;--line:rgba(6,27,70,.12);
+  --brand:#ff7a00;--brand2:#078f57;--danger:#c93647;--warning:#d87800;--success:#078f57;
 }
 [data-theme="dark"]{
-  --bg:#090C0B;--surface:#151D1A;--text:#F4F7F5;--muted:#9EADA7;--line:#27332F;
-  --brand:#2ED3A7;--brand2:#D4935B;--danger:#FF6F73;--warning:#F2B84B;--success:#4DD6A5;
+  --bg:#08050d;--surface:#1b1026;--text:#fffaf0;--muted:#aa9fb8;--line:rgba(246,196,83,.15);
+  --brand:#f6c453;--brand2:#c084fc;--danger:#ff6d8b;--warning:#f6c453;--success:#5ee6a5;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}

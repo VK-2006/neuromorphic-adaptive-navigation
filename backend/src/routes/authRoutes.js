@@ -8,6 +8,7 @@ const { authenticate } = require('../middleware/auth');
 const { authLimiter, otpLimiter } = require('../middleware/rateLimits');
 
 r.get('/config', c.config);
+r.get('/email/status', authLimiter, c.emailStatus);
 
 r.post('/register', authLimiter, v.register, validate, c.register);
 r.post('/verify-email', otpLimiter, v.otp, validate, c.verifyEmail);

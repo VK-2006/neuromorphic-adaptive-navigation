@@ -1,1 +1,11 @@
 const request=require('supertest');process.env.NODE_ENV='test';const {createApp}=require('../src/app');const app=createApp();test('backend health',async()=>{const r=await request(app).get('/health');expect(r.status).toBe(200);expect(r.body.status).toBe('ok')});test('simulation route comparison works without live providers',async()=>{const r=await request(app).post('/api/v1/routes/compare').send({source:{lat:17.385,lng:78.4867},destination:{lat:17.4375,lng:78.4483},simulation:true});expect(r.status).toBe(200);expect(r.body.data.routes.length).toBeGreaterThanOrEqual(3);expect(r.body.data.mode).toBe('simulation');expect(r.body.data.recommendedRouteId).toBeTruthy()});
+
+test('health exposes deployment commit metadata without secrets',async()=>{const r=await request(app).get('/health');expect(r.status).toBe(200);expect(r.body).toHaveProperty('commit')});
+test('public readiness status uses explicit booleans',async()=>{const a=await request(app).get('/api/v1/auth/config');expect(a.status).toBe(200);expect(typeof a.body.data.passkeys.enabled).toBe('boolean');expect(typeof a.body.data.email.brevoConfigured).toBe('boolean');const t=await request(app).get('/api/v1/traffic/status');expect(t.status).toBe(200);expect(typeof t.body.data.live).toBe('boolean')});
+
+test('geocoding status exposes policy-aware typeahead',async()=>{const g=await request(app).get('/api/v1/geocoding/status');expect(g.status).toBe(200);expect(typeof g.body.data.typeahead).toBe('boolean');expect(['nominatim','graphhopper','tomtom']).toContain(g.body.data.effective)});
+
+test('email provider status is non-secret and explicit',async()=>{const r=await request(app).get('/api/v1/auth/email/status');expect(r.status).toBe(200);expect(typeof r.body.data.configured).toBe('boolean');expect(r.body.data).not.toHaveProperty('apiKey')});
+test('chat status exposes realtime and REST fallback capabilities',async()=>{const r=await request(app).get('/api/v1/chat/status');expect(r.status).toBe(200);expect(r.body.data.available).toBe(true);expect(r.body.data.restFallback).toBe(true)});
+
+test('google auth pages allow popup opener communication',async()=>{const r=await request(app).get('/login.html');expect(r.status).toBe(200);expect(r.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups')});

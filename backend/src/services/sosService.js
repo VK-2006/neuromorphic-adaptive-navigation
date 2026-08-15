@@ -1,4 +1,27 @@
-const Journey=require('../models/Journey');const TrustedContact=require('../models/TrustedContact');const Notification=require('../models/Notification');const {sendEmail}=require('./emailService');
+const Journey=require('../models/Journey');
+const TrustedContact=require('../models/TrustedContact');
+const Notification=require('../models/Notification');
+const {sendEmail}=require('./emailService');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function trigger(userId,{journeyId,location}){const journey=await Journey.findOne({_id:journeyId,userId});if(!journey)throw new Error('Journey not found');journey.emergencyActive=true;if(location)journey.lastKnownPosition=location;journey.decisionEvents.push({type:'SOS_ACTIVATED',at:new Date()});await journey.save();const contacts=await TrustedContact.find({userId,sharePermission:true});const pos=journey.lastKnownPosition;const position=pos&&Number.isFinite(Number(pos.lat))&&Number.isFinite(Number(pos.lng))?`${Number(pos.lat).toFixed(6)}, ${Number(pos.lng).toFixed(6)}`:'Unavailable';const dest=journey.destination?.label||[journey.destination?.lat,journey.destination?.lng].filter(x=>x!=null).join(', ')||'Unavailable';const results=[];for(const c of contacts){if(c.email){results.push(await sendEmail({to:c.email,subject:'Navora SOS alert',html:`<h2>Trusted-contact SOS alert</h2><p>An SOS was activated for journey <strong>${esc(journey._id)}</strong>.</p><p><strong>Timestamp:</strong> ${esc(new Date().toISOString())}</p><p><strong>Current / last known position:</strong> ${esc(position)}</p><p><strong>Destination:</strong> ${esc(dest)}</p><p>This is a user-authorized trusted-contact alert, not a police/ambulance dispatch.</p>`}))}}await Notification.create({userId,type:'SOS',title:'SOS activated',message:`Trusted-contact SOS activated for journey ${journey._id}.`,data:{journeyId:journey._id,contacts:contacts.length},expiresAt:new Date(Date.now()+30*86400000)});return {journeyId:journey._id,contactsAuthorized:contacts.length,emailAttempts:results.length,delivery:results,emergencyActive:true,lastKnownPosition:pos||null,destination:journey.destination||null,timestamp:new Date()}}
+
+async function trigger(userId,{journeyId,location}){
+  const journey=await Journey.findOne({_id:journeyId,userId});if(!journey)throw new Error('Journey not found');
+  journey.emergencyActive=true;if(location)journey.lastKnownPosition=location;journey.decisionEvents.push({type:'SOS_ACTIVATED',at:new Date()});await journey.save();
+
+  const configured=await TrustedContact.find({userId,sharePermission:true});
+  const contacts=configured.filter(c=>String(c.email||'').trim());
+  const skippedNoEmail=configured.length-contacts.length;
+  const pos=journey.lastKnownPosition;
+  const position=pos&&Number.isFinite(Number(pos.lat))&&Number.isFinite(Number(pos.lng))?`${Number(pos.lat).toFixed(6)}, ${Number(pos.lng).toFixed(6)}`:'Unavailable';
+  const dest=journey.destination?.label||[journey.destination?.lat,journey.destination?.lng].filter(x=>x!=null).join(', ')||'Unavailable';
+  const results=[];
+  for(const c of contacts){
+    results.push(await sendEmail({
+      to:c.email,subject:'Navora SOS alert',
+      html:`<h2>Trusted-contact SOS alert</h2><p>An SOS was activated for journey <strong>${esc(journey._id)}</strong>.</p><p><strong>Timestamp:</strong> ${esc(new Date().toISOString())}</p><p><strong>Current / last known position:</strong> ${esc(position)}</p><p><strong>Destination:</strong> ${esc(dest)}</p><p>This is a user-authorized trusted-contact alert, not a police/ambulance dispatch.</p>`
+    }));
+  }
+  await Notification.create({userId,type:'SOS',title:'SOS activated',message:`Trusted-contact SOS activated for journey ${journey._id}.`,data:{journeyId:journey._id,contactsDeliverable:contacts.length,skippedNoEmail},expiresAt:new Date(Date.now()+30*86400000)});
+  return{journeyId:journey._id,contactsAuthorized:contacts.length,contactsSkippedNoEmail:skippedNoEmail,emailAttempts:results.length,delivery:results,emergencyActive:true,lastKnownPosition:pos||null,destination:journey.destination||null,timestamp:new Date()};
+}
 module.exports={trigger};

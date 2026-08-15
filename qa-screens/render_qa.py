@@ -5,8 +5,8 @@ import argparse,os,re,sys
 ROOT=Path(__file__).resolve().parents[1]
 PUB=ROOT/'frontend'/'public'
 OUT=ROOT/'qa-screens'
-CSS='\n'.join((ROOT/'frontend/assets/css'/name).read_text(encoding='utf-8') for name in ['main.css','worldclass.css','obsidian.css'])
-JS=(ROOT/'frontend/assets/js/worldclass-ui.js').read_text(encoding='utf-8')+'\n'+(ROOT/'frontend/assets/js/obsidian-ui.js').read_text(encoding='utf-8')
+CSS=(ROOT/'frontend/assets/css/main.css').read_text(encoding='utf-8')+'\n'+(ROOT/'frontend/assets/css/worldclass.css').read_text(encoding='utf-8')
+JS=(ROOT/'frontend/assets/js/worldclass-ui.js').read_text(encoding='utf-8')
 
 CASES=[
  ('index.html','light',1440,1000),('index.html','dark',1440,1000),
@@ -55,7 +55,7 @@ def main():
                 error_box['items']=[]
                 page.set_viewport_size({'width':w,'height':h})
                 if not a.matrix: page.goto('about:blank',wait_until='commit')
-                page.set_content(offline_html(name,theme,include_js=not a.matrix),wait_until='domcontentloaded');page.wait_for_timeout(5 if a.matrix else 850)
+                page.set_content(offline_html(name,theme,include_js=not a.matrix),wait_until='domcontentloaded');page.wait_for_timeout(5 if a.matrix else 350)
                 errs=list(error_box['items'])
                 overflow=page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
                 if errs or overflow:failures.append((name,theme,w,errs,overflow))

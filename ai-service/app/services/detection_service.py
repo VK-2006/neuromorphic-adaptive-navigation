@@ -1,19 +1,27 @@
 import cv2, numpy as np, json
 from ..config import settings
-try: import torch
-except Exception: torch=None
+try:
+    import torch
+    import torchvision  # registers TorchVision custom ops used by scripted Faster R-CNN
+except Exception:
+    torch=None
+    torchvision=None
 DEFAULT_TARGETS=['person','bicycle','motorcycle','car','bus','truck','animal','barrier','traffic cone','construction','stopped vehicle','road blockage','pothole','road damage']
 class Detector:
     def __init__(self):
-        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS)
+        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None
         if settings.metadata_path.exists():
             try:
                 m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.validated=bool(m.get('detectorValidated',m.get('validated',False)));self.targets=m.get('detectorClasses') or self.targets
             except Exception:pass
         if torch is not None and settings.detector_weights.exists():
             try:
+                if torchvision is None:
+                    raise RuntimeError('torchvision is unavailable; scripted Faster R-CNN ops cannot be registered')
                 self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
-            except Exception:self.model=None
+            except Exception as e:
+                self.model=None
+                self.load_error=f'{type(e).__name__}: {e}'
         self.hog=cv2.HOGDescriptor();self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
     def detect(self,image):
         if self.model is not None:

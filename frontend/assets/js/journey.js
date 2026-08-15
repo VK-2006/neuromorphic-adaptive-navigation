@@ -9,6 +9,10 @@ let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=fal
 const jid=()=>sessionStorage.getItem('journeyId');
 const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
+const journeyControlIds=['start-camera','stop-camera','detection-toggle','start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','connect-webrtc','accept-reroute','decline-reroute'];
+function setJourneyControls(enabled){journeyControlIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!enabled});const share=document.getElementById('open-mobile-share');if(share){share.setAttribute('aria-disabled',String(!enabled));share.style.pointerEvents=enabled?'':'none';share.style.opacity=enabled?'':'0.55'}}
+function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${message}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
+
 async function init(){
   if(!document.getElementById('journey-map'))return;
   if(window.L){
@@ -22,6 +26,7 @@ async function init(){
   window.speechSynthesis?.addEventListener?.('voiceschanged',loadVoices);
   const id=jid();
   if(!id){
+    showNoJourneyState();
     document.getElementById('journey-title').textContent='No active journey';
     setFieldChip('field-mode','NO JOURNEY');
     toast('Plan a real route first, then start a saved journey.','warning');
@@ -29,10 +34,10 @@ async function init(){
   }
   try{
     const d=await api(`/journeys/${id}`);
-    journey=d.journey;routeDoc=d.route;
+    journey=d?.journey||null;routeDoc=d?.route||null;if(!journey)throw new Error('Journey data is unavailable.');
     voiceEnabled=localStorage.getItem('navora:voice-enabled')!=='false'&&journey.mode==='LIVE';
     updateVoiceButton();
-    renderJourney();
+    renderJourney();setJourneyControls(true);
     connectSocket();
     await loadLiveReadiness();
     startAdaptiveReevaluation();
@@ -47,7 +52,7 @@ async function init(){
         requestWakeLock();
       }
     }
-  }catch(e){toast(e.message,'error')}
+  }catch(e){setJourneyControls(false);showNoJourneyState(e.message);toast(e.message,'error')}
 }
 
 function bind(){
@@ -110,7 +115,7 @@ function renderJourney(){
 
 function drawRoute(){
   routeLine?.remove();coveredLine?.remove();remainingLine?.remove();
-  if(!route.length)return;
+  if(!route.length||!map||!window.L)return;
   routeLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:9,opacity:.28,className:'navora-route-base'}).addTo(map);
   remainingLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:7,opacity:.94,className:'navora-route-live'}).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[40,40]});
@@ -118,7 +123,7 @@ function drawRoute(){
 
 function connectSocket(){
   if(!window.io||!jid())return;
-  socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:800,reconnectionDelayMax:5000});
+  socket=window.io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:800,reconnectionDelayMax:5000});
   socket.on('connect',()=>setFieldChip('socket-state','REALTIME ON'));
   socket.on('disconnect',()=>setFieldChip('socket-state','REALTIME RETRY'));
   socket.emit('journey:join',{journeyId:jid()},ack=>{if(!ack?.ok)toast('Journey socket authorization failed','error')});
@@ -130,9 +135,10 @@ function connectSocket(){
 
 async function connectWebRtcReceiver(){
   if(!socket)return toast('Journey socket not connected','error');
+  if(!window.RTCPeerConnection)return toast('WebRTC is not supported in this browser.','error');
   try{
     if(webrtcPc)webrtcPc.close();
-    webrtcPc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    webrtcPc=new window.RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
     webrtcPc.ontrack=e=>{stream=e.streams[0];const v=document.getElementById('camera-video');v.srcObject=stream;v.play();document.getElementById('camera-state').textContent='Mobile WebRTC ON';startInferenceLoop()};
     webrtcPc.onicecandidate=e=>{if(e.candidate&&webrtcPeerId)socket.emit('webrtc:signal',{journeyId:jid(),targetId:webrtcPeerId,signal:{type:'candidate',candidate:e.candidate}})};
     webrtcPc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(webrtcPc.connectionState))document.getElementById('camera-state').textContent='Mobile WebRTC disconnected'};
@@ -221,7 +227,7 @@ async function captureForInference(){
 function clearBoxes(){const c=document.getElementById('overlay-canvas');c?.getContext('2d')?.clearRect(0,0,c.width,c.height)}
 function drawBoxes(ds){
   const c=document.getElementById('overlay-canvas'),v=document.getElementById('camera-video');if(!c||!v)return;
-  c.width=v.clientWidth;c.height=v.clientHeight;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.strokeStyle='#37d8c3';x.fillStyle='#37d8c3';x.font='14px sans-serif';
+  c.width=v.clientWidth;c.height=v.clientHeight;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const uiAccent=getComputedStyle(document.documentElement).getPropertyValue('--ui-ai-accent').trim()||'#A99BFF';x.strokeStyle=uiAccent;x.fillStyle=uiAccent;x.font='14px sans-serif';
   ds.forEach(d=>{const b=d.boundingBox||[.1,.1,.2,.2];x.strokeRect(b[0]*c.width,b[1]*c.height,b[2]*c.width,b[3]*c.height);x.fillText(`${d.objectClass} ${Math.round(d.confidence*100)}%`,b[0]*c.width,Math.max(14,b[1]*c.height-4))});
 }
 
@@ -338,7 +344,7 @@ function applyProgress(r){
 function geoDistance(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),la1=rad(a.lat),la2=rad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 
 function splitRouteByDistance(distanceCovered){
-  if(route.length<2||!window.L)return;let remaining=Math.max(0,Number(distanceCovered)||0),cut={...route[0]},idx=0;
+  if(route.length<2||!window.L||!map)return;let remaining=Math.max(0,Number(distanceCovered)||0),cut={...route[0]},idx=0;
   for(let i=0;i<route.length-1;i++){const len=geoDistance(route[i],route[i+1]);if(remaining<=len){const t=len?Math.max(0,Math.min(1,remaining/len)):0;cut={lat:route[i].lat+(route[i+1].lat-route[i].lat)*t,lng:route[i].lng+(route[i+1].lng-route[i].lng)*t};idx=i;break}remaining-=len;idx=i+1;cut={...route[Math.min(i+1,route.length-1)]}}
   const covered=[...route.slice(0,idx+1),cut].filter((p,i,a)=>i===0||p.lat!==a[i-1].lat||p.lng!==a[i-1].lng),left=[cut,...route.slice(idx+1)];
   coveredLine?.remove();remainingLine?.remove();

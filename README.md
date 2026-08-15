@@ -132,12 +132,13 @@ Google Identity, Brevo and live traffic are source-complete but require user-sup
 
 ## Render-ready source contract
 
-Future backend target:
+Current integrated backend + frontend Render target:
 
 - Environment: Node
-- Root Directory: `backend`
-- Build Command: `npm ci`
-- Start Command: `npm start`
+- Root Directory: leave blank (repository root; the backend serves `frontend/` at runtime)
+- Build Command: `cd backend && npm ci`
+- Start Command: `cd backend && npm start`
+- Health Check Path: `/health`
 - Code: `const PORT = process.env.PORT || 5000;`
 
 The user's Git working repository already preserves `backend/package-lock.json`; the final pre-push audit verifies its direct dependency specifications match `package.json` before push.
@@ -151,3 +152,26 @@ The source contains training/evaluation/runtime-validation tooling so those gate
 ## Pre-push / deployment status
 
 All identified source/compliance cleanup is consolidated into the final pre-push build. The user performs the Git commit/push after `final_verify.py --runtime` and `prepush_audit.py` pass. Render/Atlas/production secrets remain a separate later step.
+
+
+## Production smoke verification
+
+After a production auto-deploy, verify the exact deployed Git commit and public integrations:
+
+```powershell
+python .\scripts\production_smoke.py `
+  --backend https://YOUR-BACKEND.onrender.com `
+  --ai https://YOUR-AI.onrender.com `
+  --expected-commit (git rev-parse HEAD)
+```
+
+The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates.
+
+
+### Production geocoding policy
+
+Navora does not use the public OSMF Nominatim endpoint for autocomplete. Nominatim remains available for rate-limited, cached manual search/reverse geocoding. If a TomTom key is available, predictive place suggestions use TomTom Search; the dedicated `GEOCODING_API_KEY` is optional and falls back to the existing `TRAFFIC_API_KEY`.
+
+## Navora V7 functional product UI
+
+Production pages use `navora-v7.css` and the domain JavaScript modules. The previous `worldclass.css` / `worldclass-ui.js` showcase layer is no longer loaded. V7 prioritizes authenticated workflow state, map/journey usability, visible form/error states, responsive navigation, cache-safe updates and real Playwright browser wiring checks.

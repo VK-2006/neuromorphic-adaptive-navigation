@@ -1,3 +1,4 @@
+
 const {body,param}=require('express-validator');
 const coord=(prefix,{optional=false}={})=>{
   let lat=body(`${prefix}.lat`),lng=body(`${prefix}.lng`);
@@ -16,10 +17,42 @@ exports.detect=[body('journeyId').optional({nullable:true}).isMongoId(),body('de
 exports.hazardReport=[body('journeyId').optional({nullable:true}).isMongoId(),body('type').trim().isLength({min:2,max:80}),...coord('location'),body('confidence').optional().isFloat({min:0,max:1}),body('riskScore').optional().isFloat({min:0,max:1}),body('riskLevel').optional().isIn(['LOW','MEDIUM','HIGH','CRITICAL'])];
 exports.hazardConfirm=[param('id').isMongoId(),body('confirmed').optional().isBoolean(),...coord('location')];
 exports.sos=[body('journeyId').isMongoId(),...coord('location',{optional:true}),body('location.accuracy').optional({nullable:true}).isFloat({min:0,max:10000}),body('location.heading').optional({nullable:true}).isFloat({min:0,max:360}),body('location.speed').optional({nullable:true}).isFloat({min:0,max:200}),body('location.timestamp').optional().custom(v=>Number.isFinite(Number(v))||!Number.isNaN(Date.parse(v))).withMessage('Invalid location timestamp')];
-exports.deviceCreate=[body('name').trim().isLength({min:1,max:100}),body('deviceType').optional().isIn(['BROWSER_CAMERA','BLUETOOTH_SENSOR','WEBRTC_CAMERA','WIFI_CAMERA','OTHER']),body('externalId').optional().isString().isLength({max:200}),body('battery').optional({nullable:true}).isFloat({min:0,max:100}),body('capabilities').optional().isArray({max:50}),body('enabled').optional().isBoolean()];
-exports.devicePatch=[param('id').isMongoId(),body('name').optional().trim().isLength({min:1,max:100}),body('deviceType').optional().isIn(['BROWSER_CAMERA','BLUETOOTH_SENSOR','WEBRTC_CAMERA','WIFI_CAMERA','OTHER']),body('externalId').optional().isString().isLength({max:200}),body('battery').optional({nullable:true}).isFloat({min:0,max:100}),body('capabilities').optional().isArray({max:50}),body('enabled').optional().isBoolean()];
+
+const deviceCommon=[
+  body('name').optional().trim().isLength({min:1,max:100}),
+  body('deviceType').optional().isIn(['BROWSER_CAMERA','BLUETOOTH_SENSOR','WEBRTC_CAMERA','WIFI_CAMERA','OTHER']),
+  body('externalId').optional().isString().isLength({max:200}),
+  body('battery').optional({nullable:true}).isFloat({min:0,max:100}),
+  body('capabilities').optional().isArray({max:50}),
+  body('enabled').optional().isBoolean(),
+  body('connectionStatus').optional().isIn(['UNKNOWN','CONNECTED','DISCONNECTED','ERROR']),
+  body('serviceUuid').optional().isString().isLength({max:200}),
+  body('controlCharacteristicUuid').optional().isString().isLength({max:200}),
+  body('sensorCharacteristicUuid').optional().isString().isLength({max:200}),
+  body('lastCommand').optional().isString().isLength({max:80}),
+  body('lastCommandAt').optional({nullable:true}).isISO8601(),
+  body('lastSensorValue').optional().isString().isLength({max:500}),
+  body('lastSensorAt').optional({nullable:true}).isISO8601()
+];
+exports.deviceCreate=[body('name').trim().isLength({min:1,max:100}),...deviceCommon.slice(1)];
+exports.devicePatch=[param('id').isMongoId(),...deviceCommon];
+
 exports.contactCreate=[body('name').trim().isLength({min:1,max:100}),body('phone').optional().isString().isLength({max:32}),body('email').optional({checkFalsy:true}).isEmail().normalizeEmail(),body('relationship').optional().isString().isLength({max:80}),body('sharePermission').optional().isBoolean()];
 exports.contactPatch=[param('id').isMongoId(),body('name').optional().trim().isLength({min:1,max:100}),body('phone').optional().isString().isLength({max:32}),body('email').optional({checkFalsy:true}).isEmail().normalizeEmail(),body('relationship').optional().isString().isLength({max:80}),body('sharePermission').optional().isBoolean()];
-exports.profilePatch=[body('name').optional().trim().isLength({min:2,max:80}),body('preferences.safety').optional().isFloat({min:0,max:1}),body('preferences.traffic').optional().isFloat({min:0,max:1}),body('preferences.familiarity').optional().isFloat({min:0,max:1})];
+exports.profilePatch=[
+  body('name').optional().trim().isLength({min:2,max:80}),
+  body('phone').optional().isString().isLength({max:32}),
+  body('city').optional().isString().isLength({max:80}),
+  body('country').optional().isString().isLength({max:80}),
+  body('preferredLanguage').optional().isIn(['en-IN','en-US','te-IN','hi-IN']),
+  body('preferences.safety').optional().isFloat({min:0,max:1}),
+  body('preferences.traffic').optional().isFloat({min:0,max:1}),
+  body('preferences.familiarity').optional().isFloat({min:0,max:1}),
+  body('preferences.theme').optional().isIn(['LIGHT','DARK','SYSTEM']),
+  body('preferences.units').optional().isIn(['METRIC','IMPERIAL']),
+  body('preferences.voiceLanguage').optional().isIn(['en-IN','en-US','te-IN','hi-IN']),
+  body('preferences.detectionMode').optional().isIn(['LOCAL','CLOUD']),
+  body('preferences.highAccuracyGps').optional().isBoolean()
+];
 
 exports.simulationStep=[body('journeyId').isMongoId(),body('index').isInt({min:0,max:100000}),...coord('location'),body('location.speed').optional({nullable:true}).isFloat({min:0,max:200})];

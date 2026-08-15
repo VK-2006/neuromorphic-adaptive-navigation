@@ -36,7 +36,9 @@ def main():
     sys.path.insert(0,str(ROOT/'ai-service'))
     from app.services.detection_service import Detector
     detector=Detector()
-    if detector.model is None:raise SystemExit('Detector weights could not be loaded as TorchScript')
+    if detector.model is None:
+        detail=getattr(detector,'load_error',None) or 'unknown TorchScript load error'
+        raise SystemExit(f'Detector weights could not be loaded as TorchScript: {detail}')
     rows=[json.loads(x) for x in a.manifest.read_text(encoding='utf-8').splitlines() if x.strip()]
     tp=fp=fn=0;used=0;per={}
     for row in rows:

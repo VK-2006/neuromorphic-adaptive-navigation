@@ -7,6 +7,7 @@ const ChatReport=require('../models/ChatReport');
 const Blocked=require('../models/BlockedUser');
 const Journey=require('../models/Journey');
 const Route=require('../models/Route');
+r.get('/status',(req,res)=>res.json({success:true,data:{available:true,realtime:!!req.app.get('io'),restFallback:true,requiresAuthentication:true}}));
 r.use(authenticate);
 
 const clean=s=>String(s||'').trim().replace(/<[^>]*>/g,'').slice(0,1000);
@@ -58,6 +59,16 @@ r.get('/messages/:roomId',async(req,res)=>{
   const reactionMap=new Map();rx.forEach(x=>{const k=String(x.messageId);if(!reactionMap.has(k))reactionMap.set(k,[]);reactionMap.get(k).push({emoji:x.emoji,userId:String(x.userId)})});
   const messages=docs.reverse().map(m=>({...m,id:String(m._id),user:{id:String(m.userId?._id),name:m.userId?.name,avatarUrl:m.userId?.avatarUrl},reactions:reactionMap.get(String(m._id))||[]}));
   res.json({success:true,data:{room,messages,hasMore:docs.length===limit,nextBefore:docs.length?docs[0].createdAt:null}});
+});
+
+r.post('/messages/:roomId',async(req,res)=>{
+  const room=await getRoom(req.params.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Room forbidden'});
+  const content=clean(req.body.content);if(!content)return res.status(422).json({success:false,message:'Message cannot be empty'});
+  let reply=null;if(req.body.replyTo){reply=await ChatMessage.findOne({_id:req.body.replyTo,roomId:room._id,deletedAt:null}).populate('userId','name');if(!reply)return res.status(422).json({success:false,message:'Reply target unavailable'})}
+  const msg=await ChatMessage.create({roomId:room._id,userId:req.user._id,content,replyTo:reply?._id});
+  const payload={id:String(msg._id),roomId:req.params.roomId,dbRoomId:String(room._id),content,replyTo:reply?{id:String(reply._id),content:reply.content,user:{id:String(reply.userId?._id),name:reply.userId?.name}}:null,createdAt:msg.createdAt,user:{id:String(req.user._id),name:req.user.name,avatarUrl:req.user.avatarUrl},reactions:[]};
+  const io=req.app.get('io');if(io){const docs=await Blocked.find({$or:[{userId:req.user._id},{blockedUserId:req.user._id}]}).lean();const excluded=docs.map(b=>`user:${String(String(b.userId)===String(req.user._id)?b.blockedUserId:b.userId)}`);io.to(`chat:${req.params.roomId}`).except(excluded).emit('chat:message',payload);if(['GLOBAL','NEARBY','REGION'].includes(room.type))io.to('authenticated').except([`user:${String(req.user._id)}`,...excluded]).emit('chat:unread',{roomId:req.params.roomId,roomName:room.name,senderId:String(req.user._id)})}
+  res.status(201).json({success:true,data:payload});
 });
 
 r.patch('/messages/:id',async(req,res)=>{

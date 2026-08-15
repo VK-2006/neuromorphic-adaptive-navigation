@@ -1,34 +1,25 @@
 (function(){
   'use strict';
-  const root=document.documentElement;
-  const key='navora-theme';
-  const order=['system','light','dark'];
-  const label={system:'◐ System',light:'☀ Light',dark:'◒ Dark'};
+  const root=document.documentElement,key='navora-theme',order=['system','light','dark'],label={system:'◐ System',light:'☀ Light',dark:'◒ Dark'};
   const normalize=value=>order.includes(value)?value:'system';
-  function render(value){
-    document.querySelectorAll('[data-theme-toggle]').forEach(button=>{
-      button.textContent=label[value];
-      button.setAttribute('aria-label',`Theme is ${value}. Activate to change theme.`);
-      button.setAttribute('title',`Theme: ${value}`);
-    });
-  }
+  const media=()=>typeof window.matchMedia==='function'?window.matchMedia('(prefers-color-scheme: dark)'):null;
+  function render(value){document.querySelectorAll('[data-theme-toggle]').forEach(button=>{button.textContent=label[value];button.setAttribute('aria-label',`Theme is ${value}. Activate to change theme.`);button.setAttribute('title',`Theme: ${value}`)})}
   function apply(value){
-    value=normalize(value);
-    const system=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
-    const actual=value==='system'?system:value;
-    root.dataset.theme=actual;
-    root.dataset.themeChoice=value;
-    try{localStorage.setItem(key,value)}catch{}
-    render(value);
+    value=normalize(value);const mq=media(),system=mq?.matches?'dark':'light',actual=value==='system'?system:value;
+    root.dataset.theme=actual;root.dataset.themeChoice=value;try{localStorage.setItem(key,value)}catch{}render(value);
     window.dispatchEvent(new CustomEvent('navora:theme',{detail:{choice:value,actual}}));
   }
   let saved='system';try{saved=localStorage.getItem(key)||'system'}catch{}
   window.NavoraTheme={apply,get:()=>{try{return normalize(localStorage.getItem(key)||saved)}catch{return saved}}};
   apply(saved);
   document.addEventListener('DOMContentLoaded',()=>render(window.NavoraTheme.get()),{once:true});
-  document.addEventListener('click',event=>{
-    const button=event.target.closest('[data-theme-toggle]');if(!button)return;
-    const current=window.NavoraTheme.get();apply(order[(order.indexOf(current)+1)%order.length]);
-  });
-  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(window.NavoraTheme.get()==='system')apply('system')});
+  document.addEventListener('click',event=>{const button=event.target.closest?.('[data-theme-toggle]');if(!button)return;const current=window.NavoraTheme.get();apply(order[(order.indexOf(current)+1)%order.length])});
+  media()?.addEventListener?.('change',()=>{if(window.NavoraTheme.get()==='system')apply('system')});
+
+  // V9 functional enhancement layer is a module and is evaluated only once even if
+  // a page also includes it explicitly before a critical workflow module.
+  if(!document.querySelector('script[data-navora-v9]')){
+    const s=document.createElement('script');s.type='module';s.src='/assets/js/v9-functional.js';s.dataset.navoraV9='true';
+    document.head.appendChild(s);
+  }
 })();
