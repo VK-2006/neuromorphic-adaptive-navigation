@@ -4,6 +4,9 @@ The training manifest must contain only BDD100K samples and only:
 person, bicycle, motorcycle, car, bus, truck.
 
 Default initialization uses TorchVision COCO-pretrained Faster R-CNN ResNet50-FPN.
+For the six overlapping COCO classes, the pretrained classifier/regressor rows are
+copied into Navora's compact seven-class prediction head instead of being discarded.
+
 Training never implies validation. The untouched held-out manifest must still pass
 evaluate_detector.py before detectorValidated can become true.
 """
@@ -85,19 +88,70 @@ def collate(batch):
     return tuple(zip(*batch))
 
 
-def build_model(from_scratch=False, head_only=False):
-    weights = None if from_scratch else FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+def _transfer_coco_predictor(model, weights):
+    old_predictor = model.roi_heads.box_predictor
+    in_features = old_predictor.cls_score.in_features
+    new_predictor = FastRCNNPredictor(in_features, len(CLASSES))
 
-    # Runtime feeds 640x384 frames. Keep the detector's internal transform aligned
-    # with that scale instead of re-upscaling every frame to the 800px default.
-    model = fasterrcnn_resnet50_fpn(
-        weights=weights,
-        weights_backbone=None if from_scratch else None,
-        min_size=384,
-        max_size=640,
-    )
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, len(CLASSES))
+    categories = list(weights.meta.get('categories') or [])
+    if not categories:
+        raise RuntimeError('TorchVision COCO category metadata is unavailable')
+
+    mapping = []
+    with torch.no_grad():
+        for new_idx, cls in enumerate(CLASSES):
+            if new_idx == 0:
+                old_idx = 0
+            else:
+                if cls not in categories:
+                    raise RuntimeError(f'COCO pretrained category is missing: {cls}')
+                old_idx = categories.index(cls)
+
+            new_predictor.cls_score.weight[new_idx].copy_(
+                old_predictor.cls_score.weight[old_idx]
+            )
+            new_predictor.cls_score.bias[new_idx].copy_(
+                old_predictor.cls_score.bias[old_idx]
+            )
+
+            old_box = slice(old_idx * 4, (old_idx + 1) * 4)
+            new_box = slice(new_idx * 4, (new_idx + 1) * 4)
+            new_predictor.bbox_pred.weight[new_box].copy_(
+                old_predictor.bbox_pred.weight[old_box]
+            )
+            new_predictor.bbox_pred.bias[new_box].copy_(
+                old_predictor.bbox_pred.bias[old_box]
+            )
+            mapping.append((cls, old_idx, new_idx))
+
+    model.roi_heads.box_predictor = new_predictor
+    return mapping
+
+
+def build_model(from_scratch=False, head_only=False):
+    if from_scratch:
+        model = fasterrcnn_resnet50_fpn(
+            weights=None,
+            weights_backbone=None,
+            min_size=384,
+            max_size=640,
+        )
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+        model.roi_heads.box_predictor = FastRCNNPredictor(
+            in_features,
+            len(CLASSES),
+        )
+        initialization = 'from-scratch'
+        mapping = []
+    else:
+        weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+        model = fasterrcnn_resnet50_fpn(
+            weights=weights,
+            min_size=384,
+            max_size=640,
+        )
+        mapping = _transfer_coco_predictor(model, weights)
+        initialization = 'torchvision-coco-pretrained+class-head-transfer'
 
     if head_only:
         for p in model.parameters():
@@ -105,7 +159,7 @@ def build_model(from_scratch=False, head_only=False):
         for p in model.roi_heads.box_predictor.parameters():
             p.requires_grad = True
 
-    return model, ('from-scratch' if from_scratch else 'torchvision-coco-pretrained')
+    return model, initialization, mapping
 
 
 def main():
@@ -118,6 +172,7 @@ def main():
     ap.add_argument('--batch-size', type=int, default=2)
     ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     ap.add_argument('--max-samples', type=int, default=0)
+    ap.add_argument('--lr', type=float, default=1e-4)
     ap.add_argument(
         '--head-only',
         action='store_true',
@@ -126,7 +181,7 @@ def main():
     ap.add_argument(
         '--from-scratch',
         action='store_true',
-        help='Disable COCO pretrained initialization.',
+        help='Disable COCO pretrained initialization and class-head transfer.',
     )
     ap.add_argument(
         '--smoke',
@@ -148,7 +203,7 @@ def main():
         num_workers=0,
     )
 
-    model, initialization = build_model(
+    model, initialization, mapping = build_model(
         from_scratch=args.from_scratch,
         head_only=args.head_only,
     )
@@ -157,15 +212,26 @@ def main():
     trainable = [p for p in model.parameters() if p.requires_grad]
     if not trainable:
         raise SystemExit('No trainable parameters remain')
-    optimizer = torch.optim.AdamW(trainable, lr=1e-4, weight_decay=1e-4)
+    optimizer = torch.optim.AdamW(
+        trainable,
+        lr=args.lr,
+        weight_decay=1e-4,
+    )
 
     print('initialization =', initialization)
     print('device =', args.device)
     print('images =', len(ds))
     print('classes =', CLASSES[1:])
     print('head_only =', args.head_only)
+    print('learning_rate =', args.lr)
     print('internal_resize = min_size=384 max_size=640')
     print('trainable_parameter_tensors =', len(trainable))
+    if mapping:
+        print(
+            'coco_head_transfer =',
+            ', '.join(f'{cls}:{old_idx}->{new_idx}' for cls, old_idx, new_idx in mapping),
+        )
+        print('COCO_CLASS_HEAD_TRANSFER_PASS')
 
     started = time.perf_counter()
     seen = 0
@@ -252,13 +318,16 @@ def main():
             provenance = {}
 
     meta.update({
-        'detectorModelVersion': 'bdd100k-fasterrcnn-resnet50-fpn-v3',
+        'detectorModelVersion': 'bdd100k-fasterrcnn-resnet50-fpn-v4',
         'detectorClasses': CLASSES[1:],
         'detectorValidated': False,
         'trainingSources': ['BDD100K'],
-        'detectorTrainingProtocol': 'BDD100K validation-mirror internal 80/20 development split',
+        'detectorTrainingProtocol': (
+            'BDD100K validation-mirror internal 80/20 development split'
+        ),
         'officialBddBenchmarkClaim': False,
         'initialization': initialization,
+        'cocoClassHeadTransfer': bool(mapping),
         'headOnlyTraining': bool(args.head_only),
         'internalResize': {'minSize': 384, 'maxSize': 640},
         'trainingManifest': str(Path(args.manifest)),
