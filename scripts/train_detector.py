@@ -1,4 +1,4 @@
-"""Train a PyTorch/TorchVision detector from the unified BDD100K + RDD2022 manifest.
+"""Train Navora's BDD100K-only PyTorch/TorchVision detector.
 
 This script intentionally requires local dataset files and does not download or pretend to ship validated weights.
 It saves a scripted detector plus metadata for ai-service/app/services/detection_service.py.
@@ -13,10 +13,24 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 ROOT=Path(__file__).resolve().parents[1]
-CLASSES=['__background__','person','bicycle','motorcycle','car','bus','truck','animal','barrier','traffic cone','construction','stopped vehicle','road blockage','pothole','road damage']
+CLASSES=['__background__','person','bicycle','motorcycle','car','bus','truck']
 C2I={c:i for i,c in enumerate(CLASSES)}
 class ManifestDataset(Dataset):
-    def __init__(self,path): self.rows=[json.loads(x) for x in Path(path).read_text().splitlines() if x.strip()]
+    def __init__(self,path):
+        self.path=Path(path)
+        self.rows=[json.loads(x) for x in self.path.read_text(encoding='utf-8').splitlines() if x.strip()]
+        if not self.rows:
+            raise ValueError(f'empty manifest: {self.path}')
+        allowed=set(CLASSES[1:])
+        for n,row in enumerate(self.rows,1):
+            if row.get('source')!='BDD100K':
+                raise ValueError(f'{self.path}:{n}: only BDD100K source is allowed')
+            boxes=row.get('boxes')
+            if not isinstance(boxes,list) or not boxes:
+                raise ValueError(f'{self.path}:{n}: boxes must be non-empty')
+            bad=sorted({str(x.get('class')) for x in boxes if str(x.get('class')) not in allowed})
+            if bad:
+                raise ValueError(f'{self.path}:{n}: unsupported BDD100K-only classes: {bad}')
     def __len__(self): return len(self.rows)
     def __getitem__(self,i):
         r=self.rows[i];img=cv2.imread(r['image']);
@@ -44,7 +58,7 @@ def main():
     meta_path=out/'metadata.json'
     try: meta=json.loads(meta_path.read_text()) if meta_path.exists() else {}
     except Exception: meta={}
-    meta.update({'detectorModelVersion':'bdd100k-rdd2022-fasterrcnn-trained-v1','detectorClasses':CLASSES[1:],'detectorValidated':False,'trainingSources':['BDD100K','RDD2022'],'note':'Training never implies validation. Run evaluate_detector.py on held-out real data.'})
+    meta.update({'detectorModelVersion':'bdd100k-fasterrcnn-trained-v2','detectorClasses':CLASSES[1:],'detectorValidated':False,'trainingSources':['BDD100K'],'officialBddBenchmarkClaim':False,'trainingProtocol':'BDD100K validation-mirror internal 80/20 development split','note':'Training never implies validation. This is not an official BDD100K benchmark result. Run evaluate_detector.py on the untouched held-out manifest.'})
     meta['validated']=bool(meta.get('detectorValidated',False) and meta.get('riskValidated',False))
     meta_path.write_text(json.dumps(meta,indent=2));print('saved',out/'detector.pt');print('validation remains FALSE; evaluate on held-out data before live safety use')
 if __name__=='__main__': main()

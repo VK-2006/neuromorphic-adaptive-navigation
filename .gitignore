@@ -44,3 +44,8 @@ ai-service/trained_models/*-evaluation.json
 ai-service/trained_models/validation-evidence.json
 ai-service/trained_models/data-gate-report.json
 model-artifacts/
+
+# Local BDD100K derived detector manifests/evidence contain machine-local paths.
+datasets/derived-risk-data/detection-train.jsonl
+datasets/derived-risk-data/detection-eval.jsonl
+datasets/derived-risk-data/bdd100k-hf-provenance.json

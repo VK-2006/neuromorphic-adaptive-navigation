@@ -5,7 +5,7 @@ from collections import Counter
 
 FEATURES=['objectPrior','confidence','proximity','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','lowVisibility','weatherRisk','roadOrReports']
 RISK_LABELS=['LOW','MEDIUM','HIGH','CRITICAL']
-DETECTOR_CLASSES=['person','bicycle','motorcycle','car','bus','truck','animal','barrier','traffic cone','construction','stopped vehicle','road blockage','pothole','road damage']
+DETECTOR_CLASSES=['person','bicycle','motorcycle','car','bus','truck']
 
 def sha256_file(path:Path):
     h=hashlib.sha256()
