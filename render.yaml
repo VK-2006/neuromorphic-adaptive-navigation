@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: navora-ai
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  - type: web
+    name: navora-web
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: AI_SERVICE_URL
+        fromService:
+          type: web
+          name: navora-ai
+          property: hostport
+      - key: ROUTING_PROVIDER
+        value: osrm
+      - key: GEOCODING_PROVIDER
+        value: nominatim
+      - key: SIMULATION_MODE
+        value: "true"
+      - key: LIVE_REQUIRE_VALIDATED_AI
+        value: "true"

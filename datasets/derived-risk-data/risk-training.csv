@@ -1,0 +1,7 @@
+objectPrior,confidence,proximity,relativeSpeed,userSpeed,objectPersistence,trafficDensity,hazardFrequency,lowVisibility,weatherRisk,roadOrReports,riskLabel
+0.2,0.8,0.1,0.1,0.2,0.2,0.1,0.1,0.1,0.1,0.1,LOW
+0.5,0.9,0.45,0.2,0.4,0.5,0.4,0.2,0.2,0.1,0.2,MEDIUM
+0.8,0.9,0.75,0.5,0.7,0.8,0.7,0.5,0.4,0.3,0.6,HIGH
+0.95,0.98,0.95,0.8,0.8,1,0.9,0.8,0.7,0.6,0.9,CRITICAL
+0.6,0.75,0.55,0.4,0.5,0.7,0.5,0.4,0.3,0.2,0.5,MEDIUM
+0.75,0.9,0.8,0.6,0.6,0.9,0.6,0.7,0.5,0.4,0.8,HIGH

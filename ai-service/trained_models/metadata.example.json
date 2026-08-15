@@ -1,0 +1,12 @@
+{
+  "detectorModelVersion": "bdd100k-rdd2022-detector-v1",
+  "riskModelVersion": "risk-snn-v1",
+  "detectorClasses": ["person", "bicycle", "motorcycle", "car", "bus", "truck", "animal", "barrier", "traffic cone", "construction", "stopped vehicle", "road blockage", "pothole", "road damage"],
+  "detectorValidated": false,
+  "riskValidated": false,
+  "validated": false,
+  "validation": {
+    "detectorReport": "detector-evaluation.json",
+    "riskReport": "snn-evaluation.json"
+  }
+}

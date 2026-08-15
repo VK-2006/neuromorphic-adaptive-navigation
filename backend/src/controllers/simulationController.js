@@ -1,0 +1,2 @@
+const sim=require('../services/simulationService');const {ok}=require('../utils/response');
+exports.step=async(req,res)=>{const data=await sim.step({userId:req.user._id,journeyId:req.body.journeyId,location:req.body.location,index:req.body.index});if(data.event){const io=req.app.get('io');io?.to(`journey:${req.body.journeyId}`).emit('snn:risk',{...data.event.risk,simulation:true});io?.to(`journey:${req.body.journeyId}`).emit('simulation:detection',data.event)}ok(res,data)};

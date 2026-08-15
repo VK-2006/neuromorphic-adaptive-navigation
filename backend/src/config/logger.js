@@ -1,0 +1,2 @@
+const winston=require('winston');const env=require('./env');const redact=info=>{for(const k of ['password','otp','token','refreshToken','authorization','apiKey'])if(k in info)info[k]='[REDACTED]';return info};
+module.exports=winston.createLogger({level:env.logLevel,format:winston.format.combine(winston.format(redact)(),winston.format.timestamp(),winston.format.json()),transports:[new winston.transports.Console()]});

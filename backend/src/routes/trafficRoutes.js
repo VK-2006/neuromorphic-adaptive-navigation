@@ -1,0 +1,1 @@
+const r=require('express').Router();const env=require('../config/env');r.get('/status',(req,res)=>res.json({success:true,data:{provider:env.trafficProvider||null,mode:env.trafficProvider?'configured':'simulation/unknown',note:env.trafficProvider?'Provider configured':'No live traffic provider configured; simulated values are explicitly labelled'}}));module.exports=r;

@@ -1,0 +1,1 @@
+const mongoose=require('mongoose');const schema=new mongoose.Schema({userId:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},name:{type:String,required:true},phone:String,email:{type:String,lowercase:true},relationship:String,sharePermission:{type:Boolean,default:false}},{timestamps:true});module.exports=mongoose.model('TrustedContact',schema);

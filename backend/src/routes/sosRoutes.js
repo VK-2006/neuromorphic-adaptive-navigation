@@ -1,0 +1,1 @@
+const r=require('express').Router();const {authenticate}=require('../middleware/auth');const v=require('../validators/domainValidators');const validate=require('../middleware/validate');r.post('/',authenticate,v.sos,validate,require('../controllers/sosController').trigger);module.exports=r;

@@ -1,0 +1,80 @@
+name: Navora CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-backend:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Source and master-prompt contracts
+        run: |
+          python scripts/master_prompt_crosscheck.py
+          python scripts/repository_crosscheck.py
+          python tests/frontend_stack_contracts.py
+          python tests/worldclass_ui_contracts.py
+          python tests/dom_contracts.py
+          python tests/static_assets.py
+          python tests/frontend_contracts.py
+          python tests/failure_contracts.py
+          python tests/accessibility_contracts.py
+          python tests/live_navigation_contracts.py
+          python tests/verifier_context_contracts.py
+          node tests/pure-smoke.js
+          node tests/performance_smoke.js
+      - name: Install backend
+        working-directory: backend
+        run: npm ci
+      - name: Backend Jest and audit
+        working-directory: backend
+        run: |
+          npm test
+          npm audit --audit-level=high
+      - name: Mongo-backed runtime E2E
+        env:
+          NAVORA_E2E_MONGODB_URI: mongodb://127.0.0.1:27017/navora_ci_e2e
+        run: node scripts/runtime_e2e.js
+      - name: Git hygiene audit
+        run: python scripts/prepush_audit.py
+
+  ai-fallback-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai-service/requirements-test.txt
+      - name: Install lightweight AI test dependencies
+        working-directory: ai-service
+        run: pip install -r requirements-test.txt
+      - name: AI fallback/API tests
+        working-directory: ai-service
+        run: pytest tests -q
+      - name: AI validation truthfulness
+        run: python scripts/model_readiness.py

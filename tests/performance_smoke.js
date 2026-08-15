@@ -1,0 +1,14 @@
+const {performance}=require('perf_hooks');
+const {optimize}=require('../backend/src/services/aco');
+const {dtwSimilarity}=require('../backend/src/services/dtw');
+const {projectToRoute}=require('../backend/src/utils/geo');
+const routes=Array.from({length:5},(_,i)=>({id:`r${i}`,distance:9000+i*600,trafficDuration:900+i*55,trafficDelay:i*20,safetyScore:92-i*7,familiarity:.25+i*.15,historicalSafety:.75+i*.03,snnHazardRisk:.08+i*.04,hazardExposure:.1+i*.03,successfulJourneyCount:i+1}));
+const routeA=Array.from({length:120},(_,i)=>({lat:17.3+i*.0003,lng:78.4+i*.0002}));
+const routeB=routeA.map((p,i)=>({lat:p.lat+Math.sin(i/12)*.00002,lng:p.lng}));
+const weights={distance:.15,time:.15,traffic:.15,safety:.25,familiarity:.12,history:.10,preference:.08};
+let t=performance.now();for(let i=0;i<40;i++)optimize(routes,{ants:30,iterations:45,weights,seed:i,preferences:{safety:.8,traffic:.6,familiarity:.5}});const acoMs=performance.now()-t;
+t=performance.now();for(let i=0;i<60;i++)dtwSimilarity(routeA,routeB);const dtwMs=performance.now()-t;
+t=performance.now();for(let i=0;i<10000;i++)projectToRoute(routeA,{lat:17.31,lng:78.407});const geoMs=performance.now()-t;
+console.log(JSON.stringify({aco40RunsMs:+acoMs.toFixed(1),dtw60RunsMs:+dtwMs.toFixed(1),mapMatch10000RunsMs:+geoMs.toFixed(1)}));
+if(acoMs>5000||dtwMs>5000||geoMs>5000)process.exit(1);
+console.log('PERFORMANCE_SMOKE PASS');

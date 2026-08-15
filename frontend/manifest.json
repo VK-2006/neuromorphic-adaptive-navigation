@@ -1,0 +1,72 @@
+{
+  "name": "Navora \u2014 Neuromorphic Adaptive Navigation",
+  "short_name": "Navora",
+  "id": "/",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#ffffff",
+  "description": "Navora combines neuromorphic risk processing, cognitive route memory and swarm route optimization in a privacy-aware intelligent navigation experience.",
+  "icons": [
+    {
+      "src": "/assets/icons/navora-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/navora-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/navora.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Navigate",
+      "url": "/map.html",
+      "icons": [
+        {
+          "src": "/assets/icons/navora-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Live Journey",
+      "url": "/journey.html",
+      "icons": [
+        {
+          "src": "/assets/icons/navora-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Journey History",
+      "url": "/history.html",
+      "icons": [
+        {
+          "src": "/assets/icons/navora-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "categories": [
+    "navigation",
+    "utilities"
+  ]
+}
