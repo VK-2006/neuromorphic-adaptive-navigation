@@ -1,0 +1,301 @@
+/* NAVORA v17 - Premium light theme + universal profile shell
+   Light identity: Ivory + Charcoal + Warm Plum + Muted Gold + restrained Rose.
+   Dark theme is intentionally not recolored here. */
+
+:root:not([data-theme]),
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --nav-bg: #F7F3EA;
+  --nav-surface: #FFFDFC;
+  --nav-surface-2: #F3ECE4;
+  --nav-text: #272127;
+  --nav-muted: #746A73;
+  --nav-line: #DED2D7;
+  --nav-line-strong: #CDBBC3;
+  --nav-primary: #6E3B6E;
+  --nav-primary-hover: #572D57;
+  --nav-primary-soft: rgba(110,59,110,.10);
+  --nav-success: #2F7D65;
+  --nav-warning: #A8751D;
+  --nav-danger: #B84F5E;
+  --nav-sidebar: #F3E8DE;
+  --nav-sidebar-2: #EADDD2;
+  --nav-sidebar-text: #342A33;
+  --nav-sidebar-muted: #776B75;
+  --nav-shadow: 0 18px 48px rgba(69,49,61,.11);
+
+  --bg-primary: #F7F3EA;
+  --bg-secondary: #EFE8DD;
+  --surface-primary: #FFFDFC;
+  --surface-secondary: #F7F0E9;
+  --surface-elevated: #FFFFFF;
+  --text-primary: #272127;
+  --text-secondary: #625861;
+  --text-muted: #80747D;
+  --border-primary: #DED2D7;
+  --border-secondary: #CDBBC3;
+  --border-subtle: rgba(110,59,110,.14);
+  --primary: #6E3B6E;
+  --primary-hover: #572D57;
+  --primary-active: #482448;
+  --primary-soft: rgba(110,59,110,.10);
+  --accent: #B58A32;
+  --accent-hover: #927022;
+  --accent-soft: rgba(181,138,50,.12);
+  --plum-main: #6E3B6E;
+  --plum-soft: #8E5C8E;
+  --gold-main: #B58A32;
+  --gold-soft: #D5B86A;
+  --rose-accent: #B86B77;
+  --rose-soft: #D8A0A8;
+
+  --pg-purple: #6E3B6E;
+  --pg-purple-deep: #542B54;
+  --pg-purple-soft: rgba(110,59,110,.12);
+  --pg-gold: #B58A32;
+  --pg-gold-deep: #8A671F;
+  --pg-gold-soft: rgba(181,138,50,.13);
+  --pg-glow-purple: rgba(110,59,110,.10);
+  --pg-glow-gold: rgba(181,138,50,.10);
+  --pg-ring-opacity: .66;
+}
+
+:root:not([data-theme]) body,
+:root[data-theme="light"] body {
+  background: var(--nav-bg);
+  color: var(--nav-text);
+}
+
+:root:not([data-theme]) :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section),
+:root[data-theme="light"] :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section) {
+  background-color: var(--nav-surface);
+  color: var(--nav-text);
+  border-color: var(--nav-line);
+}
+
+:root:not([data-theme]) :is(input,select,textarea,.input,.select,.textarea),
+:root[data-theme="light"] :is(input,select,textarea,.input,.select,.textarea) {
+  background-color: #FFFDFC;
+  color: var(--nav-text);
+  border-color: var(--nav-line-strong);
+}
+
+:root:not([data-theme]) :is(input,textarea)::placeholder,
+:root[data-theme="light"] :is(input,textarea)::placeholder {
+  color: #948790;
+  opacity: 1;
+}
+
+:root:not([data-theme]) :is(input,select,textarea,.input,.select,.textarea):focus,
+:root[data-theme="light"] :is(input,select,textarea,.input,.select,.textarea):focus {
+  border-color: var(--nav-primary);
+  box-shadow: 0 0 0 3px rgba(110,59,110,.11);
+}
+
+:root:not([data-theme]) .btn-navora:not(.btn-danger):not(.danger),
+:root[data-theme="light"] .btn-navora:not(.btn-danger):not(.danger) {
+  border-color: color-mix(in srgb,var(--nav-primary) 58%,var(--nav-line));
+}
+
+:root:not([data-theme]) .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger),
+:root[data-theme="light"] .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger) {
+  background: linear-gradient(135deg,#6E3B6E,#7E4B78);
+  color: #FFFDFC;
+}
+
+:root:not([data-theme]) .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger):hover,
+:root[data-theme="light"] .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger):hover {
+  background: linear-gradient(135deg,#572D57,#6E3B6E);
+}
+
+:root:not([data-theme]) .btn-ghost,
+:root[data-theme="light"] .btn-ghost {
+  background: rgba(255,253,252,.56);
+  color: var(--nav-primary);
+  border-color: var(--nav-line);
+}
+
+:root:not([data-theme]) :is(.chip,.badge,.status-pill),
+:root[data-theme="light"] :is(.chip,.badge,.status-pill) {
+  border-color: rgba(110,59,110,.17);
+}
+
+:root:not([data-theme]) .brand-mark,
+:root[data-theme="light"] .brand-mark {
+  background: linear-gradient(135deg,#6E3B6E 0%,#B58A32 100%) !important;
+  box-shadow: 0 5px 18px rgba(110,59,110,.18);
+}
+
+:root:not([data-theme]) .gradient-text,
+:root[data-theme="light"] .gradient-text {
+  color: #6E3B6E !important;
+  background: linear-gradient(110deg,#6E3B6E 0%,#8E5C8E 48%,#B58A32 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+:root:not([data-theme]) body.navora-app > .navora-nav,
+:root:not([data-theme]) body.navora-admin > .navora-nav,
+:root[data-theme="light"] body.navora-app > .navora-nav,
+:root[data-theme="light"] body.navora-admin > .navora-nav {
+  background: linear-gradient(180deg,var(--nav-sidebar),var(--nav-sidebar-2));
+  color: var(--nav-sidebar-text);
+  border-right-color: rgba(110,59,110,.14);
+}
+
+:root:not([data-theme]) body.navora-app .nav-links a,
+:root:not([data-theme]) body.navora-admin .nav-links a,
+:root[data-theme="light"] body.navora-app .nav-links a,
+:root[data-theme="light"] body.navora-admin .nav-links a {
+  color: var(--nav-sidebar-text);
+}
+
+:root:not([data-theme]) body.navora-app .nav-links a.active,
+:root:not([data-theme]) body.navora-admin .nav-links a.active,
+:root[data-theme="light"] body.navora-app .nav-links a.active,
+:root[data-theme="light"] body.navora-admin .nav-links a.active {
+  color: #542B54;
+  background: rgba(110,59,110,.10);
+  box-shadow: inset 3px 0 0 #B58A32;
+}
+
+:root:not([data-theme]) body.navora-app .nav-account,
+:root:not([data-theme]) body.navora-admin .nav-account,
+:root[data-theme="light"] body.navora-app .nav-account,
+:root[data-theme="light"] body.navora-admin .nav-account {
+  background: color-mix(in srgb,#FFFDFC 78%,#F3E8DE);
+  border-color: rgba(110,59,110,.16);
+}
+
+:root:not([data-theme]) .nav-avatar,
+:root[data-theme="light"] .nav-avatar {
+  background: linear-gradient(135deg,#6E3B6E,#B58A32);
+  color: #FFFDFC;
+  box-shadow: 0 6px 18px rgba(110,59,110,.16);
+}
+
+:root:not([data-theme]) #map,
+:root[data-theme="light"] #map {
+  background: #E9E0D6;
+}
+
+:root:not([data-theme]) .leaflet-control,
+:root[data-theme="light"] .leaflet-control {
+  color: #272127;
+}
+
+/* Public/auth pages get the dashboard-style account language.
+   App/admin keep their existing tested .nav-account in the sidebar. */
+body.navora-public > .navora-profile-global-v17,
+body.navora-auth > .navora-profile-global-v17 {
+  position: fixed !important;
+  left: 16px !important;
+  bottom: 16px !important;
+  top: auto !important;
+  right: auto !important;
+  width: min(252px,calc(100vw - 32px));
+  margin: 0 !important;
+  padding: 12px;
+  z-index: 1650;
+  border: 1px solid var(--nav-line);
+  border-radius: 14px;
+  background: color-mix(in srgb,var(--nav-surface) 94%,transparent);
+  box-shadow: 0 16px 38px rgba(53,38,48,.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: none !important;
+  filter: none !important;
+  overflow: hidden;
+}
+
+.navora-profile-global-v17 .nav-user-summary {
+  display: grid;
+  grid-template-columns: 38px minmax(0,1fr);
+  gap: 10px;
+  align-items: center;
+}
+.navora-profile-global-v17 .nav-avatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+.navora-profile-global-v17 .nav-user-copy {
+  min-width: 0;
+  display: grid;
+  line-height: 1.18;
+}
+.navora-profile-global-v17 .nav-user-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nav-text);
+  font-size: .88rem;
+}
+.navora-profile-global-v17 .nav-user-copy small {
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--nav-muted);
+  font-size: .71rem;
+}
+.navora-profile-global-v17 .toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 10px;
+}
+.navora-profile-global-v17 .btn-navora {
+  min-height: 34px;
+  padding: 7px 8px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 9px;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+:root[data-theme="dark"] body.navora-public > .navora-profile-global-v17,
+:root[data-theme="dark"] body.navora-auth > .navora-profile-global-v17 {
+  background: color-mix(in srgb,var(--nav-surface) 92%,transparent);
+  border-color: var(--nav-line);
+  box-shadow: 0 18px 42px rgba(0,0,0,.28);
+}
+
+@media (max-width: 640px) {
+  body.navora-public > .navora-profile-global-v17,
+  body.navora-auth > .navora-profile-global-v17 {
+    left: 10px !important;
+    bottom: 10px !important;
+    width: min(218px,calc(100vw - 20px));
+    padding: 10px;
+    border-radius: 12px;
+  }
+  .navora-profile-global-v17 .nav-user-summary {
+    grid-template-columns: 34px minmax(0,1fr);
+    gap: 8px;
+  }
+  .navora-profile-global-v17 .nav-avatar {
+    width: 34px;
+    height: 34px;
+  }
+  .navora-profile-global-v17 .toolbar {
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navora-profile-global-v17,
+  .navora-profile-global-v17 * {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
