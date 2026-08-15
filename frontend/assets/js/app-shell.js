@@ -5,7 +5,9 @@ const protectedPages=new Set(['dashboard.html','map.html','journey.html','world-
 const adminPages=new Set(['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);
 const userLinks=[['dashboard.html','Dashboard','⌂'],['map.html','Navigate','⌖'],['journey.html','Live Journey','▶'],['world-chat.html','World Chat','◉'],['devices.html','Devices','⌁'],['memory.html','Route Memory','◇'],['history.html','History','◷'],['notifications.html','Notifications','•'],['settings.html','Settings','⚙']];
 const adminLinks=[['admin.html','Overview','▦'],['admin-users.html','Users','◌'],['admin-hazards.html','Hazards','△'],['admin-devices.html','Devices','⌁'],['admin-chat.html','Chat reports','◉'],['admin-health.html','System health','＋'],['admin-audit.html','Audit log','≡']];
-document.body.classList.add('navora-booting');
+const publicPage=!authPages.has(page)&&!protectedPages.has(page)&&!adminPages.has(page);
+if(publicPage)document.body.classList.add('navora-public');
+else document.body.classList.add('navora-booting');
 
 let deferredInstallPrompt=null;
 function showInstallAction(){
@@ -39,7 +41,33 @@ function brand(){const a=document.createElement('a');a.className='brand';a.href=
 function themeButton(){const b=document.createElement('button');b.type='button';b.className='icon-btn';b.dataset.themeToggle='';b.setAttribute('aria-label','Change theme');b.textContent='◐ Theme';return b}
 function navLink([href,label,icon]){const a=document.createElement('a');a.href=href;a.innerHTML=`<span class="nav-icon" aria-hidden="true">${icon}</span><span>${label}</span>`;if(href===page){a.classList.add('active');a.setAttribute('aria-current','page')}return a}
 function buildAuthNav(){const nav=document.querySelector('.navora-nav');if(!nav)return;nav.innerHTML='';nav.appendChild(brand());const links=document.createElement('div');links.className='nav-links';if(page!=='login.html'){const a=document.createElement('a');a.href='login.html';a.textContent='Sign in';links.appendChild(a)}if(page!=='register.html'){const a=document.createElement('a');a.href='register.html';a.textContent='Create account';links.appendChild(a)}nav.append(links,themeButton())}
-function buildPublicNav(user){const nav=document.querySelector('.navora-nav');if(!nav)return;nav.innerHTML='';nav.appendChild(brand());const links=document.createElement('div');links.className='nav-links';if(user){const a=document.createElement('a');a.href='dashboard.html';a.textContent='Open Navora';links.appendChild(a)}else{for(const [h,t] of [['login.html','Sign in'],['register.html','Create account']]){const a=document.createElement('a');a.href=h;a.textContent=t;links.appendChild(a)}}nav.append(links,themeButton())}
+function buildPublicNav(user){
+  const nav=document.querySelector('.navora-nav');if(!nav)return;
+  nav.innerHTML='';nav.appendChild(brand());
+  const links=document.createElement('div');links.className='nav-links';
+  const items=[
+    ['index.html','Home'],
+    ['map.html','Navigate'],
+    ['journey.html','Live Journey'],
+    ['devices.html','Devices'],
+    ['memory.html','Memory']
+  ];
+  for(const [href,label] of items){
+    const a=document.createElement('a');a.href=href;a.textContent=label;
+    if(href===page){a.classList.add('active');a.setAttribute('aria-current','page')}
+    links.appendChild(a);
+  }
+  if(user){
+    const a=document.createElement('a');a.href='dashboard.html';a.textContent='Open Navora';
+    a.className='nav-auth-action primary';links.appendChild(a);
+  }else{
+    const login=document.createElement('a');login.href='login.html';login.textContent='Sign in';
+    login.className='nav-auth-action';links.appendChild(login);
+    const register=document.createElement('a');register.href='register.html';register.textContent='Create account';
+    register.className='nav-auth-action primary';links.appendChild(register);
+  }
+  nav.append(links,themeButton());
+}
 function buildAppNav(user,isAdmin=false){const nav=document.querySelector('.navora-nav');if(!nav)return;nav.innerHTML='';nav.appendChild(brand());const links=document.createElement('div');links.className='nav-links';const s=document.createElement('div');s.className='nav-section';s.textContent=isAdmin?'Administration':'Navigation workspace';links.appendChild(s);for(const x of(isAdmin?adminLinks:userLinks))links.appendChild(navLink(x));if(!isAdmin&&user?.role==='ADMIN'){const s2=document.createElement('div');s2.className='nav-section';s2.textContent='Administration';links.appendChild(s2);links.appendChild(navLink(['admin.html','Admin console','▦']))}nav.appendChild(links);const account=document.createElement('div');account.className='nav-account';const summary=document.createElement('div');summary.className='nav-user-summary';summary.innerHTML=`<span class="nav-avatar">${initials(user)}</span><span class="nav-user-copy"><strong>${String(user?.name||'Navora user')}</strong><small>${String(user?.email||'')}</small></span>`;const row=document.createElement('div');row.className='toolbar';const home=document.createElement('a');home.href=isAdmin?'dashboard.html':'profile.html';home.className='btn-navora btn-ghost';home.textContent=isAdmin?'User app':'Profile';const logout=document.createElement('button');logout.type='button';logout.className='btn-navora btn-ghost';logout.textContent='Logout';logout.onclick=async()=>{try{await api('/auth/logout',{method:'POST'},false)}catch{}sessionStorage.clear();location.replace('login.html')};row.append(home,logout);account.append(summary,row,themeButton());nav.appendChild(account)}
 function mobile(){if(!protectedPages.has(page)&&!adminPages.has(page))return;const b=document.createElement('button');b.type='button';b.className='nav-mobile-toggle';b.setAttribute('aria-label','Open navigation');b.textContent='☰';b.onclick=()=>{const open=document.body.classList.toggle('nav-open');b.textContent=open?'✕':'☰'};document.body.appendChild(b)}
 async function user(){try{return await api('/users/me')}catch{return null}}

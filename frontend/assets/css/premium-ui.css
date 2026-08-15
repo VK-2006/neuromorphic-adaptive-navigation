@@ -134,12 +134,12 @@
   --ui-bg-secondary: #120B1F;
   --ui-surface-primary: #171022;
   --ui-surface-elevated: #21152F;
-  --ui-surface-soft: rgba(139, 92, 246, .055);
+  --ui-surface-soft: rgba(122, 92, 255, .055);
   --ui-surface-glass: rgba(23, 16, 34, .76);
 
-  --ui-purple-deep: #6D28D9;
-  --ui-purple-main: #8B5CF6;
-  --ui-purple-soft: #A78BFA;
+  --ui-violet-deep: #5B42D6;
+  --ui-violet-main: #7A5CFF;
+  --ui-violet-soft: #A99BFF;
 
   --ui-gold-main: #D4AF37;
   --ui-gold-soft: #F2D675;
@@ -155,21 +155,21 @@
   --ui-shadow-sm: 0 14px 38px rgba(0, 0, 0, .32);
   --ui-shadow-md: 0 28px 78px rgba(0, 0, 0, .42);
   --ui-shadow-lg: 0 46px 126px rgba(0, 0, 0, .54);
-  --ui-shadow-premium: 0 26px 88px rgba(139, 92, 246, .13), 0 18px 72px rgba(212, 175, 55, .07);
+  --ui-shadow-premium: 0 26px 88px rgba(122, 92, 255, .13), 0 18px 72px rgba(212, 175, 55, .07);
 
-  --ui-primary: var(--ui-purple-main);
-  --ui-primary-soft: var(--ui-purple-soft);
+  --ui-primary: var(--ui-violet-main);
+  --ui-primary-soft: var(--ui-violet-soft);
   --ui-premium: var(--ui-gold-main);
-  --ui-ai-accent: var(--ui-purple-soft);
+  --ui-ai-accent: var(--ui-violet-soft);
   --ui-route-selected: var(--ui-gold-main);
-  --ui-route-primary: var(--ui-purple-main);
-  --ui-route-alt: var(--ui-purple-soft);
+  --ui-route-primary: var(--ui-violet-main);
+  --ui-route-alt: var(--ui-violet-soft);
 
   --ui-success: #62D8A4;
   --ui-warning: #E4BC50;
   --ui-danger: #E96D82;
-  --ui-info: #A78BFA;
-  --ui-rose-accent: #A78BFA;
+  --ui-info: #A99BFF;
+  --ui-rose-accent: #A99BFF;
 
   --nav-bg: var(--ui-bg-primary);
   --nav-surface: var(--ui-surface-primary);
@@ -178,9 +178,9 @@
   --nav-muted: var(--ui-text-secondary);
   --nav-line: var(--ui-border-subtle);
   --nav-line-strong: var(--ui-border-strong);
-  --nav-primary: var(--ui-purple-main);
-  --nav-primary-hover: var(--ui-purple-soft);
-  --nav-primary-soft: rgba(139, 92, 246, .12);
+  --nav-primary: var(--ui-violet-main);
+  --nav-primary-hover: var(--ui-violet-soft);
+  --nav-primary-soft: rgba(122, 92, 255, .12);
   --nav-success: var(--ui-success);
   --nav-warning: var(--ui-warning);
   --nav-danger: var(--ui-danger);
@@ -190,8 +190,8 @@
   --nav-sidebar-muted: var(--ui-text-secondary);
   --nav-shadow: var(--ui-shadow-md);
 
-  --bs-primary: var(--ui-purple-main);
-  --bs-link-color: var(--ui-purple-soft);
+  --bs-primary: var(--ui-violet-main);
+  --bs-link-color: var(--ui-violet-soft);
   --bs-link-hover-color: var(--ui-gold-soft);
   --bs-body-color: var(--ui-text-primary);
   --bs-body-bg: var(--ui-bg-primary);
@@ -226,7 +226,7 @@ body {
 
 [data-theme="dark"] body {
   background:
-    radial-gradient(940px 650px at -2% -10%, rgba(109, 40, 217, .18), transparent 64%),
+    radial-gradient(940px 650px at -2% -10%, rgba(91, 66, 214, .18), transparent 64%),
     radial-gradient(780px 580px at 102% 5%, rgba(212, 175, 55, .085), transparent 62%),
     radial-gradient(720px 620px at 72% 108%, rgba(139, 92, 246, .08), transparent 64%),
     linear-gradient(180deg, var(--ui-bg-primary), var(--ui-bg-secondary));
@@ -1762,3 +1762,105 @@ body.navora-app > .sim-banner {
   }
 }
 /* === NAVORA PREMIUM UI STRUCTURAL OVERFLOW HOTFIX END === */
+
+/* === NAVORA VIOLET + HOME NAV HOTFIX START === */
+
+/* Dark mode identity: VIOLET + GOLD (not magenta-purple). */
+:root[data-theme="dark"] {
+  --ui-violet-deep: #5B42D6;
+  --ui-violet-main: #7A5CFF;
+  --ui-violet-soft: #A99BFF;
+  --ui-primary: var(--ui-violet-main);
+  --ui-primary-soft: var(--ui-violet-soft);
+  --ui-ai-accent: var(--ui-violet-soft);
+  --ui-route-primary: var(--ui-violet-main);
+  --ui-route-alt: var(--ui-violet-soft);
+  --nav-primary: var(--ui-violet-main);
+  --nav-primary-hover: var(--ui-violet-soft);
+  --nav-primary-soft: rgba(122, 92, 255, .12);
+  --bs-primary: var(--ui-violet-main);
+  --bs-link-color: var(--ui-violet-soft);
+}
+
+/* Home/public navigation must remain visible while the optional user probe runs. */
+body.navora-public .navora-nav {
+  position: sticky !important;
+  top: 0 !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: var(--ui-nav-h) !important;
+  padding: 10px clamp(14px, 3vw, 42px) !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ui-border-subtle) !important;
+  background: color-mix(in srgb, var(--ui-surface-glass) 96%, transparent) !important;
+  box-shadow: 0 10px 36px color-mix(in srgb, var(--ui-text-primary) 6%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(1.16) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.16) !important;
+}
+
+body.navora-public .navora-nav .brand { flex: 0 0 auto; }
+
+body.navora-public .nav-links {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-left: auto !important;
+  min-width: 0;
+}
+
+body.navora-public .nav-links a {
+  min-height: 40px;
+  padding: 8px 10px !important;
+  white-space: nowrap;
+  border-radius: 11px !important;
+}
+
+body.navora-public .nav-links a[aria-current="page"] {
+  color: var(--ui-primary) !important;
+  background: color-mix(in srgb, var(--ui-primary) 9%, transparent) !important;
+  border-color: color-mix(in srgb, var(--ui-premium) 22%, transparent) !important;
+}
+
+body.navora-public .nav-auth-action { font-weight: 780 !important; }
+
+body.navora-public .nav-auth-action.primary {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--ui-primary), color-mix(in srgb, var(--ui-primary) 74%, var(--ui-premium))) !important;
+  border-color: color-mix(in srgb, var(--ui-primary) 70%, var(--ui-premium)) !important;
+}
+
+@media (max-width: 980px) {
+  body.navora-public .navora-nav {
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+  }
+
+  body.navora-public .nav-links {
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    padding: 4px 0 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body.navora-public .nav-links::-webkit-scrollbar { display: none; }
+  body.navora-public .nav-links a { flex: 0 0 auto; }
+}
+
+@media (max-width: 768px) {
+  body.navora-public .nav-links { display: flex !important; }
+  body.navora-public .navora-nav { padding: 9px 12px !important; }
+  body.navora-public .nav-links a {
+    min-height: 38px;
+    padding: 7px 9px !important;
+    font-size: .82rem !important;
+  }
+}
+
+/* === NAVORA VIOLET + HOME NAV HOTFIX END === */

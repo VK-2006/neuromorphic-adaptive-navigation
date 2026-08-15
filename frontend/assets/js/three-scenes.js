@@ -2,7 +2,7 @@
   let state=null;
   const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
   function quality(){if(reduced())return 0;const mem=navigator.deviceMemory||4;return innerWidth<700||mem<=2?1:mem<8?2:3}
-  function palette(){return document.documentElement.dataset.theme==='dark'?{grid:0x6D28D9,grid2:0x3B2354,route:0xD4AF37,glow:0xA78BFA,node:0xF2D675,hazard:0xE96D82,dest:0xD4AF37,branch:0x8B5CF6,branchAlt:0xD4AF37}:{grid:0x6E3B6E,grid2:0xD8CFC4,route:0xB58A32,glow:0x8E5C8E,node:0xD5B86A,hazard:0xB86B77,dest:0xB58A32,branch:0x6E3B6E,branchAlt:0xB86B77}}
+  function palette(){return document.documentElement.dataset.theme==='dark'?{grid:0x5B42D6,grid2:0x3B2354,route:0xD4AF37,glow:0xA99BFF,node:0xF2D675,hazard:0xE96D82,dest:0xD4AF37,branch:0x7A5CFF,branchAlt:0xD4AF37}:{grid:0x6E3B6E,grid2:0xD8CFC4,route:0xB58A32,glow:0x8E5C8E,node:0xD5B86A,hazard:0xB86B77,dest:0xB58A32,branch:0x6E3B6E,branchAlt:0xB86B77}}
   function init(){
     const host=document.getElementById('three-hero');if(!host||!window.THREE||state)return;
     const q=quality();if(!q){host.classList.add('p-webgl-fallback');return}

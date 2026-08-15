@@ -180,7 +180,7 @@ function render(routes,recommendedId,mode){
   const list=document.getElementById('route-list');if(!list)return;list.innerHTML='';
   if(!routes.length){list.innerHTML='<div class="empty-state">No route candidates were returned.</div>';setStartEnabled(false);return}
   const darkTheme=document.documentElement.dataset.theme==='dark';
-  const palette=darkTheme?['#A78BFA','#8B5CF6','#6D28D9','#C4B5FD','#8F839D']:['#8E5C8E','#6E3B6E','#B86B77','#A977A9','#8C808A'];
+  const palette=darkTheme?['#A99BFF','#7A5CFF','#5B42D6','#C9C2FF','#8F839D']:['#8E5C8E','#6E3B6E','#B86B77','#A977A9','#8C808A'];
   const selectedRouteColor=darkTheme?'#D4AF37':'#B58A32';
   routes.forEach((r,i)=>{
     const coords=validCoords(r);if(coords.length<2)return;

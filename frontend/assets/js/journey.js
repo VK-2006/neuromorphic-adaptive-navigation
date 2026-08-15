@@ -227,7 +227,7 @@ async function captureForInference(){
 function clearBoxes(){const c=document.getElementById('overlay-canvas');c?.getContext('2d')?.clearRect(0,0,c.width,c.height)}
 function drawBoxes(ds){
   const c=document.getElementById('overlay-canvas'),v=document.getElementById('camera-video');if(!c||!v)return;
-  c.width=v.clientWidth;c.height=v.clientHeight;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const uiAccent=getComputedStyle(document.documentElement).getPropertyValue('--ui-ai-accent').trim()||'#A78BFA';x.strokeStyle=uiAccent;x.fillStyle=uiAccent;x.font='14px sans-serif';
+  c.width=v.clientWidth;c.height=v.clientHeight;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const uiAccent=getComputedStyle(document.documentElement).getPropertyValue('--ui-ai-accent').trim()||'#A99BFF';x.strokeStyle=uiAccent;x.fillStyle=uiAccent;x.font='14px sans-serif';
   ds.forEach(d=>{const b=d.boundingBox||[.1,.1,.2,.2];x.strokeRect(b[0]*c.width,b[1]*c.height,b[2]*c.width,b[3]*c.height);x.fillText(`${d.objectClass} ${Math.round(d.confidence*100)}%`,b[0]*c.width,Math.max(14,b[1]*c.height-4))});
 }
 
