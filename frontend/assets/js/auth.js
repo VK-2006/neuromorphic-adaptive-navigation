@@ -158,6 +158,7 @@ async function initGoogle(){
       try{
         gis.initialize({
           client_id:cfg.google.clientId,
+          use_fedcm_for_button:true,
           callback:async response=>{
             try{
               if(!response?.credential)throw new Error('Google did not return an ID token.');

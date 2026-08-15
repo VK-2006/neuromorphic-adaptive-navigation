@@ -1,15 +1,13 @@
-/* NAVORA Obsidian Intelligence runtime — structure/presentation only. */
+/* NAVORA Obsidian Intelligence runtime — frontend repair v9.9 */
 (()=>{
   'use strict';
-  const d=document;
-  const root=d.documentElement;
-  const body=d.body;
+  const d=document, root=d.documentElement, body=d.body;
   if(!body || body.dataset.obsidianReady==='1') return;
   body.dataset.obsidianReady='1';
 
-  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/i,'')||'index';
   body.dataset.obsidianPage=page;
+  body.dataset.wcPage=page;
 
   const $=(s,c=d)=>c.querySelector(s);
   const $$=(s,c=d)=>[...c.querySelectorAll(s)];
@@ -23,6 +21,10 @@
     });
     return el;
   };
+  const hrefFile=a=>{
+    try{return new URL(a.getAttribute('href')||'',location.href).pathname.split('/').pop()||''}
+    catch{return''}
+  };
 
   function chrome(){
     const nav=$('.navora-nav');
@@ -34,10 +36,19 @@
     }
     const brand=$('.brand',nav);
     if(brand && !brand.getAttribute('aria-label')) brand.setAttribute('aria-label','Navora home');
+    $$('.nav-links a, nav a',nav).forEach(a=>{
+      const current=hrefFile(a)===(page==='index'?'index.html':`${page}.html`);
+      a.classList.toggle('active',current);
+      if(current) a.setAttribute('aria-current','page');
+      else if(a.getAttribute('aria-current')==='page') a.removeAttribute('aria-current');
+    });
   }
 
-  function semanticCards(){
-    $$('.card').forEach((card,i)=>{
+  function semanticCards(scope=d){
+    const cards=[];
+    if(scope instanceof Element && scope.matches('.card')) cards.push(scope);
+    cards.push(...$$('.card',scope));
+    cards.forEach((card,i)=>{
       if(card.dataset.obsType) return;
       let type='standard';
       if(card.querySelector('.metric,.admin-stat')) type='stat';
@@ -71,11 +82,8 @@
     if(!panel) return;
     panel.id=panel.id||'route-intelligence-panel';
     const btn=make('button','obs-map-sheet-toggle',{
-      type:'button',
-      'aria-controls':panel.id,
-      'aria-expanded':'false',
-      'aria-label':'Open route intelligence panel',
-      text:'⌃'
+      type:'button','aria-controls':panel.id,'aria-expanded':'false',
+      'aria-label':'Open route intelligence panel',text:'⌃'
     });
     body.append(btn);
     const sync=()=>{
@@ -94,6 +102,7 @@
     sync();
   }
 
+  let routeObserver=null;
   function routeStates(){
     if(page!=='map') return;
     const list=$('#route-list');
@@ -103,10 +112,21 @@
         card.dataset.obsRoute=String(i+1);
         if(!card.hasAttribute('tabindex')) card.tabIndex=0;
         if(!card.getAttribute('role')) card.setAttribute('role','button');
+        const selected=card.classList.contains('selected')||card.classList.contains('active');
+        if(card.getAttribute('aria-selected')!==String(selected)) card.setAttribute('aria-selected',String(selected));
+        if(card.dataset.obsKeyboardBound!=='1'){
+          card.dataset.obsKeyboardBound='1';
+          card.addEventListener('keydown',e=>{
+            if(e.key!=='Enter' && e.key!==' ') return;
+            e.preventDefault();
+            card.click();
+          });
+        }
       });
     };
     sync();
-    new MutationObserver(sync).observe(list,{childList:true,subtree:true});
+    routeObserver=new MutationObserver(sync);
+    routeObserver.observe(list,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
   }
 
   function journeyCockpit(){
@@ -114,18 +134,18 @@
     const layout=$('.journey-layout');
     if(!layout) return;
     layout.setAttribute('aria-label','Live navigation cockpit');
-    const camera=$('.camera-pane');
-    const navigation=$('.navigation-pane');
-    camera?.setAttribute('aria-label','Camera perception and neuromorphic risk view');
-    navigation?.setAttribute('aria-label','Map and journey navigation view');
+    $('.camera-pane')?.setAttribute('aria-label','Camera perception and neuromorphic risk view');
+    $('.navigation-pane')?.setAttribute('aria-label','Map and journey navigation view');
   }
 
   function authDetails(){
     const form=$('.auth-card');
     if(!form) return;
-    $$('input',form).forEach(input=>{
-      input.addEventListener('invalid',()=>input.setAttribute('aria-invalid','true'));
-      input.addEventListener('input',()=>{if(input.validity.valid)input.removeAttribute('aria-invalid')});
+    form.addEventListener('invalid',e=>{
+      if(e.target instanceof HTMLInputElement) e.target.setAttribute('aria-invalid','true');
+    },true);
+    form.addEventListener('input',e=>{
+      if(e.target instanceof HTMLInputElement && e.target.validity.valid) e.target.removeAttribute('aria-invalid');
     });
   }
 
@@ -140,21 +160,7 @@
     window.addEventListener('navora:theme',sync);
   }
 
-  function motion(){
-    if(reduce) return;
-    const targets=$$('.page-head,.hero,.auth-shell,.map-layout,.journey-layout,.card,.data-row').filter(n=>!n.closest('.leaflet-pane'));
-    targets.forEach((el,i)=>el.style.setProperty('--obs-delay',`${Math.min((i%6)*35,175)}ms`));
-    if(!('IntersectionObserver' in window)) return;
-    const observer=new IntersectionObserver(entries=>{
-      entries.forEach(entry=>{
-        if(entry.isIntersecting){entry.target.classList.add('obs-in');observer.unobserve(entry.target)}
-      });
-    },{threshold:.04,rootMargin:'60px 0px -20px'});
-    targets.forEach(el=>observer.observe(el));
-    window.addEventListener('pagehide',()=>observer.disconnect(),{once:true});
-  }
-
-  function accessibility(){
+  function accessibility(scope=d){
     const main=$('main');
     if(main && !main.id) main.id='main-content';
     if(main && !$('.obs-skip-link')){
@@ -163,15 +169,38 @@
       skip.addEventListener('blur',()=>skip.classList.add('sr-only'));
       body.prepend(skip);
     }
-    $$('button').forEach(btn=>{
+    const buttons=[];
+    if(scope instanceof Element && scope.matches('button')) buttons.push(scope);
+    buttons.push(...$$('button',scope));
+    buttons.forEach(btn=>{
       if(!btn.type && !btn.closest('form')) btn.type='button';
+      if(btn.hasAttribute('data-theme-toggle') && !btn.getAttribute('aria-label')) btn.setAttribute('aria-label','Change theme');
     });
   }
 
-  function init(){
-    chrome();semanticCards();sectionKickers();mapMobileSheet();routeStates();journeyCockpit();authDetails();themeSync();motion();accessibility();
+  let dynamicObserver=null;
+  function dynamicEnhancement(){
+    dynamicObserver=new MutationObserver(records=>{
+      for(const record of records){
+        for(const node of record.addedNodes){
+          if(!(node instanceof Element)) continue;
+          semanticCards(node);
+          accessibility(node);
+        }
+      }
+    });
+    dynamicObserver.observe(body,{childList:true,subtree:true});
   }
 
+  function init(){
+    chrome();semanticCards();sectionKickers();mapMobileSheet();routeStates();
+    journeyCockpit();authDetails();themeSync();accessibility();dynamicEnhancement();
+  }
   if(d.readyState==='loading') d.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
+
+  addEventListener('pagehide',()=>{
+    routeObserver?.disconnect();
+    dynamicObserver?.disconnect();
+  },{once:true});
 })();
