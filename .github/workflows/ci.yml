@@ -56,6 +56,7 @@ jobs:
           python tests/v26_preference_consistency_contracts.py
           python tests/v27_session_recovery_contracts.py
           python tests/v28_model_validation_contracts.py
+          python tests/v29_rdd_detector_training_contracts.py
           node --check backend/src/app.js
           node --check frontend/assets/js/api.js
           node --check frontend/assets/js/app-shell.js
