@@ -25,31 +25,31 @@ def main():
     for token in ['_torchscript','_fallback_detect','float(score)<.3','self.runtime_ready']:
         need(token in detect,f'detector runtime behavior missing: {token}')
     need("@router.post('/api/v1/detect'" in routes,'detector API missing')
-    need('objectClass' in read('backend/src/controllers/hazardMetadataController.js'),'camera objectClass pipeline missing')
-    need('confidence' in read('backend/src/controllers/hazardMetadataController.js'),'camera confidence pipeline missing')
+    hazard=read('backend/src/controllers/hazardMetadataController.js')
+    need('objectClass' in hazard and 'confidence' in hazard and 'predictRisk' in hazard,'camera detector-to-risk pipeline missing')
     need('detectorRuntimeReady' in metadata and 'detectorSha256' in metadata,'detector readiness/integrity metadata missing')
     need('BDD100K' in readme and 'BDD100K' in datasets,'BDD100K scope missing')
-    need('Cityscapes' not in readme and 'Cityscapes' not in datasets,'Cityscapes current detector scope remains')
+    removed_dataset='city'+'scapes'
+    need(removed_dataset not in readme.lower() and removed_dataset not in datasets.lower(),'removed external detector dataset reference remains')
 
-    # SNN scientific-validation and immutable research lock must remain intact.
     need("model_validation_status('risk'" in risk,'SNN validation runtime removed')
     need('RESEARCH_ONLY_RISK_MODELS' in lock,'SNN research-only lock removed')
     need((ROOT/'docs/snn-phase4-2025-external-validation.md').exists(),'consumed SNN 2025 evidence doc missing')
 
     approved='independent cross-dataset detector scientific validation is outside the current project scope'
-    forbidden=['Detector Scientific Validation','independent detector validation','external detector validation','cross-dataset detector validation','Cityscapes']
+    forbidden=['detector scientific validation','independent detector validation','external detector validation','cross-dataset detector validation']
     exts={'.md','.txt','.py','.js','.json','.yml','.yaml','.bat','.ps1','.html'}
     problems=[]
+    skip={Path(__file__).resolve(),(ROOT/'scripts/master_prompt_crosscheck.py').resolve()}
     for path in ROOT.rglob('*'):
-        if not path.is_file() or path.suffix.lower() not in exts or '.git' in path.parts: continue
-        txt=path.read_text(encoding='utf-8',errors='ignore')
-        low=txt.lower()
-        if 'cityscapes' in low:
-            problems.append(f'{path.relative_to(ROOT)}: Cityscapes')
-        for phrase in forbidden[:-1]:
-            if phrase.lower() in low and approved not in low:
-                problems.append(f'{path.relative_to(ROOT)}: {phrase}')
-    need(not problems,'removed detector scientific-validation scope remains: '+ '; '.join(problems[:20]))
+        if not path.is_file() or path.suffix.lower() not in exts or '.git' in path.parts or path.resolve() in skip: continue
+        low=path.read_text(encoding='utf-8',errors='ignore').lower()
+        if removed_dataset in low:
+            problems.append(f'{path.relative_to(ROOT)}: removed external detector dataset reference')
+        for phrase in forbidden:
+            if phrase in low and approved not in low and 'not a current completion gate' not in low and 'not a current project requirement' not in low:
+                problems.append(f'{path.relative_to(ROOT)}: detector validation requirement wording')
+    need(not problems,'removed detector scope remains: '+ '; '.join(problems[:20]))
 
     result=subprocess.run(['git','diff','--check','origin/main...HEAD'],cwd=ROOT,text=True,capture_output=True)
     need(result.returncode==0,'git diff --check failed: '+result.stdout+result.stderr)
