@@ -175,10 +175,10 @@ async function notifications(){
   const h=$('notification-list');if(!h)return;
   try{
     const rows=arr(await api('/notifications'));
-    h.innerHTML=rows.length?rows.map(n=>`<button class="data-row" type="button" style="text-align:left;width:100%;color:inherit" data-read="${esc(n?._id)}"><strong>${esc(n?.title||n?.type||'Notification')}</strong><div>${esc(n?.message||'')}</div><small class="muted">${when(n?.createdAt)}${n?.readAt?' · read':' · unread'}</small></button>`).join(''):'<div class="empty-state">No notifications.</div>';
+    h.innerHTML=rows.length?rows.map(n=>`<button class="data-row" type="button" style="text-align:left;width:100%;color:inherit" data-read="${esc(n?._id)}"${n?.readAt?' disabled aria-disabled="true"':''}><strong>${esc(n?.title||n?.type||'Notification')}</strong><div>${esc(n?.message||'')}</div><small class="muted">${when(n?.createdAt)}${n?.readAt?' · read':' · unread'}</small></button>`).join(''):'<div class="empty-state">No notifications.</div>';
     h.querySelectorAll('[data-read]').forEach(b=>b.addEventListener('click',async()=>{
       const id=b.dataset.read;if(!id||b.disabled)return;b.disabled=true;
-      try{const n=await api(`/notifications/${encodeURIComponent(id)}/read`,{method:'PATCH'});b.style.opacity='.65';const small=b.querySelector('small');if(small)small.textContent=`${when(n?.createdAt||Date.now())} · read`;b.removeAttribute('data-read')}catch(e){b.disabled=false;toast(e.message,'error')}
+      try{const n=await api(`/notifications/${encodeURIComponent(id)}/read`,{method:'PATCH'});b.style.opacity='.65';const small=b.querySelector('small');if(small)small.textContent=`${when(n?.createdAt||Date.now())} · read`;b.removeAttribute('data-read');b.setAttribute('aria-disabled','true')}catch(e){b.disabled=false;b.removeAttribute('aria-disabled');toast(e.message,'error')}
     }));
   }catch(e){h.innerHTML='<div class="empty-state">Notifications are temporarily unavailable.</div>';toast(e.message,'error')}
 }
