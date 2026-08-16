@@ -38,7 +38,7 @@ function drawRoutes(){
   routes.forEach(r=>{
     const coords=arr(r?.coordinates).filter(p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lng)));if(coords.length<2)return;
     const isOriginal=String(r?._id)===String(data.originalRoute?._id),isCurrent=String(r?._id)===String(data.currentRoute?._id);
-    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:isCurrent?7:5,opacity:isCurrent ? .95 : .55,dashArray:isOriginal&&!isCurrent?'9 8':undefined}).addTo(map).bindTooltip(`${isOriginal?'Original':isCurrent?'Final':'Reroute'} · ${r.label||'route'} · ACO ${Number(r.acoScore||0).toFixed(2)}`);
+    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:isCurrent?7:5,opacity:isCurrent ? .95 : .55,dashArray:isOriginal&&!isCurrent?'9 8':undefined}).addTo(map).bindTooltip(`${isOriginal?'Original':isCurrent?'Final':'Reroute'} · ${esc(r.label||'route')} · ACO ${Number(r.acoScore||0).toFixed(2)}`);
     routeLayers.push(line);
   });
   const group=routeLayers.length?window.L.featureGroup(routeLayers):null;if(group?.getBounds?.().isValid())map.fitBounds(group.getBounds(),{padding:[30,30]});
