@@ -1,4 +1,5 @@
-const CACHE='navora-completion-v37-0-0';
+const CACHE='navora-responsive-shell-v38-0-0';
+const V37_CACHE_LINEAGE='navora-completion-v37-0-0';
 const V27_CACHE_LINEAGE='navora-session-recovery-v27-0-0';
 const V26_CACHE_LINEAGE='navora-preference-consistency-v26-0-0';
 const V25_CACHE_LINEAGE='navora-settings-runtime-v25-0-0';

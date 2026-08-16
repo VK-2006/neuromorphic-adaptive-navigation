@@ -111,6 +111,65 @@ async function checkRightPaneScroll(browser,page){
   await context.close();
 }
 
+
+async function checkResponsiveNoOverlap(browser,page,width){
+  const opened=await browserPage(browser,page,{width,height:900});
+  const context=opened.context,p=opened.p,errors=opened.errors;
+  const result=await p.evaluate(()=>{
+    const nav=document.querySelector('body > .navora-nav');
+    const main=document.querySelector('body > main');
+    const bar=document.querySelector('body > .live-field-bar:not(.hidden)');
+    const toggle=document.querySelector('.nav-mobile-toggle');
+    if(!nav||!main)return{missing:true};
+    const nr=nav.getBoundingClientRect(),mr=main.getBoundingClientRect(),br=bar?.getBoundingClientRect();
+    return{
+      missing:false,
+      nav:{left:nr.left,right:nr.right,width:nr.width},
+      main:{left:mr.left,right:mr.right,width:mr.width},
+      bar:br?{left:br.left,right:br.right,width:br.width}:null,
+      viewport:innerWidth,
+      navTransform:getComputedStyle(nav).transform,
+      toggleDisplay:toggle?getComputedStyle(toggle).display:'missing',
+      bodyScrollX:scrollX,
+      documentWidth:document.documentElement.scrollWidth
+    };
+  });
+  if(errors.length)throw new Error(page+' @ '+width+'px: page errors: '+errors.join(' | '));
+  assert(!result.missing,page+' @ '+width+'px: nav/main missing');
+  assert(result.navTransform==='none',page+' @ '+width+'px: desktop nav transform='+result.navTransform);
+  assert(result.toggleDisplay==='none',page+' @ '+width+'px: mobile toggle visible on desktop');
+  assert(result.main.left+0.5>=result.nav.right,page+' @ '+width+'px: main overlaps rail ('+result.main.left+' < '+result.nav.right+')');
+  assert(result.main.right<=result.viewport+0.5,page+' @ '+width+'px: main exceeds viewport ('+result.main.right+' > '+result.viewport+')');
+  if(result.bar){
+    assert(result.bar.left+0.5>=result.nav.right,page+' @ '+width+'px: status bar overlaps rail');
+    assert(result.bar.right<=result.viewport+0.5,page+' @ '+width+'px: status bar exceeds viewport');
+  }
+  assert(result.bodyScrollX===0,page+' @ '+width+'px: horizontal window scroll='+result.bodyScrollX);
+  assert(result.documentWidth<=result.viewport+1,page+' @ '+width+'px: document width='+result.documentWidth+' viewport='+result.viewport);
+  await context.close();
+}
+
+async function checkJourneyMobileNoOverlap(browser){
+  const opened=await browserPage(browser,'journey.html',{width:390,height:844});
+  const context=opened.context,p=opened.p,errors=opened.errors;
+  const result=await p.evaluate(()=>{
+    const toggle=document.querySelector('.nav-mobile-toggle');
+    const bar=document.querySelector('body > .live-field-bar');
+    const chip=bar?.querySelector('.chip');
+    const main=document.querySelector('body > main.journey-layout');
+    if(!toggle||!bar||!chip||!main)return{missing:true};
+    const tr=toggle.getBoundingClientRect(),cr=chip.getBoundingClientRect(),mr=main.getBoundingClientRect();
+    const overlaps=!(tr.right<=cr.left||tr.left>=cr.right||tr.bottom<=cr.top||tr.top>=cr.bottom);
+    return{missing:false,overlaps,toggleRight:tr.right,chipLeft:cr.left,mainLeft:mr.left,mainRight:mr.right,viewport:innerWidth,documentWidth:document.documentElement.scrollWidth};
+  });
+  if(errors.length)throw new Error('mobile journey: page errors: '+errors.join(' | '));
+  assert(!result.missing,'mobile journey: toggle/status/main missing');
+  assert(!result.overlaps,'mobile journey: drawer toggle overlaps first status chip ('+result.toggleRight+' > '+result.chipLeft+')');
+  assert(result.mainLeft>=-0.5&&result.mainRight<=result.viewport+0.5,'mobile journey: main exceeds viewport');
+  assert(result.documentWidth<=result.viewport+1,'mobile journey: horizontal overflow '+result.documentWidth+' > '+result.viewport);
+  await context.close();
+}
+
 async function mobileDrawer(browser){
   const {context,p,errors}=await browserPage(browser,'dashboard.html',{width:390,height:844});
   const toggle=p.locator('.nav-mobile-toggle');
@@ -133,6 +192,14 @@ async function main(){
   for(const page of SHELL_PAGES){
     try{await checkRightPaneScroll(browser,page);console.log('PASS right-pane-scroll',page)}catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL right-pane-scroll',page,'—',error.message)}
   }
+  for(const width of [821,900,1024]){
+    for(const page of ['dashboard.html','map.html','journey.html']){
+      try{await checkResponsiveNoOverlap(browser,page,width);console.log('PASS responsive-no-overlap',page,width)}
+      catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL responsive-no-overlap',page,width,'—',error.message)}
+    }
+  }
+  try{await checkJourneyMobileNoOverlap(browser);console.log('PASS mobile journey no-overlap')}
+  catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL mobile journey no-overlap —',error.message)}
   try{await mobileDrawer(browser);console.log('PASS mobile fixed drawer')}catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL mobile fixed drawer —',error.message)}
   await browser.close();
   if(failures.length){console.error('\nNAVORA V22 FIXED-SHELL BROWSER E2E: FAIL');failures.forEach(f=>console.error(' -',f));process.exit(1)}

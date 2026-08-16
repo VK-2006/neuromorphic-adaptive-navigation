@@ -34,7 +34,7 @@ assert "Transition was skipped" not in browser_e2e
 
 # Force installed PWAs to fetch the repaired app shell while retaining the
 # prior recovery release marker for historical contract compatibility.
-assert "const CACHE='navora-completion-v37-0-0'" in service_worker
+assert "const V37_CACHE_LINEAGE='navora-completion-v37-0-0'" in service_worker
 assert "V27_CACHE_LINEAGE='navora-session-recovery-v27-0-0'" in service_worker
 assert '"/assets/js/app-shell.js"' in service_worker
 
