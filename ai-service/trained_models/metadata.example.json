@@ -15,15 +15,15 @@
   ],
   "trainingSources": ["BDD100K", "RDD2022"],
   "trainingManifestSha256": "<generated-by-train_detector.py>",
-  "detectorValidated": false,
+  "detectorSha256": "<generated-by-train_detector.py>",
+  "detectorRuntimeReady": true,
+  "detectorScientificValidationRequired": false,
   "riskValidated": false,
-  "validated": false,
   "officialBddBenchmarkClaim": false,
   "officialRddBenchmarkClaim": false,
   "validation": {
-    "detectorReport": "detector-evaluation.json",
     "riskReport": "snn-evaluation.json",
-    "evidenceSchema": 2
+    "evidenceSchema": 3
   },
-  "note": "Example only. Live validation requires passing V28+ evidence and V29 detector class/source/training-manifest bindings plus exact report/dataset/weight SHA-256 matches."
+  "note": "Detector metadata describes functional runtime readiness only. Independent cross-dataset detector scientific validation is outside the current project scope. SNN scientific validation remains unchanged."
 }
