@@ -32,8 +32,10 @@ assert "mph" in replay and "km/h" in replay
 assert "GPS ${fmtSpeed(p?.speed)}" in replay
 assert "Number(p?.speed||0)*3.6" not in replay
 
-# Changed read-only runtime modules must escape stale installed caches.
-assert "const CACHE='navora-preference-consistency-v26-0-0'" in sw
+# V26 established the read-only preference cache boundary. Later releases may
+# rotate the active cache, but must keep V26 explicitly in release lineage.
+assert "navora-preference-consistency-v26-0-0" in sw
+assert "const CACHE='navora-preference-consistency-v26-0-0'" in sw or "V26_CACHE_LINEAGE='navora-preference-consistency-v26-0-0'" in sw
 assert "V25_CACHE_LINEAGE='navora-settings-runtime-v25-0-0'" in sw
 for asset in ['/assets/js/dashboard.js','/assets/js/data-pages.js','/assets/js/replay.js']:
     assert asset in sw
