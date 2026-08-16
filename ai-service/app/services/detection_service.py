@@ -1,5 +1,6 @@
 import cv2, numpy as np, json
 from ..config import settings
+from ..model_validation import model_validation_status
 try:
     import torch
     import torchvision  # registers TorchVision custom ops used by scripted Faster R-CNN
@@ -9,17 +10,18 @@ except Exception:
 DEFAULT_TARGETS=['person','bicycle','motorcycle','car','bus','truck','animal','barrier','traffic cone','construction','stopped vehicle','road blockage','pothole','road damage']
 class Detector:
     def __init__(self):
-        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None
-        validation_claim=False
+        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None;self.validation_issues=[]
         if settings.metadata_path.exists():
             try:
-                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);validation_claim=bool(m.get('detectorValidated',m.get('validated',False)));self.targets=m.get('detectorClasses') or self.targets
+                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.targets=m.get('detectorClasses') or self.targets
             except Exception:pass
+        validation=model_validation_status('detector',settings.detector_weights,settings.metadata_path)
+        self.validation_issues=list(validation.get('reasons') or [])
         if torch is not None and settings.detector_weights.exists():
             try:
                 if torchvision is None:
                     raise RuntimeError('torchvision is unavailable; scripted Faster R-CNN ops cannot be registered')
-                self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.validated=validation_claim;self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
+                self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.validated=bool(validation.get('passed'));self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
             except Exception as e:
                 self.model=None;self.validated=False
                 self.load_error=f'{type(e).__name__}: {e}'
@@ -30,6 +32,7 @@ class Detector:
             try:return self._torchscript(image)
             except Exception as e:
                 self.load_error=f'runtime {type(e).__name__}: {e}';self.mode='development/heuristic-fallback-runtime';self.model=None;self.validated=False
+                self.validation_issues=list(dict.fromkeys(self.validation_issues+['detector runtime inference failed']))
         out=[];h,w=image.shape[:2]
         boxes,weights=self.hog.detectMultiScale(image,winStride=(8,8),padding=(8,8),scale=1.05)
         for (x,y,bw,bh),conf in zip(boxes,weights):out.append({'objectClass':'person','confidence':float(min(1,conf)),'boundingBox':[x/w,y/h,bw/w,bh/h],'approximateDistance':float(max(1,45*(1-bh/h))),'metadata':{'detector':'opencv-hog','validated':False}})
