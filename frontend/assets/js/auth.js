@@ -12,6 +12,11 @@ function target(){
   }catch{return'dashboard.html'}
 }
 
+function finishAuth(destination=target()){
+  sessionStorage.removeItem('navora:returnTo');
+  location.assign(destination);
+}
+
 function status(form,msg,type='info'){
   const el=form?.querySelector('[data-form-status]')||document.querySelector('[data-form-status]');
   if(!el)return toast(msg,type);
@@ -69,7 +74,7 @@ $('login-form')?.addEventListener('submit',e=>{
   e.preventDefault();const f=e.currentTarget;
   run(f,'Signing in…',async()=>{
     await api('/auth/login',{method:'POST',body:JSON.stringify({email:val('email'),password:val('password')})});
-    const x=target();sessionStorage.removeItem('navora:returnTo');location.assign(x);
+    finishAuth();
   });
 });
 
@@ -130,7 +135,7 @@ async function passkeyLogin(){
     const c=await navigator.credentials.get({publicKey:window.NavoraWebAuthn.decodeRequestOptions(d.options)});
     if(!c)throw new Error('Passkey sign-in was cancelled.');
     await api('/auth/passkeys/auth/verify',{method:'POST',body:JSON.stringify({userId:d.userId,response:window.NavoraWebAuthn.credentialToJSON(c)})});
-    location.assign(target());
+    finishAuth();
   }catch(e){toast(`Passkey: ${e.message}`,'error')}
 }
 document.querySelector('[data-passkey]')?.addEventListener('click',passkey);
@@ -164,7 +169,7 @@ async function initGoogle(){
             try{
               if(!response?.credential)throw new Error('Google did not return an ID token.');
               await api('/auth/google',{method:'POST',body:JSON.stringify({idToken:response.credential})});
-              location.assign('dashboard.html');
+              finishAuth(mode==='signup'?'dashboard.html':target());
             }catch(e){toast(`Google sign-in: ${e.message}`,'error')}
           }
         });
