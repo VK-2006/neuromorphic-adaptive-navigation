@@ -113,3 +113,70 @@ body.navora-admin > .navora-nav > .nav-account{
     opacity:1 !important;
   }
 }
+
+/* =========================================================
+   V22 — navigation workspace fixed / right pane only scrolls
+   =========================================================
+   The application shell itself is never the scrolling surface. The left rail
+   remains physically fixed to the viewport and only the main page-shell owns
+   vertical scrolling. This applies to every authenticated app/admin page. */
+body.navora-app,
+body.navora-admin{
+  height:100svh !important;
+  min-height:100svh !important;
+  max-height:100svh !important;
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+}
+
+/* On normal-height screens the navigation workspace itself must not move.
+   Very short screens receive the existing guarded internal-scroll fallback. */
+body.navora-app > .navora-nav > .nav-links,
+body.navora-admin > .navora-nav > .nav-links{
+  overflow-y:hidden !important;
+}
+
+body.navora-app > .page-shell,
+body.navora-admin > .page-shell,
+body.navora-app > main.page-shell,
+body.navora-admin > main.page-shell{
+  position:relative !important;
+  box-sizing:border-box !important;
+  height:100svh !important;
+  min-height:0 !important;
+  max-height:100svh !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  overscroll-behavior-y:contain !important;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+}
+
+@media (min-width:821px){
+  body.navora-app > .page-shell,
+  body.navora-admin > .page-shell,
+  body.navora-app > main.page-shell,
+  body.navora-admin > main.page-shell{
+    margin-left:var(--navora-left-rail-w,var(--nav-sidebar-w,268px)) !important;
+    width:calc(100vw - var(--navora-left-rail-w,var(--nav-sidebar-w,268px))) !important;
+  }
+}
+
+@media (max-width:820px){
+  body.navora-app > .page-shell,
+  body.navora-admin > .page-shell,
+  body.navora-app > main.page-shell,
+  body.navora-admin > main.page-shell{
+    margin-left:0 !important;
+    width:100vw !important;
+    height:100svh !important;
+    max-height:100svh !important;
+  }
+}
+
+@media (max-height:760px){
+  body.navora-app > .navora-nav > .nav-links,
+  body.navora-admin > .navora-nav > .nav-links{
+    overflow-y:auto !important;
+  }
+}
