@@ -122,6 +122,7 @@ function parseInput(id){
 
 async function loadRoutes(e){
   e?.preventDefault();setStartEnabled(false);selected=null;selectedRoute=null;
+  try{sessionStorage.removeItem('selectedRouteId');sessionStorage.removeItem('selectedRouteDbId')}catch{}
   const form=document.getElementById('route-form'),submit=form?.querySelector('button[type="submit"]');
   if(submit){submit.disabled=true;submit.textContent='Calculating…'}
   try{
@@ -184,7 +185,7 @@ function render(routes,recommendedId,mode){
   const selectedRouteColor=darkTheme?'#D4AF37':'#B58A32';
   routes.forEach((r,i)=>{
     const coords=validCoords(r);if(coords.length<2)return;
-    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:r.id===recommendedId?8:5,opacity:r.id===recommendedId?.95:.65,color:r.id===recommendedId?selectedRouteColor:palette[i%palette.length]}).addTo(map);
+    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:r.id===recommendedId?8:5,opacity:r.id===recommendedId ? .95 : .65,color:r.id===recommendedId?selectedRouteColor:palette[i%palette.length]}).addTo(map);
     routeLayers.push(line);
     if(arr(r.congestedSegments).length>1){const congestion=window.L.polyline(r.congestedSegments.map(p=>[p.lat,p.lng]),{weight:9,opacity:.55,color:'#d64545',dashArray:'4 6'}).addTo(map);routeLayers.push(congestion)}
     line.on('click',()=>select(r.id));
@@ -200,8 +201,8 @@ function render(routes,recommendedId,mode){
 function select(id){
   selected=id;selectedRoute=currentRoutes.find(r=>r.id===id)||null;
   document.querySelectorAll('.route-card').forEach(x=>x.classList.toggle('selected',x.dataset.id===id));
-  if(!selectedRoute){setStartEnabled(false);return}
-  try{sessionStorage.setItem('selectedRouteId',id);if(selectedRoute.databaseId)sessionStorage.setItem('selectedRouteDbId',selectedRoute.databaseId)}catch{}
+  if(!selectedRoute){try{sessionStorage.removeItem('selectedRouteId');sessionStorage.removeItem('selectedRouteDbId')}catch{}setStartEnabled(false);return}
+  try{sessionStorage.setItem('selectedRouteId',id);if(selectedRoute.databaseId)sessionStorage.setItem('selectedRouteDbId',selectedRoute.databaseId);else sessionStorage.removeItem('selectedRouteDbId')}catch{}
   renderWhy(selectedRoute);renderSteps(selectedRoute);
   setStartEnabled(Boolean(selectedRoute.databaseId),selectedRoute.databaseId?'':'Sign in and calculate routes again so the route can be persisted.');
 }
