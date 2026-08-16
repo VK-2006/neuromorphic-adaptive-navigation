@@ -34,27 +34,28 @@ def test_validated_snn_serves_trained_prediction():
     assert out['explanation']['source'] == 'snn'
 
 
-def _detector(validated: bool):
+def _detector(runtime_ready: bool):
     detector = Detector.__new__(Detector)
     detector.model = object()
-    detector.validated = validated
-    detector.mode = 'torchscript-trained-weights-validated' if validated else 'development/heuristic-fallback-unvalidated-weights'
+    detector.validated = False
+    detector.runtime_ready = runtime_ready
+    detector.mode = 'torchscript-trained-weights-functional' if runtime_ready else 'development/heuristic-fallback-unready-weights'
     detector.load_error = None
     detector.validation_issues = []
     return detector
 
 
-def test_unvalidated_detector_never_serves_trained_detection():
+def test_unready_detector_uses_fallback():
     detector = _detector(False)
-    detector._torchscript = lambda _: (_ for _ in ()).throw(AssertionError('unvalidated detector inference executed'))
+    detector._torchscript = lambda _: (_ for _ in ()).throw(AssertionError('unready detector inference executed'))
     detector._fallback_detect = lambda _: [{'objectClass': 'fallback'}]
     out = Detector.detect(detector, object())
     assert out == [{'objectClass': 'fallback'}]
 
 
-def test_validated_detector_serves_trained_detection():
+def test_runtime_ready_detector_serves_trained_detection():
     detector = _detector(True)
-    detector._fallback_detect = lambda _: (_ for _ in ()).throw(AssertionError('validated detector was sent to fallback'))
+    detector._fallback_detect = lambda _: (_ for _ in ()).throw(AssertionError('runtime-ready detector was sent to fallback'))
     detector._torchscript = lambda _: [{'objectClass': 'trained'}]
     out = Detector.detect(detector, object())
     assert out == [{'objectClass': 'trained'}]
