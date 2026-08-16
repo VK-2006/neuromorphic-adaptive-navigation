@@ -38,9 +38,6 @@ async function browserPage(browser,page,viewport={width:1440,height:900}){
   });
   await p.goto(`${BASE}/${page}`,{waitUntil:'domcontentloaded',timeout:60000});
   await p.waitForFunction(()=>document.body.classList.contains('navora-app')||document.body.classList.contains('navora-admin'),null,{timeout:15000});
-  // V22 is injected by the all-page profile loader after the legacy V20 layer.
-  // Wait for the stylesheet to be parsed and visibly authoritative before taking
-  // physical scroll measurements, especially on cockpit pages with no page-shell.
   await p.waitForFunction(()=>{
     const link=document.querySelector('link[data-navora-right-pane-v22]');
     const nav=document.querySelector('body > .navora-nav');
@@ -61,16 +58,14 @@ async function checkNavFixed(browser,page){
     window.scrollTo(0,800);
     if(main.classList.contains('map-layout')){
       const panel=main.querySelector('.route-panel');
-      const spacer=document.createElement('div');spacer.style.height='1800px';panel?.appendChild(spacer);if(panel)panel.scrollTop=700;
+      const spacer=document.createElement('div');
+      spacer.style.height='1800px';
+      panel?.appendChild(spacer);
+      if(panel){void panel.scrollHeight;await new Promise(r=>requestAnimationFrame(r));panel.scrollTop=700;}
     }
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const after={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
-    return{
-      missing:false,before,after,
-      position:getComputedStyle(nav).position,
-      navLinksOverflowY:getComputedStyle(links).overflowY,
-      bodyScrollY:scrollY
-    };
+    return{missing:false,before,after,position:getComputedStyle(nav).position,navLinksOverflowY:getComputedStyle(links).overflowY,bodyScrollY:scrollY};
   });
   if(errors.length)throw new Error(`${page}: page errors: ${errors.join(' | ')}`);
   assert(!result.missing,`${page}: nav/main missing`);
@@ -90,19 +85,27 @@ async function checkRightPaneScroll(browser,page){
     const shell=document.querySelector('body > .page-shell');
     if(!nav||!shell)return{missing:true};
     const spacer=document.createElement('div');
-    spacer.style.height='2400px';spacer.style.width='1px';spacer.setAttribute('aria-hidden','true');shell.appendChild(spacer);
+    spacer.style.height='2400px';spacer.style.minHeight='2400px';spacer.style.width='1px';spacer.setAttribute('aria-hidden','true');
+    shell.appendChild(spacer);
+    // Let layout incorporate the synthetic overflow before assigning scrollTop;
+    // otherwise Chromium may clamp the same-task assignment to the old zero range.
+    void shell.scrollHeight;
+    await new Promise(resolve=>requestAnimationFrame(resolve));
     const before=nav.getBoundingClientRect().top;
-    shell.scrollTop=900;
+    const scrollHeight=shell.scrollHeight,clientHeight=shell.clientHeight;
+    shell.scrollTop=Math.min(900,Math.max(0,scrollHeight-clientHeight));
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const style=getComputedStyle(shell);
     const ui=getComputedStyle(document.documentElement).getPropertyValue('--ui-scroll').trim();
     const motion=getComputedStyle(document.documentElement).getPropertyValue('--motion-scroll').trim();
-    return{missing:false,before,after:nav.getBoundingClientRect().top,bodyScrollY:scrollY,shellScrollTop:shell.scrollTop,overflow:getComputedStyle(shell).overflowY,ui,motion};
+    return{missing:false,before,after:nav.getBoundingClientRect().top,bodyScrollY:scrollY,shellScrollTop:shell.scrollTop,scrollHeight,clientHeight,computedHeight:style.height,overflow:style.overflowY,display:style.display,ui,motion};
   });
   if(errors.length)throw new Error(`${page}: page errors: ${errors.join(' | ')}`);
   assert(!result.missing,`${page}: page-shell missing`);
   assert(Math.abs(result.before-result.after)<0.5,`${page}: nav moved during right-pane scroll`);
   assert(result.bodyScrollY===0,`${page}: body scrolled while page-shell scrolled`);
-  assert(result.shellScrollTop>400,`${page}: page-shell scrollTop=${result.shellScrollTop}`);
+  assert(result.scrollHeight>result.clientHeight,`${page}: no overflow range scrollHeight=${result.scrollHeight} clientHeight=${result.clientHeight} height=${result.computedHeight} overflow=${result.overflow} display=${result.display}`);
+  assert(result.shellScrollTop>400,`${page}: page-shell scrollTop=${result.shellScrollTop} range=${result.scrollHeight-result.clientHeight} height=${result.computedHeight} overflow=${result.overflow} display=${result.display}`);
   assert(result.overflow==='auto'||result.overflow==='scroll',`${page}: page-shell overflow=${result.overflow}`);
   assert(result.ui&&result.ui!=='0%'&&result.ui!=='0.000%',`${page}: --ui-scroll did not update (${result.ui})`);
   assert(Number(result.motion)>0,`${page}: --motion-scroll did not update (${result.motion})`);
