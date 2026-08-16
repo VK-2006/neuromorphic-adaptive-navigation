@@ -1,0 +1,114 @@
+name: Navora External Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_google:
+        description: 'Run Google browser verification using a real authenticated storage state'
+        required: true
+        type: boolean
+        default: false
+      run_turn:
+        description: 'Run TURN relay verification with production credentials'
+        required: true
+        type: boolean
+        default: false
+      run_models:
+        description: 'Run held-out detector + SNN validation against supplied real datasets'
+        required: true
+        type: boolean
+        default: false
+      detector_manifest_path:
+        description: 'Path inside the detector evaluation bundle to the held-out JSONL manifest'
+        required: false
+        default: 'heldout/manifest.jsonl'
+        type: string
+      snn_eval_path:
+        description: 'Path inside the SNN evaluation bundle to the held-out CSV'
+        required: false
+        default: 'heldout/snn-eval.csv'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  google-real-browser:
+    if: ${{ inputs.run_google }}
+    runs-on: ubuntu-latest
+    env:
+      NAVORA_BASE_URL: https://navora-backend-clzp.onrender.com
+      GOOGLE_AUTH_STORAGE_STATE_B64: ${{ secrets.GOOGLE_AUTH_STORAGE_STATE_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install browser test dependencies
+        working-directory: backend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Verify real Google-authenticated browser session
+        run: node scripts/google_real_login_e2e.js
+
+  turn-relay:
+    if: ${{ inputs.run_turn }}
+    runs-on: ubuntu-latest
+    env:
+      WEBRTC_TURN_URL: ${{ secrets.WEBRTC_TURN_URL }}
+      WEBRTC_TURN_USERNAME: ${{ secrets.WEBRTC_TURN_USERNAME }}
+      WEBRTC_TURN_CREDENTIAL: ${{ secrets.WEBRTC_TURN_CREDENTIAL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install browser test dependencies
+        working-directory: backend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Verify TURN relay candidate
+        run: node scripts/turn_relay_e2e.js
+
+  held-out-model-validation:
+    if: ${{ inputs.run_models }}
+    runs-on: ubuntu-latest
+    env:
+      DETECTOR_EVAL_BUNDLE_URL: ${{ secrets.DETECTOR_EVAL_BUNDLE_URL }}
+      SNN_EVAL_BUNDLE_URL: ${{ secrets.SNN_EVAL_BUNDLE_URL }}
+      DETECTOR_MANIFEST_PATH: ${{ inputs.detector_manifest_path }}
+      SNN_EVAL_PATH: ${{ inputs.snn_eval_path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download private held-out evaluation bundles
+        run: |
+          test -n "$DETECTOR_EVAL_BUNDLE_URL"
+          test -n "$SNN_EVAL_BUNDLE_URL"
+          mkdir -p /tmp/navora-detector /tmp/navora-snn
+          curl --fail --location --retry 3 "$DETECTOR_EVAL_BUNDLE_URL" -o /tmp/detector.tar.gz
+          curl --fail --location --retry 3 "$SNN_EVAL_BUNDLE_URL" -o /tmp/snn.tar.gz
+          tar -xzf /tmp/detector.tar.gz -C /tmp/navora-detector
+          tar -xzf /tmp/snn.tar.gz -C /tmp/navora-snn
+          mkdir -p heldout
+          cp -a /tmp/navora-detector/. heldout/detector/
+          cp -a /tmp/navora-snn/. heldout/snn/
+      - name: Install AI evaluation dependencies
+        working-directory: ai-service
+        run: pip install -r requirements.txt
+      - name: Validate detector held-out set
+        run: |
+          python scripts/evaluate_detector.py --manifest "heldout/detector/${DETECTOR_MANIFEST_PATH}" --mark-validation
+      - name: Validate SNN held-out set
+        run: |
+          python scripts/evaluate_snn.py --csv "heldout/snn/${SNN_EVAL_PATH}" --mark-validation
+      - name: Re-check model readiness truthfulness
+        run: python scripts/model_readiness.py
