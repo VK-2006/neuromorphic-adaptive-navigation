@@ -36,7 +36,8 @@ async function updateFromJourney(journey,route,feedback=.5){
   m.distance=Number(route.distance)||Number(journey.totalDistance)||m.distance;
   m.lastJourneyId=journey._id;
   m.journeyCount+=1;m.successfulJourneyCount+=journey.success?1:0;
-  const travelSeconds=journey.completedAt&&journey.startedAt?Math.max(0,(new Date(journey.completedAt)-new Date(journey.startedAt))/1000):null;
+  const elapsedMs=journey.completedAt&&journey.startedAt?Math.max(0,new Date(journey.completedAt)-new Date(journey.startedAt)):null;
+  const travelSeconds=elapsedMs==null?null:Math.max(0,(elapsedMs-Math.max(0,Number(journey.totalPausedMs)||0))/1000);
   if(Number.isFinite(travelSeconds))m.travelTime=ema(m.travelTime,travelSeconds,env.emaAlpha);
   m.averageRisk=ema(m.averageRisk,journey.averageRisk||0,env.emaAlpha);
   m.maximumRisk=ema(m.maximumRisk,journey.maximumRisk||0,env.emaAlpha);
