@@ -22,8 +22,9 @@ class Detector:
                 if torchvision is None:
                     raise RuntimeError('torchvision is unavailable; scripted Faster R-CNN ops cannot be registered')
                 candidate=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval()
-                if bool(validation.get('passed')):
-                    self.model=candidate;self.validated=True;self.mode='torchscript-trained-weights-validated'
+                self.validated=bool(validation.get('passed'))
+                if self.validated:
+                    self.model=candidate;self.mode='torchscript-trained-weights-validated'
                 else:
                     # Preserve the file only as research evidence. Normal detection must remain on
                     # the deterministic development fallback until the exact model is validated.
