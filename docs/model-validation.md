@@ -1,20 +1,26 @@
 # Detector + SNN Validation Workflow
 
-Navora separates **training**, **evaluation**, and **live safety eligibility**. A metadata boolean is never enough to make a live model validated.
+Navora separates **training**, **evaluation**, **live safety eligibility**, and **normal runtime inference**. A metadata boolean is never enough to make a live model validated.
 
-## V30 validation chain
+## V30+ validation chain
 
 1. Prepare real upstream data under each dataset's license.
 2. For detector data, `prepare_detection_data.py` can create a unified BDD100K/RDD2022 manifest. `split_detection_manifest.py` can then create a deterministic source-aware internal train/evaluation split with zero shared image rows and minimum held-out class coverage.
 3. Run `scripts/model_data_gate.py`. It blocks too-small datasets, malformed images/boxes, invalid source/class pairs, duplicate detector images, train/evaluation leakage, evaluation-only detector classes/sources, trained sources missing from held-out data, weak held-out class coverage, non-normalized SNN rows, and any attempt to weaken the built-in validation policy floors.
 4. Train with `scripts/train_detector.py` and `scripts/train_snn.py`. Training always leaves live validation false. Detector training stores the exact training-manifest SHA-256 in metadata.
-5. Evaluate with `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` using only the held-out splits. The evaluators publish global plus per-class diagnostics and refuse safety validation when configured thresholds are weaker than policy.
+5. Evaluate with `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` using only fresh held-out splits. The evaluators publish global plus per-class diagnostics and refuse safety validation when configured thresholds are weaker than policy.
 6. **V30 class-aware gate:** aggregate accuracy/F1 is not enough. Every trained detector class must meet minimum held-out precision, recall and F1, including `pothole`/`road damage`. Every SNN risk class must meet minimum F1, and `HIGH`/`CRITICAL` must also meet a stronger recall floor. This prevents common/easy classes from hiding a failed safety-critical class.
 7. `--mark-validation` is bound to the passing data gate: the exact held-out manifest/CSV SHA-256 must match the gated evaluation split. A different or modified file cannot be marked validated.
 8. Run `scripts/validation_evidence.py` immediately after both evaluations. V30 evidence schema 3 binds the exact training/evaluation dataset fingerprints, data-gate report, detector evaluation report, SNN evaluation report, per-class metrics/policy results, metadata, and both weight files with SHA-256.
 9. Run `scripts/model_readiness.py`. `validated=true` is accepted only when both live model guards independently reproduce the complete V30 evidence chain.
 10. Run `scripts/model_artifact_bundle.py` to create a local validated model ZIP under `model-artifacts/`.
 11. At service startup, `app/model_validation.py` re-checks policy/report/dataset/weight bindings and the V30 per-class gates. Detector startup also verifies that metadata class order, training sources and training-manifest SHA-256 match the V29+ data gate. Any stale or tampered component immediately downgrades the model to unvalidated mode.
+12. **V32 research lock:** a candidate that fails an immutable one-time external final evaluation is fingerprinted as research-only. A consumed external final-set fingerprint is permanently blocked from SNN training/tuning or re-evaluation/model-selection feedback.
+13. **V33 validated-only runtime inference:** normal `/api/v1/risk/*` and `/api/v1/detect` trained inference is served only when the exact loaded weights pass the full validation guard. If trained weights exist but are unvalidated, research-only, stale, or evidence-mismatched, the service does not execute them for normal requests and uses the deterministic development fallback instead. `validated=false` remains explicit in responses.
+
+## Phase-4 SNN research disposition
+
+The locked 2025 one-time external SNN evaluation is recorded in `docs/snn-phase4-2025-external-validation.md`. Its HIER_B candidate failed the final production gate and is permanently `RESEARCH_ONLY / NOT_PRODUCTION_VALIDATED`. The consumed 2025 final set must not be reused for development decisions. Any future SNN production-validation claim requires a newly frozen candidate and a new independently reserved untouched final set.
 
 ## Detector scope
 
