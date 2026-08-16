@@ -61,7 +61,7 @@ async function checkNavFixed(browser,page){
       const spacer=document.createElement('div');
       spacer.style.height='1800px';
       panel?.appendChild(spacer);
-      if(panel){void panel.scrollHeight;await new Promise(r=>requestAnimationFrame(r));panel.scrollTop=700;}
+      if(panel){panel.style.scrollBehavior='auto';void panel.scrollHeight;await new Promise(r=>requestAnimationFrame(r));panel.scrollTop=700;}
     }
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const after={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
@@ -87,14 +87,13 @@ async function checkRightPaneScroll(browser,page){
     const spacer=document.createElement('div');
     spacer.style.height='2400px';spacer.style.minHeight='2400px';spacer.style.width='1px';spacer.setAttribute('aria-hidden','true');
     shell.appendChild(spacer);
-    // Let layout incorporate the synthetic overflow before assigning scrollTop;
-    // otherwise Chromium may clamp the same-task assignment to the old zero range.
+    shell.style.scrollBehavior='auto';
     void shell.scrollHeight;
     await new Promise(resolve=>requestAnimationFrame(resolve));
     const before=nav.getBoundingClientRect().top;
     const scrollHeight=shell.scrollHeight,clientHeight=shell.clientHeight;
     shell.scrollTop=Math.min(900,Math.max(0,scrollHeight-clientHeight));
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const style=getComputedStyle(shell);
     const ui=getComputedStyle(document.documentElement).getPropertyValue('--ui-scroll').trim();
     const motion=getComputedStyle(document.documentElement).getPropertyValue('--motion-scroll').trim();
