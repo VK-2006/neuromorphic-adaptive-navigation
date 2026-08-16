@@ -58,6 +58,7 @@ jobs:
           python tests/v28_model_validation_contracts.py
           python tests/v29_rdd_detector_training_contracts.py
           python tests/v30_class_aware_validation_contracts.py
+          python tests/v31_windows_model_pipeline_contracts.py
           node --check backend/src/app.js
           node --check frontend/assets/js/api.js
           node --check frontend/assets/js/app-shell.js
