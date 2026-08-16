@@ -21,10 +21,14 @@ function capabilityGuards(){
 function historyGuard(){
   if(page!=='history.html')return;
   const host=byId('history-body');if(!host)return;
+  const table=host.closest('table');
+  const headers=Array.from(table?.querySelectorAll('thead th')||[]);
+  const statusIndex=headers.findIndex(th=>th.textContent.trim().toUpperCase()==='STATUS');
   const apply=()=>host.querySelectorAll('tr').forEach(tr=>{
-    const cells=tr.querySelectorAll('td');if(cells.length<5)return;
-    const status=cells[4].textContent.trim().toUpperCase();
-    const a=cells[0].querySelector('a[data-replay]');
+    const cells=tr.querySelectorAll('td');
+    if(statusIndex<0||cells.length<=statusIndex)return;
+    const status=cells[statusIndex].textContent.trim().toUpperCase();
+    const a=tr.querySelector('a[data-replay]');
     if(a&&!['COMPLETED','ACTIVE','PAUSED'].includes(status)){
       const span=document.createElement('span');span.textContent=a.textContent;span.className='muted';a.replaceWith(span);
     }
