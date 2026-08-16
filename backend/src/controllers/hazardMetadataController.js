@@ -33,10 +33,7 @@ async function verifiedNearby(location) {
       },
     });
   } catch (error) {
-    logger.warn({
-      event: 'verified_hazard_count_failed',
-      message: error.message,
-    });
+    logger.warn({ event: 'verified_hazard_count_failed', message: error.message });
     return 0;
   }
 }
@@ -49,14 +46,12 @@ exports.analyze = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Journey unavailable for this user' });
     }
     if (journey.status !== 'ACTIVE') {
-      return res.status(409).json({
-        success: false,
-        message: 'Journey-linked perception requires an active journey',
-      });
+      return res.status(409).json({ success: false, message: 'Journey-linked perception requires an active journey' });
     }
   }
 
-  const detections = (Array.isArray(req.body.detections) ? req.body.detections : [])
+  const detectorRuntimeReady = Array.isArray(req.body.detections);
+  const detections = (detectorRuntimeReady ? req.body.detections : [])
     .map((d) => ({
       objectClass: String(d?.objectClass || 'unknown').slice(0, 80),
       confidence: clamp(d?.confidence),
@@ -72,17 +67,11 @@ exports.analyze = async (req, res) => {
   const top = detections[0] || null;
   const verifiedReports = await verifiedNearby(req.body.location);
   const hydrated = await riskFeatures.hydrateContext(req.body.context || {}, req.body.location);
-  const features = riskFeatures.buildFeatures(
-    top,
-    hydrated.context,
-    req.body.location,
-    verifiedReports,
-  );
+  const features = riskFeatures.buildFeatures(top, hydrated.context, req.body.location, verifiedReports);
 
   const risk = await ai.predictRisk(features);
-  const detectorValidated = false;
   const riskValidated = risk?.validated === true;
-  const safetyEligible = detectorValidated && riskValidated;
+  const safetyEligible = detectorRuntimeReady && riskValidated;
   const canAffectLive =
     journey?.mode !== 'LIVE' ||
     !env.liveRequireValidatedAi ||
@@ -122,6 +111,8 @@ exports.analyze = async (req, res) => {
         detectorMode: 'browser-local-coco-ssd',
         detectorVersion: 'coco-ssd-2.2.3-lite_mobilenet_v2',
         validated: false,
+        detectorRuntimeReady,
+        detectorScientificValidationRequired: false,
         frameTransmitted: false,
         weatherSource: hydrated.weather.weatherSource,
         detection: {
@@ -142,9 +133,7 @@ exports.analyze = async (req, res) => {
       ((journey.riskSamples || 0) + 1);
     journey.maximumRisk = Math.max(journey.maximumRisk || 0, normalizedScore);
     journey.riskSamples = (journey.riskSamples || 0) + 1;
-    if (hazard?.$locals?.wasCreated) {
-      journey.hazardCount = (journey.hazardCount || 0) + 1;
-    }
+    if (hazard?.$locals?.wasCreated) journey.hazardCount = (journey.hazardCount || 0) + 1;
 
     journey.decisionEvents.push({
       type: 'LOCAL_METADATA_RISK',
@@ -157,11 +146,11 @@ exports.analyze = async (req, res) => {
       aiMode: risk.mode,
       frameTransmitted: false,
       detector: 'browser-local-coco-ssd',
+      detectorRuntimeReady,
       weatherSource: hydrated.weather.weatherSource,
     });
 
     await journey.save();
-
     req.app.get('io')?.to(`journey:${journey._id}`).emit('snn:risk', {
       score: normalizedScore,
       riskLevel: risk.level,
@@ -178,7 +167,9 @@ exports.analyze = async (req, res) => {
     risk,
     hazardId: hazard?._id || null,
     aiMode: risk?.mode || 'unknown',
-    detectorValidated,
+    detectorValidated: false,
+    detectorRuntimeReady,
+    detectorScientificValidationRequired: false,
     riskValidated,
     safetyEligible,
     canAffectLive,
