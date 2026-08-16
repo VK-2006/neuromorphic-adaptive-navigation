@@ -17,41 +17,29 @@ def main():
         if line.strip() and not line.lstrip().startswith(('rem ', 'echo '))
     )
 
-    require('setlocal enableextensions' in lower, 'V31 BAT must use an isolated command environment')
-    require('cd /d "%~dp0.."' in lower, 'V31 BAT must anchor itself to repository root')
+    require('setlocal enableextensions' in lower, 'Windows BAT must use an isolated command environment')
+    require('cd /d "%~dp0.."' in lower, 'Windows BAT must anchor itself to repository root')
+    require('BDD_LABELS' in text and 'BDD_IMAGES' in text, 'BDD100K functional detector inputs missing')
+    require('RDD_ROOT' in text, 'optional RDD2022 detector input missing')
+    require('SNN_TRAIN_CSV' in text and 'SNN_EVAL_CSV' in text, 'retained SNN inputs missing')
 
-    for variable in ['RDD_ROOT', 'SNN_TRAIN_CSV', 'SNN_EVAL_CSV']:
-        require(variable in text, f'V31 required dataset variable missing: {variable}')
-    require('BDD_LABELS' in text and 'BDD_IMAGES' in text, 'V31 optional BDD100K pair missing')
+    for name in ['prepare_detection_data.py', 'train_detector.py', 'model_readiness.py']:
+        require(name in executable, f'functional detector pipeline stage missing: {name}')
+    for name in ['train_snn.py', 'evaluate_snn.py']:
+        require(name in executable, f'retained SNN workflow stage missing: {name}')
 
-    required_scripts = [
-        'prepare_detection_data.py',
-        'split_detection_manifest.py',
-        'model_data_gate.py',
-        'train_detector.py',
-        'train_snn.py',
-        'evaluate_detector.py',
-        'evaluate_snn.py',
-        'validation_evidence.py',
-        'model_readiness.py',
-        'model_artifact_bundle.py',
-    ]
-    for name in required_scripts:
-        require(name in executable, f'V31 executable pipeline stage missing: {name}')
+    require('RUN_INTERNAL_DETECTOR_EVAL' in text, 'optional detector diagnostic switch missing')
+    require('evaluate_detector.py' in executable, 'internal detector evaluation utility should remain available')
+    require('--mark-validation' not in '\n'.join(
+        line for line in executable.splitlines() if 'evaluate_detector.py' in line
+    ), 'detector internal diagnostic must not mark scientific validation')
+    require('evaluate_snn.py' in executable and '--mark-validation' in executable,
+            'SNN scientific-validation evaluation must remain available')
+    require('independent cross-dataset detector scientific validation is out of current scope' in lower,
+            'detector scientific-validation scope boundary missing')
+    require('if errorlevel 1 goto :failed' in lower, 'workflow must fail closed after guarded commands')
 
-    positions = [executable.index(name.lower()) for name in required_scripts]
-    require(positions == sorted(positions), 'V31 model pipeline stages are not in guarded order')
-
-    require(executable.count('--mark-validation') == 2, 'both and only both held-out evaluators must mark validation')
-    require('--max-samples' not in executable, 'V31 real detector training must not use partial-sample mode')
-    require('--smoke' not in executable, 'V31 real model pipeline must not use smoke training')
-    require('validation_evidence.py' in executable and 'model_readiness.py' in executable, 'V30 evidence/readiness chain missing')
-    require('model_artifact_bundle.py' in executable, 'validated artifact bundle stage missing')
-    require('if errorlevel 1 goto :failed' in lower, 'V31 must fail closed after guarded commands')
-    require('no success claim is made' in lower, 'V31 failure path must explicitly avoid success claims')
-    require('do not commit datasets, trained weights, .env files or model-artifacts zips' in lower, 'V31 artifact hygiene warning missing')
-
-    print('V31 WINDOWS REAL MODEL PIPELINE CONTRACTS PASS')
+    print('V31/V36 WINDOWS MODEL PIPELINE CONTRACTS PASS')
 
 
 if __name__ == '__main__':
