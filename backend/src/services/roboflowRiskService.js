@@ -50,6 +50,7 @@ async function analyze({
   }
 
   const inference = await roboflow.infer({ image, classes });
+  const detectorRuntimeReady = Array.isArray(inference?.detections);
   const top = topDetection(inference.detections);
   const hydrated = await riskFeatures.hydrateContext(context || {}, location || null);
   const features = riskFeatures.buildFeatures(
@@ -60,10 +61,8 @@ async function analyze({
   );
 
   const risk = await ai.predictRiskResilient(features);
-
-  const detectorValidated = false;
   const riskValidated = risk?.validated === true;
-  const safetyEligible = detectorValidated && riskValidated;
+  const safetyEligible = detectorRuntimeReady && riskValidated;
   const canAffectLive =
     !journey ||
     journey.mode !== 'LIVE' ||
@@ -104,6 +103,8 @@ async function analyze({
         detectorMode: 'roboflow-cloud-yolo-world',
         detectorVersion: env.roboflowWorkflowId || 'unknown',
         validated: false,
+        detectorRuntimeReady,
+        detectorScientificValidationRequired: false,
         cloudProcessed: true,
         weatherSource: hydrated.weather.weatherSource,
         detection: {
@@ -144,7 +145,7 @@ async function analyze({
       modelVersion: risk.modelVersion,
       aiMode: risk.mode,
       detector: 'roboflow-cloud-yolo-world',
-      detectorValidated: false,
+      detectorRuntimeReady,
       cloudProcessed: true,
       weatherSource: hydrated.weather.weatherSource,
     });
@@ -160,11 +161,13 @@ async function analyze({
     aiDegraded: risk?.degraded === true,
     aiError: risk?.error || null,
     hazardId: hazard?._id || null,
-    detectorValidated,
+    detectorValidated: false,
+    detectorRuntimeReady,
+    detectorScientificValidationRequired: false,
     riskValidated,
     safetyEligible,
     canAffectLive,
-    researchOnly: !safetyEligible,
+    researchOnly: !riskValidated,
     researchPersistenceAllowed,
     persistenceRequested: Boolean(persist),
     persisted: Boolean(hazard),
