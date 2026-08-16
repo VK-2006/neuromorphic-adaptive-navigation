@@ -1,14 +1,29 @@
 {
-  "detectorModelVersion": "bdd100k-fasterrcnn-resnet50-fpn-v4",
+  "detectorModelVersion": "bdd100k-rdd2022-fasterrcnn-resnet50-fpn-v5",
   "riskModelVersion": "risk-snn-v1",
-  "detectorClasses": ["person", "bicycle", "motorcycle", "car", "bus", "truck"],
+  "detectorClasses": [
+    "person",
+    "bicycle",
+    "motorcycle",
+    "car",
+    "bus",
+    "truck",
+    "traffic cone",
+    "barrier",
+    "road damage",
+    "pothole"
+  ],
+  "trainingSources": ["BDD100K", "RDD2022"],
+  "trainingManifestSha256": "<generated-by-train_detector.py>",
   "detectorValidated": false,
   "riskValidated": false,
   "validated": false,
+  "officialBddBenchmarkClaim": false,
+  "officialRddBenchmarkClaim": false,
   "validation": {
     "detectorReport": "detector-evaluation.json",
     "riskReport": "snn-evaluation.json",
     "evidenceSchema": 2
   },
-  "note": "Per-model flags are not sufficient for live validation. V28 also requires passing data/evaluation policy, evidence/report hashes, dataset fingerprints and exact weight SHA-256 bindings."
+  "note": "Example only. Live validation requires passing V28+ evidence and V29 detector class/source/training-manifest bindings plus exact report/dataset/weight SHA-256 matches."
 }

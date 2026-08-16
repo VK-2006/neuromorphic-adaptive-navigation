@@ -5,11 +5,11 @@ from collections import Counter
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'ai-service'))
+from app.detector_taxonomy import ordered_classes,validate_source_class
 from app.model_validation import DATA_GATE_MINIMUMS
 
 FEATURES=['objectPrior','confidence','proximity','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','lowVisibility','weatherRisk','roadOrReports']
 RISK_LABELS=['LOW','MEDIUM','HIGH','CRITICAL']
-DETECTOR_CLASSES=['person','bicycle','motorcycle','car','bus','truck']
 
 def sha256_file(path:Path):
     h=hashlib.sha256()
@@ -49,7 +49,7 @@ def read_risk(path:Path):
 def read_manifest(path:Path):
     if not path.exists():
         raise ValueError(f'missing file: {path}')
-    rows=[]; classes=Counter(); images=[]
+    rows=[];classes=Counter();images=[];sources=Counter();class_images=Counter()
     for n,line in enumerate(path.read_text(encoding='utf-8').splitlines(),1):
         if not line.strip():
             continue
@@ -63,23 +63,27 @@ def read_manifest(path:Path):
         image=image.resolve()
         if not image.exists():
             raise ValueError(f'{path}:{n}: image missing: {image}')
+        source=str(row.get('source') or '')
         boxes=row.get('boxes')
         if not isinstance(boxes,list) or not boxes:
             raise ValueError(f'{path}:{n}: boxes must be a non-empty list')
+        row_classes=set()
         for boxrow in boxes:
             cls=str(boxrow.get('class') or '')
-            if cls not in DETECTOR_CLASSES:
-                raise ValueError(f'{path}:{n}: unsupported class {cls!r}')
+            try:
+                validate_source_class(source,cls)
+            except ValueError as e:
+                raise ValueError(f'{path}:{n}: {e}') from e
             box=boxrow.get('box')
             if not isinstance(box,list) or len(box)!=4:
                 raise ValueError(f'{path}:{n}: invalid box for {cls}')
             vals=[float(x) for x in box]
             if not all(math.isfinite(x) for x in vals) or vals[2]<=vals[0] or vals[3]<=vals[1]:
                 raise ValueError(f'{path}:{n}: invalid xyxy box {box}')
-            classes[cls]+=1
-        rows.append(row)
-        images.append(str(image).lower())
-    return rows,classes,images
+            classes[cls]+=1;row_classes.add(cls)
+        for cls in row_classes:class_images[cls]+=1
+        rows.append(row);images.append(str(image).lower());sources[source]+=1
+    return rows,classes,images,sources,class_images
 
 def main():
     ap=argparse.ArgumentParser()
@@ -111,8 +115,8 @@ def main():
     ]
 
     try:
-        dtr,dtr_cls,dtr_images=read_manifest(a.det_train)
-        dev,dev_cls,dev_images=read_manifest(a.det_eval)
+        dtr,dtr_cls,dtr_images,dtr_sources,dtr_class_images=read_manifest(a.det_train)
+        dev,dev_cls,dev_images,dev_sources,dev_class_images=read_manifest(a.det_eval)
         str_rows,str_labels=read_risk(a.snn_train)
         sev_rows,sev_labels=read_risk(a.snn_eval)
     except Exception as e:
@@ -135,7 +139,20 @@ def main():
     if det_dup_train: problems.append(f'detector train manifest has {det_dup_train} duplicate image row(s)')
     if det_dup_eval: problems.append(f'detector eval manifest has {det_dup_eval} duplicate image row(s)')
 
-    trained_classes=sorted(c for c,n in dtr_cls.items() if n>0)
+    trained_classes=ordered_classes(c for c,n in dtr_cls.items() if n>0)
+    eval_classes=ordered_classes(c for c,n in dev_cls.items() if n>0)
+    eval_only_classes=[c for c in eval_classes if c not in trained_classes]
+    if eval_only_classes:
+        problems.append(f'detector held-out manifest contains classes absent from training: {eval_only_classes}')
+    train_sources=sorted(dtr_sources)
+    eval_sources=sorted(dev_sources)
+    eval_only_sources=[s for s in eval_sources if s not in train_sources]
+    missing_eval_sources=[s for s in train_sources if dev_sources.get(s,0)==0]
+    if eval_only_sources:
+        problems.append(f'detector held-out manifest contains sources absent from training: {eval_only_sources}')
+    if missing_eval_sources:
+        problems.append(f'detector trained sources missing from held-out data: {missing_eval_sources}')
+
     low_eval={c:dev_cls.get(c,0) for c in trained_classes if dev_cls.get(c,0)<a.min_det_eval_class_instances}
     if low_eval:
         problems.append(f'detector held-out class coverage below {a.min_det_eval_class_instances}: {low_eval}')
@@ -150,7 +167,10 @@ def main():
         'policyFloors':DATA_GATE_MINIMUMS,
         'detector':{
             'trainImages':len(dtr),'evalImages':len(dev),
+            'trainClasses':trained_classes,'evalClasses':eval_classes,
+            'trainSources':dict(dtr_sources),'evalSources':dict(dev_sources),
             'trainClassInstances':dict(dtr_cls),'evalClassInstances':dict(dev_cls),
+            'trainClassImages':dict(dtr_class_images),'evalClassImages':dict(dev_class_images),
             'trainEvalImageOverlap':len(det_overlap),
             'trainSha256':sha256_file(a.det_train),'evalSha256':sha256_file(a.det_eval)
         },

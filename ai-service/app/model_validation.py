@@ -86,8 +86,10 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     """Return the conservative live-safety validation status for one model.
 
     A metadata boolean alone is never sufficient. Live validation requires the overall
-    two-model gate, non-weakened policy floors, passing held-out reports, V28 evidence,
+    two-model gate, non-weakened policy floors, passing held-out reports, V28+ evidence,
     exact report/dataset fingerprints, and the SHA-256 of the weight file being loaded.
+    Detector validation additionally binds the dynamic class order, training sources and
+    exact training-manifest fingerprint to the source-aware V29 data-gate report.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
@@ -119,15 +121,29 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         issues.append(f'{flag} is not true')
 
     gate = _load_json(gate_path, issues, 'data-gate report')
+    gate_detector = gate.get('detector', {})
+    gate_snn = gate.get('snn', {})
     if gate.get('passed') is not True:
         issues.append('data-gate report did not pass')
     if gate.get('policyCompliant') is not True:
         issues.append('data-gate report is not V28 policy-compliant')
-    if gate.get('detector', {}).get('trainEvalImageOverlap') != 0:
+    if gate_detector.get('trainEvalImageOverlap') != 0:
         issues.append('detector train/eval overlap is not zero')
-    if gate.get('snn', {}).get('trainEvalRowOverlap') != 0:
+    if gate_snn.get('trainEvalRowOverlap') != 0:
         issues.append('SNN train/eval overlap is not zero')
     _thresholds_at_least(gate.get('thresholds', {}), DATA_GATE_MINIMUMS, issues, 'data-gate')
+
+    if kind == 'detector':
+        metadata_classes = metadata.get('detectorClasses')
+        gate_classes = gate_detector.get('trainClasses')
+        if not isinstance(metadata_classes, list) or not isinstance(gate_classes, list) or metadata_classes != gate_classes:
+            issues.append('detector metadata class order does not match the V29 data gate')
+        metadata_sources = metadata.get('trainingSources')
+        gate_sources = sorted((gate_detector.get('trainSources') or {}).keys())
+        if not isinstance(metadata_sources, list) or sorted(metadata_sources) != gate_sources:
+            issues.append('detector metadata training sources do not match the V29 data gate')
+        if metadata.get('trainingManifestSha256') != gate_detector.get('trainSha256'):
+            issues.append('detector metadata training manifest fingerprint does not match the V29 data gate')
 
     evaluation = _load_json(eval_path, issues, f'{kind} evaluation report')
     if evaluation.get('passed') is not True:
@@ -138,8 +154,6 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         issues.append(f'{kind} evaluation is not bound to the passing data gate')
     _thresholds_at_least(evaluation.get('thresholds', {}), eval_minimums, issues, f'{kind} evaluation')
 
-    gate_detector = gate.get('detector', {})
-    gate_snn = gate.get('snn', {})
     if kind == 'detector' and evaluation.get('manifestSha256') != gate_detector.get('evalSha256'):
         issues.append('detector evaluation dataset fingerprint does not match the data gate')
     if kind == 'risk' and evaluation.get('datasetSha256') != gate_snn.get('evalSha256'):

@@ -1,20 +1,21 @@
-"""Train Navora's BDD100K-only Faster R-CNN detector.
+"""Train Navora's Faster R-CNN detector from BDD100K and/or RDD2022 manifests.
 
-The training manifest must contain only BDD100K samples and only:
-person, bicycle, motorcycle, car, bus, truck.
+Supported source/class pairs are centralized in ``app.detector_taxonomy``. The model head is
+built dynamically from the classes actually present in the training manifest. COCO-overlap
+rows keep their pretrained classifier/regressor initialization; Navora-specific road classes
+such as ``road damage`` and ``pothole`` start with fresh head rows and must be learned from
+real RDD2022 samples.
 
-Default initialization uses TorchVision COCO-pretrained Faster R-CNN ResNet50-FPN.
-For the six overlapping COCO classes, the pretrained classifier/regressor rows are
-copied into Navora's compact seven-class prediction head instead of being discarded.
-
-Training never implies validation. The untouched held-out manifest must still pass
-evaluate_detector.py before detectorValidated can become true.
+Training never implies validation. The untouched held-out manifest must still pass the V28+
+data/evaluation/evidence chain before detectorValidated can become true.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import cv2
@@ -28,37 +29,49 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms.functional import to_tensor
 
 ROOT = Path(__file__).resolve().parents[1]
-CLASSES = ['__background__', 'person', 'bicycle', 'motorcycle', 'car', 'bus', 'truck']
-C2I = {c: i for i, c in enumerate(CLASSES)}
+sys.path.insert(0, str(ROOT / 'ai-service'))
+from app.detector_taxonomy import ordered_classes, validate_source_class
+from app.model_validation import sha256_file
 
 
 class ManifestDataset(Dataset):
     def __init__(self, path, max_samples=0):
         self.path = Path(path)
-        self.rows = [
+        all_rows = [
             json.loads(x)
             for x in self.path.read_text(encoding='utf-8').splitlines()
             if x.strip()
         ]
-        if max_samples and max_samples > 0:
-            self.rows = self.rows[:max_samples]
-        if not self.rows:
+        if not all_rows:
             raise ValueError(f'empty manifest: {self.path}')
+        self.total_rows = len(all_rows)
+        self.rows = all_rows[:max_samples] if max_samples and max_samples > 0 else all_rows
 
-        allowed = set(CLASSES[1:])
+        seen_classes = set()
+        self.source_counts = Counter()
+        self.class_counts = Counter()
         for n, row in enumerate(self.rows, 1):
-            if row.get('source') != 'BDD100K':
-                raise ValueError(f'{self.path}:{n}: only BDD100K source is allowed')
+            source = str(row.get('source') or '')
             boxes = row.get('boxes')
             if not isinstance(boxes, list) or not boxes:
                 raise ValueError(f'{self.path}:{n}: boxes must be non-empty')
-            bad = sorted(
-                {str(x.get('class')) for x in boxes if str(x.get('class')) not in allowed}
-            )
-            if bad:
-                raise ValueError(
-                    f'{self.path}:{n}: unsupported BDD100K-only classes: {bad}'
-                )
+            for ann in boxes:
+                class_name = str(ann.get('class') or '')
+                validate_source_class(source, class_name)
+                box = ann.get('box')
+                if not isinstance(box, list) or len(box) != 4:
+                    raise ValueError(f'{self.path}:{n}: invalid box for {class_name!r}')
+                x1, y1, x2, y2 = map(float, box)
+                if x2 <= x1 or y2 <= y1:
+                    raise ValueError(f'{self.path}:{n}: invalid xyxy box {box!r}')
+                seen_classes.add(class_name)
+                self.class_counts[class_name] += 1
+            self.source_counts[source] += 1
+
+        self.classes = ordered_classes(seen_classes)
+        if not self.classes:
+            raise ValueError(f'{self.path}: no supported detector classes found')
+        self.c2i = {name: idx + 1 for idx, name in enumerate(self.classes)}
 
     def __len__(self):
         return len(self.rows)
@@ -74,7 +87,7 @@ class ManifestDataset(Dataset):
         labels = []
         for ann in row['boxes']:
             boxes.append(ann['box'])
-            labels.append(C2I[ann['class']])
+            labels.append(self.c2i[ann['class']])
 
         target = {
             'boxes': torch.tensor(boxes, dtype=torch.float32),
@@ -88,32 +101,34 @@ def collate(batch):
     return tuple(zip(*batch))
 
 
-def _transfer_coco_predictor(model, weights):
+def _transfer_coco_predictor(model, weights, classes):
     old_predictor = model.roi_heads.box_predictor
     in_features = old_predictor.cls_score.in_features
-    new_predictor = FastRCNNPredictor(in_features, len(CLASSES))
+    new_predictor = FastRCNNPredictor(in_features, len(classes) + 1)
 
     categories = list(weights.meta.get('categories') or [])
     if not categories:
         raise RuntimeError('TorchVision COCO category metadata is unavailable')
 
     mapping = []
+    fresh = []
     with torch.no_grad():
-        for new_idx, cls in enumerate(CLASSES):
-            if new_idx == 0:
-                old_idx = 0
-            else:
-                if cls not in categories:
-                    raise RuntimeError(f'COCO pretrained category is missing: {cls}')
-                old_idx = categories.index(cls)
+        new_predictor.cls_score.weight[0].copy_(old_predictor.cls_score.weight[0])
+        new_predictor.cls_score.bias[0].copy_(old_predictor.cls_score.bias[0])
+        new_predictor.bbox_pred.weight[0:4].copy_(old_predictor.bbox_pred.weight[0:4])
+        new_predictor.bbox_pred.bias[0:4].copy_(old_predictor.bbox_pred.bias[0:4])
 
+        for new_idx, cls in enumerate(classes, 1):
+            if cls not in categories:
+                fresh.append(cls)
+                continue
+            old_idx = categories.index(cls)
             new_predictor.cls_score.weight[new_idx].copy_(
                 old_predictor.cls_score.weight[old_idx]
             )
             new_predictor.cls_score.bias[new_idx].copy_(
                 old_predictor.cls_score.bias[old_idx]
             )
-
             old_box = slice(old_idx * 4, (old_idx + 1) * 4)
             new_box = slice(new_idx * 4, (new_idx + 1) * 4)
             new_predictor.bbox_pred.weight[new_box].copy_(
@@ -125,10 +140,12 @@ def _transfer_coco_predictor(model, weights):
             mapping.append((cls, old_idx, new_idx))
 
     model.roi_heads.box_predictor = new_predictor
-    return mapping
+    return mapping, fresh
 
 
-def build_model(from_scratch=False, head_only=False):
+def build_model(classes, from_scratch=False, head_only=False):
+    if not classes:
+        raise ValueError('at least one detector class is required')
     if from_scratch:
         model = fasterrcnn_resnet50_fpn(
             weights=None,
@@ -139,10 +156,11 @@ def build_model(from_scratch=False, head_only=False):
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         model.roi_heads.box_predictor = FastRCNNPredictor(
             in_features,
-            len(CLASSES),
+            len(classes) + 1,
         )
         initialization = 'from-scratch'
         mapping = []
+        fresh = list(classes)
     else:
         weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
         model = fasterrcnn_resnet50_fpn(
@@ -150,8 +168,8 @@ def build_model(from_scratch=False, head_only=False):
             min_size=384,
             max_size=640,
         )
-        mapping = _transfer_coco_predictor(model, weights)
-        initialization = 'torchvision-coco-pretrained+class-head-transfer'
+        mapping, fresh = _transfer_coco_predictor(model, weights, classes)
+        initialization = 'torchvision-coco-pretrained+partial-class-head-transfer'
 
     if head_only:
         for p in model.parameters():
@@ -159,7 +177,7 @@ def build_model(from_scratch=False, head_only=False):
         for p in model.roi_heads.box_predictor.parameters():
             p.requires_grad = True
 
-    return model, initialization, mapping
+    return model, initialization, mapping, fresh
 
 
 def main():
@@ -176,7 +194,7 @@ def main():
     ap.add_argument(
         '--head-only',
         action='store_true',
-        help='Freeze the pretrained detector and train only the six-class box predictor.',
+        help='Freeze the pretrained detector and train only the dynamic box predictor.',
     )
     ap.add_argument(
         '--from-scratch',
@@ -193,8 +211,11 @@ def main():
 
     if args.device == 'cuda' and not torch.cuda.is_available():
         raise SystemExit('CUDA requested but torch.cuda.is_available() is False')
+    if args.max_samples and not args.smoke:
+        raise SystemExit('--max-samples is smoke/development-only; validated-capable training must consume the complete gated training manifest')
 
-    ds = ManifestDataset(args.manifest, args.max_samples)
+    manifest_path = Path(args.manifest)
+    ds = ManifestDataset(manifest_path, args.max_samples)
     dl = DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -203,7 +224,8 @@ def main():
         num_workers=0,
     )
 
-    model, initialization, mapping = build_model(
+    model, initialization, mapping, fresh = build_model(
+        ds.classes,
         from_scratch=args.from_scratch,
         head_only=args.head_only,
     )
@@ -221,7 +243,9 @@ def main():
     print('initialization =', initialization)
     print('device =', args.device)
     print('images =', len(ds))
-    print('classes =', CLASSES[1:])
+    print('sources =', dict(ds.source_counts))
+    print('classes =', ds.classes)
+    print('class_instances =', dict(ds.class_counts))
     print('head_only =', args.head_only)
     print('learning_rate =', args.lr)
     print('internal_resize = min_size=384 max_size=640')
@@ -231,7 +255,8 @@ def main():
             'coco_head_transfer =',
             ', '.join(f'{cls}:{old_idx}->{new_idx}' for cls, old_idx, new_idx in mapping),
         )
-        print('COCO_CLASS_HEAD_TRANSFER_PASS')
+    print('fresh_head_classes =', fresh)
+    print('COCO_PARTIAL_CLASS_HEAD_TRANSFER_PASS')
 
     started = time.perf_counter()
     seen = 0
@@ -282,7 +307,7 @@ def main():
     print(f'TRAINING_IMAGES_PER_SEC={rate:.6f}')
 
     if args.smoke:
-        full_epoch_s = 7929 / max(rate, 1e-9)
+        full_epoch_s = ds.total_rows / max(rate, 1e-9)
         print('SMOKE_MODE=TRUE')
         print('WEIGHTS_WRITTEN=FALSE')
         print(f'ROUGH_FULL_EPOCH_SECONDS_AT_SMOKE_RATE={full_epoch_s:.2f}')
@@ -309,33 +334,54 @@ def main():
     except Exception:
         meta = {}
 
-    provenance_path = ROOT / 'datasets/derived-risk-data/bdd100k-hf-provenance.json'
-    provenance = {}
-    if provenance_path.exists():
+    bdd_provenance_path = ROOT / 'datasets/derived-risk-data/bdd100k-hf-provenance.json'
+    bdd_provenance = {}
+    if bdd_provenance_path.exists():
         try:
-            provenance = json.loads(provenance_path.read_text(encoding='utf-8'))
+            bdd_provenance = json.loads(bdd_provenance_path.read_text(encoding='utf-8'))
         except Exception:
-            provenance = {}
+            bdd_provenance = {}
 
+    sources = sorted(ds.source_counts)
+    combined = 'BDD100K' in sources and 'RDD2022' in sources
+    version = (
+        'bdd100k-rdd2022-fasterrcnn-resnet50-fpn-v5'
+        if combined
+        else 'rdd2022-fasterrcnn-resnet50-fpn-v5'
+        if sources == ['RDD2022']
+        else 'bdd100k-fasterrcnn-resnet50-fpn-v5'
+    )
     meta.update({
-        'detectorModelVersion': 'bdd100k-fasterrcnn-resnet50-fpn-v4',
-        'detectorClasses': CLASSES[1:],
+        'detectorModelVersion': version,
+        'detectorClasses': ds.classes,
         'detectorValidated': False,
-        'trainingSources': ['BDD100K'],
+        'trainingSources': sources,
+        'trainingSourceImageCounts': dict(ds.source_counts),
+        'trainingClassInstances': dict(ds.class_counts),
         'detectorTrainingProtocol': (
-            'BDD100K validation-mirror internal 80/20 development split'
+            'V29 source-aware BDD100K/RDD2022 training; validation requires a '
+            'separate leakage-free held-out manifest through the V28 evidence chain.'
         ),
         'officialBddBenchmarkClaim': False,
+        'officialRddBenchmarkClaim': False,
         'initialization': initialization,
-        'cocoClassHeadTransfer': bool(mapping),
+        'cocoClassHeadTransfer': [x[0] for x in mapping],
+        'freshHeadClasses': fresh,
         'headOnlyTraining': bool(args.head_only),
         'internalResize': {'minSize': 384, 'maxSize': 640},
-        'trainingManifest': str(Path(args.manifest)),
-        'dataProvenance': provenance,
+        'trainingManifest': str(manifest_path),
+        'trainingManifestSha256': sha256_file(manifest_path),
+        'dataProvenance': {
+            'BDD100K': bdd_provenance if 'BDD100K' in sources else None,
+            'RDD2022': (
+                'local upstream RDD2022 files; repository does not redistribute dataset'
+                if 'RDD2022' in sources else None
+            ),
+        },
         'note': (
-            'Training never implies validation. This is not an official BDD100K '
-            'benchmark result. Run evaluate_detector.py on the untouched held-out '
-            'manifest before enabling validation.'
+            'Training never implies validation. New road-damage/pothole head rows are '
+            'learned only from supplied RDD2022 samples. Run model_data_gate.py, '
+            'evaluate_detector.py and validation_evidence.py on untouched held-out data.'
         ),
     })
     meta['validated'] = bool(
@@ -344,8 +390,10 @@ def main():
     meta_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
 
     print('saved', out / 'detector.pt')
+    print('training manifest SHA-256 =', meta['trainingManifestSha256'])
     print('detectorValidated = FALSE')
     print('official BDD100K benchmark claim = FALSE')
+    print('official RDD2022 benchmark claim = FALSE')
 
 
 if __name__ == '__main__':

@@ -2,34 +2,33 @@
 
 ## Detection
 
-Navora's current trained-detector workflow is **BDD100K only**.
+Navora V29 supports a **source-aware BDD100K + RDD2022 Faster R-CNN training pipeline**. The repository does not redistribute either upstream dataset and does not bundle a validated detector merely because the trainer supports these classes.
 
-The BDD100K-trained detector scope is limited to:
+Supported normalized detector classes are:
 
-- `person`
-- `bicycle`
-- `motorcycle`
-- `car`
-- `bus`
-- `truck`
+- BDD100K: `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, `barrier`.
+- RDD2022: `road damage`, `pothole`.
 
-RDD2022 is not used by the current detector training or validation workflow.
+`prepare_detection_data.py` creates a unified JSONL manifest from locally licensed upstream files. `split_detection_manifest.py` can create a deterministic source-aware internal train/held-out split. The split guarantees no duplicate image row crosses the train/evaluation boundary and promotes held-out examples when needed to meet minimum class coverage.
 
-The current local preparation uses the user's BDD100K images plus a SHA-256-pinned public annotation mirror for the BDD100K validation split. The workflow creates a deterministic internal 80/20 development train/held-out split from that annotated validation set because the official train-label archive was not available through the attempted download paths.
+Generated local files normally include:
 
-This is **not the official BDD100K benchmark train/validation protocol** and must not be reported as an official BDD100K benchmark result.
-
-Generated local files:
-
+- `datasets/derived-risk-data/detection-manifest.jsonl`
 - `datasets/derived-risk-data/detection-train.jsonl`
 - `datasets/derived-risk-data/detection-eval.jsonl`
-- `datasets/derived-risk-data/bdd100k-hf-provenance.json`
+- optional BDD preparation provenance such as `datasets/derived-risk-data/bdd100k-hf-provenance.json`
 
 They contain machine-local paths and are intentionally ignored by Git.
 
-Training output remains unvalidated. `scripts/evaluate_detector.py` must pass on the untouched held-out manifest before `detectorValidated` can become true.
+The data gate validates source/class pairs, dataset sizes, duplicate images, train/evaluation leakage, held-out coverage for trained classes and sources, and exact dataset SHA-256 fingerprints. Detector training records the exact training-manifest SHA-256 plus dynamic class order and training-source list in metadata.
 
-Broader hazards such as potholes, road damage, debris, barriers and fallen trees remain outside the BDD100K-trained detector validation scope. They may still appear in the explicitly opted-in Roboflow research path, but that does not inherit BDD100K validation.
+COCO-overlap classes may reuse pretrained Faster R-CNN head rows. `road damage` and `pothole` are Navora-specific rows that begin freshly initialized and require real RDD2022 training.
+
+Training output remains unvalidated. `scripts/evaluate_detector.py` must pass on the untouched held-out manifest, the exact held-out SHA must match the data gate, and the final validation evidence must bind datasets, metadata, reports and exact weights before `validated: true` is allowed.
+
+Any split produced by Navora's deterministic splitter is an **internal development/validation split**, not an official BDD100K or RDD2022 benchmark result. Do not report its metrics as an official upstream benchmark.
+
+Hazards outside the trained taxonomy, such as generic debris or fallen trees, may still appear through explicitly separate research/provider paths, but they do not inherit detector validation.
 
 ## SNN risk data
 
