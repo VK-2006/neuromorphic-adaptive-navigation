@@ -4,20 +4,20 @@ Generated locally, not committed by default:
 
 - `risk_snn.pt` — snnTorch risk-model state dict.
 - `detector.pt` — TorchScript Faster R-CNN detector weights.
-- `metadata.json` — model versions, detector class/source/training-manifest fingerprints, and per-model evaluation flags.
-- `data-gate-report.json` — dataset size, source/class coverage, leakage and SHA-256 gate.
-- `snn-evaluation.json` / `detector-evaluation.json` — held-out evaluation reports.
-- `validation-evidence.json` — evidence binding datasets, reports, metadata and exact weight hashes.
+- `metadata.json` — model versions, detector class/source/training-manifest fingerprints, detector artifact SHA-256/readiness state, and SNN validation metadata.
+- `data-gate-report.json` — retained SNN/data-development gate evidence where applicable.
+- `snn-evaluation.json` — SNN held-out evaluation report.
+- `validation-evidence.json` — retained SNN scientific-validation evidence.
+- `detector-evaluation.json` — optional internal detector diagnostic output when `evaluate_detector.py` is used during development/debugging.
 
-Training always leaves validation false. Evaluation may set the per-model flags only when the built-in policy floors are not weakened and the exact held-out file matches the passing data gate. Global `validated` becomes true only when both model flags are true.
+## Detector artifact scope
 
-Even then, live service startup does **not** trust the flags alone. The V28+ guard re-checks the passing data gate, policy floors, evaluation eligibility, report/dataset fingerprints, evidence schema and exact `.pt` SHA-256. V29 also binds detector class order, training sources and the exact training-manifest SHA-256 to the data gate before exposing `validated: true`.
+`detector.pt` is retained as a functional project artifact. Runtime startup checks that the file exists, is non-empty, matches `detectorSha256` when that fingerprint is declared, has usable detector-class metadata, and can be loaded as TorchScript. Runtime inference still applies the detector confidence threshold and preserves error/fallback behavior.
 
-V29 can train a dynamic detector head from:
+The supported detector workflow includes BDD100K classes `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, and `barrier`, with optional RDD2022 `road damage` and `pothole` classes when those sources are trained.
 
-- BDD100K: `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, `barrier`.
-- RDD2022: `road damage`, `pothole`.
+The object-detection module is a functional perception component. Independent cross-dataset detector scientific validation is outside the current project scope and may be considered future work. No independently validated, safety-certified, cross-dataset validated or externally validated detector claim is made.
 
-COCO-overlap classes may receive pretrained head rows. Road-specific classes such as `road damage` and `pothole` start fresh and require real RDD2022 training. Supporting those classes in code does not mean a validated pothole model is already bundled.
+## SNN scientific validation
 
-Without a complete evidence chain the service explicitly reports research/development fallback or unvalidated trained mode and does not present the output as validated safety AI.
+SNN/risk scientific validation remains unchanged. Live validated SNN inference still requires the existing held-out evidence, class-aware policy, exact dataset/report/weight bindings, and the immutable research-only protections for failed final candidates. The consumed 2025 SNN holdout evidence remains untouched.
