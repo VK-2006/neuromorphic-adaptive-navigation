@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "releaseCommit": "4fd3512af5a63899f3ea677ee5d3d89faf7d3ee8",
+  "recordedAt": null,
+  "evidenceQuality": "legacy-local-log-import",
+  "fieldSurface": {
+    "paths": [
+      "backend/src/config/env.js",
+      "backend/src/controllers/liveController.js",
+      "backend/src/sockets/index.js",
+      "backend/src/services/emailService.js",
+      "frontend/assets/js/camera-share.js",
+      "frontend/assets/js/devices.js",
+      "frontend/assets/js/journey.js",
+      "frontend/public/camera-share.html",
+      "frontend/public/devices.html",
+      "frontend/public/journey.html"
+    ],
+    "sha256": "5580974ca2728baebcbe001873de3fbb86d1523f9a6b0293537b71078fe6c1ad"
+  },
+  "source": {
+    "runner": "NAVORA_V10_3_SAFE_RELEASE_GATE.bat",
+    "resultLog": "logs\\V10_3_EXTERNAL_GATE_RESULT.txt",
+    "runLog": "logs\\V10_3_LAST_RUN.txt",
+    "issueUrl": null,
+    "note": "Imported from the operator-recorded V10.3 local result. The ignored local logs recorded gate outcomes, but did not preserve device/browser metadata in GitHub. No credentials, OTP values, mailbox content, precise GPS traces, or device identifiers are committed."
+  },
+  "gates": {
+    "realOtpMailbox": {
+      "status": "PASS",
+      "note": "The V10.3 operator result recorded delivery of a new real OTP email."
+    },
+    "physicalGpsCameraBluetoothWebrtc": {
+      "status": "PASS",
+      "note": "The V10.3 operator result recorded physical GPS, camera, Bluetooth, and WebRTC as passing; device/browser metadata was not retained."
+    },
+    "turnCrossNetworkRelay": {
+      "status": "PASS",
+      "note": "The V10.3 operator result recorded a real cross-network TURN relay pass; TURN credentials remain secret and are not committed."
+    },
+    "googleRealLogin": {
+      "status": "PENDING",
+      "note": "A real Google browser consent/login run has not yet been recorded."
+    },
+    "heldOutValidatedDetectorAndSnn": {
+      "status": "PENDING",
+      "note": "Scientific model validation is independent of the field profile and remains explicitly unclaimed."
+    }
+  },
+  "profiles": {
+    "field": "PASS",
+    "allExternal": "BLOCKED"
+  }
+}
