@@ -1,6 +1,9 @@
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.split_detection_manifest import class_instances, source_images, split_rows
 
 
 def read(path):
@@ -10,6 +13,59 @@ def read(path):
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def synthetic_rows():
+    rows = []
+    for i in range(30):
+        rows.append({
+            'image': f'/synthetic/bdd-{i:03d}.jpg',
+            'source': 'BDD100K',
+            'boxes': [
+                {'class': 'person', 'box': [1, 1, 20, 30]},
+                {'class': 'car', 'box': [25, 5, 60, 35]},
+            ],
+        })
+    for i in range(30):
+        rows.append({
+            'image': f'/synthetic/rdd-{i:03d}.jpg',
+            'source': 'RDD2022',
+            'boxes': [
+                {'class': 'road damage', 'box': [2, 2, 30, 20]},
+                {'class': 'pothole', 'box': [35, 10, 55, 28]},
+            ],
+        })
+    return rows
+
+
+def exercise_splitter():
+    rows = synthetic_rows()
+    train_a, eval_a = split_rows(rows, 0.20, 'navora-v29-contract', 5)
+    train_b, eval_b = split_rows(rows, 0.20, 'navora-v29-contract', 5)
+
+    signature = lambda items: sorted((row['source'], row['image']) for row in items)
+    require(signature(train_a) == signature(train_b), 'splitter train result is not deterministic')
+    require(signature(eval_a) == signature(eval_b), 'splitter eval result is not deterministic')
+    require(not ({row['image'] for row in train_a} & {row['image'] for row in eval_a}), 'splitter leaked an image across train/eval')
+
+    train_sources = source_images(train_a)
+    eval_sources = source_images(eval_a)
+    for source in ['BDD100K', 'RDD2022']:
+        require(train_sources[source] > 0, f'{source} disappeared from training split')
+        require(eval_sources[source] > 0, f'{source} disappeared from held-out split')
+
+    train_classes = class_instances(train_a)
+    eval_classes = class_instances(eval_a)
+    for class_name in ['person', 'car', 'road damage', 'pothole']:
+        require(train_classes[class_name] > 0, f'{class_name} disappeared from training split')
+        require(eval_classes[class_name] >= 5, f'{class_name} held-out coverage below policy')
+
+    try:
+        split_rows(rows, 0.20, 'navora-v29-contract', 4)
+    except ValueError as exc:
+        require('below policy floor' in str(exc), 'weak split threshold rejected for wrong reason')
+    else:
+        raise AssertionError('splitter accepted a held-out class threshold below policy floor')
 
 
 def main():
@@ -67,6 +123,7 @@ def main():
     require('detector metadata training manifest fingerprint does not match V29 data gate' in evidence, 'evidence training-manifest binding missing')
     require("'detectorContract'" in evidence, 'evidence must record V29 detector contract')
 
+    exercise_splitter()
     print('V29 RDD DETECTOR TRAINING CONTRACTS PASS')
 
 
