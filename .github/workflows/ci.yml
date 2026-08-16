@@ -46,6 +46,7 @@ jobs:
           python tests/verifier_context_contracts.py
           python tests/v17_9_guarded_repair_contracts.py
           python tests/v18_fullstack_media_backend_contracts.py
+          python tests/v19_sidebar_light_theme_contracts.py
           node tests/pure-smoke.js
           node tests/performance_smoke.js
       - name: Install backend
