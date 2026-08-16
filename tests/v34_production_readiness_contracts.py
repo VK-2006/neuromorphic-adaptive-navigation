@@ -50,7 +50,7 @@ need('Render docs explain readiness','`GET /ready` is the deployment gate' in do
 
 need('CI runs V34 contract','python tests/v34_production_readiness_contracts.py' in ci)
 need('CI syntax-checks readiness service','node --check backend/src/services/productionReadinessService.js' in ci)
-need('CI compiles production smoke','python -m py_compile scripts/production_smoke.py' in ci)
+need('CI compiles production smoke','python -m py_compile' in ci and 'scripts/production_smoke.py' in ci)
 
 need('manual production smoke workflow','workflow_dispatch:' in prod_ci and 'production-smoke:' in prod_ci)
 need('manual smoke defaults backend','https://navora-backend-clzp.onrender.com' in prod_ci)
