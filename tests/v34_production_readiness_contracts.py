@@ -39,7 +39,8 @@ for token in [
 need('production template no real secrets','mongodb+srv://' not in env and 'sk-' not in env)
 need('google secret documented as unused','not require a client secret' in env)
 
-need('smoke checks backend readiness','backend+"/ready"' in smoke)
+# Semantic V34 smoke contracts: intentionally whitespace/formatter independent.
+need('smoke checks backend readiness','"/ready"' in smoke and 'Backend deployment readiness' in smoke)
 need('smoke checks exact backend release','Exact backend Render commit' in smoke)
 need('smoke checks exact AI release','Exact AI Render commit' in smoke)
 need('smoke checks V33 inference gate','V33 validated-only inference policy' in smoke)
