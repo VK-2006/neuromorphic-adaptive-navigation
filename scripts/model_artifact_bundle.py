@@ -6,11 +6,11 @@ from datetime import datetime,timezone
 ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'ai-service'/'trained_models'
 OUT=ROOT/'model-artifacts'
-FILES=[
+REQUIRED_FILES=[
     'detector.pt','risk_snn.pt','metadata.json',
-    'data-gate-report.json','detector-evaluation.json','snn-evaluation.json',
-    'validation-evidence.json'
+    'data-gate-report.json','snn-evaluation.json','validation-evidence.json'
 ]
+OPTIONAL_FILES=['detector-evaluation.json']
 
 def sha(path):
     h=hashlib.sha256()
@@ -24,10 +24,10 @@ def main():
     if rc!=0:
         return rc
     meta=MODEL/'metadata.json'
-    if not meta.exists() or json.loads(meta.read_text(encoding='utf-8')).get('validated') is not True:
-        print('MODEL BUNDLE BLOCKED: models are not independently validated yet.')
+    if not meta.exists() or json.loads(meta.read_text(encoding='utf-8')).get('riskValidated') is not True:
+        print('MODEL BUNDLE BLOCKED: SNN risk model is not scientifically validated yet.')
         return 2
-    missing=[name for name in FILES if not (MODEL/name).exists()]
+    missing=[name for name in REQUIRED_FILES if not (MODEL/name).exists()]
     if missing:
         print('MODEL BUNDLE BLOCKED: missing',missing)
         return 2
@@ -35,15 +35,23 @@ def main():
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     dest=OUT/f'navora-model-bundle-{stamp}.zip'
     sums=[]
+    files=REQUIRED_FILES+[name for name in OPTIONAL_FILES if (MODEL/name).exists()]
     with zipfile.ZipFile(dest,'w',compression=zipfile.ZIP_DEFLATED) as z:
-        for name in FILES:
+        for name in files:
             p=MODEL/name
             z.write(p,arcname=name)
             sums.append(f'{sha(p)}  {name}')
         z.writestr('SHA256SUMS.txt','\n'.join(sums)+'\n')
+        z.writestr(
+            'DETECTOR_SCOPE.txt',
+            'Detector functionality is retained as a functional perception component.\n'
+            'Independent cross-dataset detector scientific validation is outside current NAVORA scope.\n'
+            'SNN scientific-validation evidence remains separately governed.\n'
+        )
     print('MODEL_BUNDLE_PASS')
     print('bundle:',dest)
     print('bundleSha256:',sha(dest))
+    print('detector-evaluation.json included only when present as optional development diagnostics')
     print('IMPORTANT: do not commit this model ZIP to Git.')
     return 0
 
