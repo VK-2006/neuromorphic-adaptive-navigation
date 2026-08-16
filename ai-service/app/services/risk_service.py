@@ -54,9 +54,9 @@ class RiskEngine:
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
                 candidate.eval()
-                if bool(validation.get('passed')):
+                self.validated=bool(validation.get('passed'))
+                if self.validated:
                     self.model=candidate
-                    self.validated=True
                     self.mode='snn-trained-weights-validated'
                 else:
                     # Never expose unvalidated trained weights through the normal prediction API.
