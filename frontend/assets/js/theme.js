@@ -1,12 +1,13 @@
 (function(){
   'use strict';
   const root=document.documentElement,key='navora-theme',order=['system','light','dark'],label={system:'◐ System',light:'☀ Light',dark:'◒ Dark'};
-  if(!document.querySelector('link[data-navora-media-v18]')){
-    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/media-frames-v18.css';link.dataset.navoraMediaV18='true';document.head.appendChild(link);
-  }
-  if(!document.querySelector('link[data-navora-fixed-sidebar-v21]')){
-    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/fixed-sidebar-v21.css';link.dataset.navoraFixedSidebarV21='true';document.head.appendChild(link);
-  }
+  const loadStyle=(href,marker)=>{
+    if(document.querySelector(`link[data-${marker}]`))return;
+    const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.dataset[marker.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='true';document.head.appendChild(link);
+  };
+  loadStyle('/assets/css/media-frames-v18.css','navora-media-v18');
+  loadStyle('/assets/css/fixed-sidebar-v21.css','navora-fixed-sidebar-v21');
+  loadStyle('/assets/css/ui-layout-v23.css','navora-ui-layout-v23');
   const normalize=value=>order.includes(value)?value:'system';
   const media=()=>typeof window.matchMedia==='function'?window.matchMedia('(prefers-color-scheme: dark)'):null;
   function render(value){document.querySelectorAll('[data-theme-toggle]').forEach(button=>{button.textContent=label[value];button.setAttribute('aria-label',`Theme is ${value}. Activate to change theme.`);button.setAttribute('title',`Theme: ${value}`)})}
@@ -21,11 +22,7 @@
   document.addEventListener('DOMContentLoaded',()=>render(window.NavoraTheme.get()),{once:true});
   document.addEventListener('click',event=>{const button=event.target.closest?.('[data-theme-toggle]');if(!button)return;const current=window.NavoraTheme.get();apply(order[(order.indexOf(current)+1)%order.length])});
   media()?.addEventListener?.('change',()=>{if(window.NavoraTheme.get()==='system')apply('system')});
-
-  // V9 functional enhancement layer is a module and is evaluated only once even if
-  // a page also includes it explicitly before a critical workflow module.
   if(!document.querySelector('script[data-navora-v9]')){
-    const s=document.createElement('script');s.type='module';s.src='/assets/js/v9-functional.js';s.dataset.navoraV9='true';
-    document.head.appendChild(s);
+    const s=document.createElement('script');s.type='module';s.src='/assets/js/v9-functional.js';s.dataset.navoraV9='true';document.head.appendChild(s);
   }
 })();
