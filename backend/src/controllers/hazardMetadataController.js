@@ -48,6 +48,12 @@ exports.analyze = async (req, res) => {
     if (!journey) {
       return res.status(403).json({ success: false, message: 'Journey unavailable for this user' });
     }
+    if (journey.status !== 'ACTIVE') {
+      return res.status(409).json({
+        success: false,
+        message: 'Journey-linked perception requires an active journey',
+      });
+    }
   }
 
   const detections = (Array.isArray(req.body.detections) ? req.body.detections : [])

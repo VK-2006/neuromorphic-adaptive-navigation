@@ -25,16 +25,34 @@ function response(){
   };
 }
 
-function journey(mode='SIMULATION'){
+function journey(mode='SIMULATION',status='ACTIVE'){
   return {
     _id:'journey-1',
     mode,
+    status,
     averageRisk:0,
     riskSamples:0,
     maximumRisk:0,
     hazardCount:0,
     decisionEvents:[],
     save:jest.fn().mockResolvedValue(undefined)
+  };
+}
+
+function request(){
+  return {
+    user:{_id:'user-1'},
+    body:{
+      journeyId:'507f1f77bcf86cd799439011',
+      location:{lat:17.385,lng:78.4867,speed:4},
+      detections:[{
+        objectClass:'road debris',confidence:.9,
+        estimatedDistance:4,objectPersistence:.8,
+        boundingBox:[.1,.2,.3,.2]
+      }],
+      context:{source:'browser-local-coco-ssd'}
+    },
+    app:{get:()=>({to:()=>({emit:jest.fn()})})}
   };
 }
 
@@ -72,20 +90,7 @@ describe('browser-local hazard metadata persistence guard',()=>{
       $locals:{wasCreated:true}
     });
 
-    const req={
-      user:{_id:'user-1'},
-      body:{
-        journeyId:'507f1f77bcf86cd799439011',
-        location:{lat:17.385,lng:78.4867,speed:4},
-        detections:[{
-          objectClass:'road debris',confidence:.9,
-          estimatedDistance:4,objectPersistence:.8,
-          boundingBox:[.1,.2,.3,.2]
-        }],
-        context:{source:'browser-local-coco-ssd'}
-      },
-      app:{get:()=>({to:()=>({emit:jest.fn()})})}
-    };
+    const req=request();
     const res=response();
     await controller.analyze(req,res);
 
@@ -100,16 +105,8 @@ describe('browser-local hazard metadata persistence guard',()=>{
     const j=journey('LIVE');
     Journey.findOne.mockResolvedValue(j);
 
-    const req={
-      user:{_id:'user-1'},
-      body:{
-        journeyId:'507f1f77bcf86cd799439011',
-        location:{lat:17.385,lng:78.4867,speed:4},
-        detections:[{objectClass:'car',confidence:.9,estimatedDistance:4}],
-        context:{source:'browser-local-coco-ssd'}
-      },
-      app:{get:()=>({to:()=>({emit:jest.fn()})})}
-    };
+    const req=request();
+    req.body.detections=[{objectClass:'car',confidence:.9,estimatedDistance:4}];
     const res=response();
     await controller.analyze(req,res);
 
@@ -118,4 +115,22 @@ describe('browser-local hazard metadata persistence guard',()=>{
     expect(res.body.data.safetyEligible).toBe(false);
     expect(res.body.data.canAffectLive).toBe(false);
   });
+
+  test.each(['PLANNED','PAUSED','COMPLETED','CANCELLED'])(
+    'journey-linked metadata rejects %s journey before AI or DB mutation',
+    async(status)=>{
+      const j=journey('SIMULATION',status);
+      Journey.findOne.mockResolvedValue(j);
+      const res=response();
+
+      await controller.analyze(request(),res);
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.message).toMatch(/active journey/i);
+      expect(ai.predictRisk).not.toHaveBeenCalled();
+      expect(Hazard.countDocuments).not.toHaveBeenCalled();
+      expect(hazards.dedupeAndUpsert).not.toHaveBeenCalled();
+      expect(j.save).not.toHaveBeenCalled();
+    }
+  );
 });
