@@ -18,12 +18,17 @@ DETECTOR_EVAL_MINIMUMS = {
     'minPrecision': 0.65,
     'minRecall': 0.60,
     'minF1': 0.62,
+    'minPerClassPrecision': 0.35,
+    'minPerClassRecall': 0.40,
+    'minPerClassF1': 0.40,
 }
 
 SNN_EVAL_MINIMUMS = {
     'minSamples': 200,
     'minAccuracy': 0.75,
     'minMacroF1': 0.70,
+    'minPerClassF1': 0.55,
+    'minHighRiskRecall': 0.65,
 }
 
 
@@ -82,14 +87,36 @@ def _file_hash_matches(path: Path, expected: object, issues: list[str], label: s
         issues.append(f'{label} SHA-256 does not match validation evidence')
 
 
+def _validate_class_policy(kind: str, evaluation: dict, gate_detector: dict, issues: list[str]) -> None:
+    if evaluation.get('classPolicyPassed') is not True:
+        issues.append(f'{kind} per-class validation policy did not pass')
+    per_class = evaluation.get('perClass')
+    if not isinstance(per_class, dict) or not per_class:
+        issues.append(f'{kind} per-class metrics are missing')
+        return
+    if kind == 'detector':
+        trained = gate_detector.get('trainClasses')
+        if not isinstance(trained, list) or not trained:
+            issues.append('detector trained-class contract is missing from data gate')
+            return
+        missing = [name for name in trained if name not in per_class]
+        if missing:
+            issues.append(f'detector evaluation is missing trained classes: {", ".join(missing)}')
+    else:
+        missing = [name for name in ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] if name not in per_class]
+        if missing:
+            issues.append(f'SNN evaluation is missing risk classes: {", ".join(missing)}')
+
+
 def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) -> dict:
     """Return the conservative live-safety validation status for one model.
 
     A metadata boolean alone is never sufficient. Live validation requires the overall
-    two-model gate, non-weakened policy floors, passing held-out reports, V28+ evidence,
-    exact report/dataset fingerprints, and the SHA-256 of the weight file being loaded.
-    Detector validation additionally binds the dynamic class order, training sources and
-    exact training-manifest fingerprint to the source-aware V29 data-gate report.
+    two-model gate, non-weakened policy floors, passing held-out reports, V30 evidence,
+    exact report/dataset fingerprints, per-class quality gates, and the SHA-256 of the
+    weight file being loaded. Detector validation additionally binds the dynamic class
+    order, training sources and exact training-manifest fingerprint to the source-aware
+    V29+ data-gate report.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
@@ -109,9 +136,9 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     weight_key = 'detectorSha256' if kind == 'detector' else 'riskSnnSha256'
     eval_minimums = DETECTOR_EVAL_MINIMUMS if kind == 'detector' else SNN_EVAL_MINIMUMS
     metric_keys = (
-        ['images', 'precision', 'recall', 'f1', 'macroF1', 'passed', 'validationEligible']
+        ['images', 'precision', 'recall', 'f1', 'macroF1', 'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
         if kind == 'detector'
-        else ['samples', 'accuracy', 'macroF1', 'balancedAccuracy', 'negativeLogLikelihood', 'passed', 'validationEligible']
+        else ['samples', 'accuracy', 'macroF1', 'balancedAccuracy', 'negativeLogLikelihood', 'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
     )
 
     metadata = _load_json(metadata_path, issues, 'model metadata')
@@ -126,7 +153,7 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     if gate.get('passed') is not True:
         issues.append('data-gate report did not pass')
     if gate.get('policyCompliant') is not True:
-        issues.append('data-gate report is not V28 policy-compliant')
+        issues.append('data-gate report is not policy-compliant')
     if gate_detector.get('trainEvalImageOverlap') != 0:
         issues.append('detector train/eval overlap is not zero')
     if gate_snn.get('trainEvalRowOverlap') != 0:
@@ -149,10 +176,11 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     if evaluation.get('passed') is not True:
         issues.append(f'{kind} held-out evaluation did not pass')
     if evaluation.get('policyCompliant') is not True:
-        issues.append(f'{kind} evaluation is not V28 policy-compliant')
+        issues.append(f'{kind} evaluation is not policy-compliant')
     if evaluation.get('dataGateBound') is not True or evaluation.get('validationEligible') is not True:
         issues.append(f'{kind} evaluation is not bound to the passing data gate')
     _thresholds_at_least(evaluation.get('thresholds', {}), eval_minimums, issues, f'{kind} evaluation')
+    _validate_class_policy(kind, evaluation, gate_detector, issues)
 
     if kind == 'detector' and evaluation.get('manifestSha256') != gate_detector.get('evalSha256'):
         issues.append('detector evaluation dataset fingerprint does not match the data gate')
@@ -160,8 +188,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         issues.append('SNN evaluation dataset fingerprint does not match the data gate')
 
     evidence = _load_json(evidence_path, issues, 'validation evidence')
-    if evidence.get('schemaVersion') != 2:
-        issues.append('validation evidence is not V28 schema version 2')
+    if evidence.get('schemaVersion') != 3:
+        issues.append('validation evidence is not V30 schema version 3')
     if evidence.get('passed') is not True:
         issues.append('validation evidence did not pass')
 

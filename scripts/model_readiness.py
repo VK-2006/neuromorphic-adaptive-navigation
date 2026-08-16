@@ -32,15 +32,15 @@ if validated:
     if not risk_status['passed']:
         problems.extend(f'SNN: {x}' for x in risk_status['reasons'])
     if problems:
-        print('MODEL_READINESS FAIL: validated=true is not backed by V28 live validation evidence.')
+        print('MODEL_READINESS FAIL: validated=true is not backed by V30 live validation evidence.')
         for problem in dict.fromkeys(problems):
             print('-',problem)
         sys.exit(1)
-    print('MODEL_READINESS PASS: both validated models are present and bound to V28 passing evidence, exact reports, datasets, and weight hashes.')
+    print('MODEL_READINESS PASS: both validated models are present and bound to V30 passing evidence, per-class policy, exact reports, datasets, and weight hashes.')
 else:
     print('MODEL_READINESS PASS: research/development state is truthful; validated safety AI is NOT claimed.')
     print(f'- detector weights present: {detector_ready}')
     print(f'- SNN weights present: {snn_ready}')
     print(f"- detector independently evaluated flag: {bool(meta.get('detectorValidated',False))}")
     print(f"- SNN independently evaluated flag: {bool(meta.get('riskValidated',False))}")
-    print('- Live validated mode remains disabled until both held-out evaluations, data binding, and V28 validation evidence pass.')
+    print('- Live validated mode remains disabled until both held-out evaluations, per-class gates, data binding, and V30 validation evidence pass.')

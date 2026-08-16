@@ -46,6 +46,8 @@ def main():
     if not thresholds_meet(gate.get('thresholds',{}),DATA_GATE_MINIMUMS): problems.append('data-gate thresholds are below validation policy floors')
     if det.get('passed') is not True: problems.append('detector held-out evaluation did not pass')
     if snn.get('passed') is not True: problems.append('SNN held-out evaluation did not pass')
+    if det.get('classPolicyPassed') is not True: problems.append('detector per-class validation policy did not pass')
+    if snn.get('classPolicyPassed') is not True: problems.append('SNN per-class validation policy did not pass')
     if not thresholds_meet(det.get('thresholds',{}),DETECTOR_EVAL_MINIMUMS): problems.append('detector evaluation thresholds are below validation policy floors')
     if not thresholds_meet(snn.get('thresholds',{}),SNN_EVAL_MINIMUMS): problems.append('SNN evaluation thresholds are below validation policy floors')
     if det.get('validationEligible') is not True: problems.append('detector evaluation was not validation-eligible')
@@ -57,6 +59,13 @@ def main():
     gate_classes=gate_detector.get('trainClasses')
     if not isinstance(gate_classes,list) or meta.get('detectorClasses')!=gate_classes:
         problems.append('detector metadata class order does not match V29 data gate')
+    det_per=det.get('perClass')
+    if not isinstance(det_per,dict) or any(cls not in det_per for cls in (gate_classes or [])):
+        problems.append('detector per-class evidence is incomplete for trained classes')
+    snn_per=snn.get('perClass')
+    if not isinstance(snn_per,dict) or any(cls not in snn_per for cls in ['LOW','MEDIUM','HIGH','CRITICAL']):
+        problems.append('SNN per-class evidence is incomplete for risk classes')
+
     gate_sources=sorted((gate_detector.get('trainSources') or {}).keys())
     metadata_sources=meta.get('trainingSources')
     if not isinstance(metadata_sources,list) or sorted(metadata_sources)!=gate_sources:
@@ -86,7 +95,7 @@ def main():
         problems.append('SNN evaluation report is not bound to the exact held-out CSV')
 
     evidence={
-        'schemaVersion':2,
+        'schemaVersion':3,
         'passed':not problems,
         'createdAt':datetime.now(timezone.utc).isoformat(),
         'weights':{
@@ -106,8 +115,8 @@ def main():
             'metadataSha256':sha(meta_path),
         },
         'metrics':{
-            'detector':{k:det.get(k) for k in ['images','precision','recall','f1','macroF1','passed','validationEligible']},
-            'snn':{k:snn.get(k) for k in ['samples','accuracy','macroF1','balancedAccuracy','negativeLogLikelihood','passed','validationEligible']}
+            'detector':{k:det.get(k) for k in ['images','precision','recall','f1','macroF1','classPolicyPassed','perClass','passed','validationEligible']},
+            'snn':{k:snn.get(k) for k in ['samples','accuracy','macroF1','balancedAccuracy','negativeLogLikelihood','classPolicyPassed','perClass','passed','validationEligible']}
         },
         'policy':{
             'dataGateMinimums':DATA_GATE_MINIMUMS,
