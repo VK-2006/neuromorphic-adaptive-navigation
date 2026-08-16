@@ -1,12 +1,14 @@
 {
-  "detectorModelVersion": "bdd100k-rdd2022-detector-v1",
+  "detectorModelVersion": "bdd100k-fasterrcnn-resnet50-fpn-v4",
   "riskModelVersion": "risk-snn-v1",
-  "detectorClasses": ["person", "bicycle", "motorcycle", "car", "bus", "truck", "animal", "barrier", "traffic cone", "construction", "stopped vehicle", "road blockage", "pothole", "road damage"],
+  "detectorClasses": ["person", "bicycle", "motorcycle", "car", "bus", "truck"],
   "detectorValidated": false,
   "riskValidated": false,
   "validated": false,
   "validation": {
     "detectorReport": "detector-evaluation.json",
-    "riskReport": "snn-evaluation.json"
-  }
+    "riskReport": "snn-evaluation.json",
+    "evidenceSchema": 2
+  },
+  "note": "Per-model flags are not sufficient for live validation. V28 also requires passing data/evaluation policy, evidence/report hashes, dataset fingerprints and exact weight SHA-256 bindings."
 }

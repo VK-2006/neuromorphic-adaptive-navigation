@@ -1,6 +1,7 @@
 import cv2, numpy as np, json
 from ..config import settings
 from ..models.snn import RiskSNN,SNN_AVAILABLE
+from ..model_validation import model_validation_status
 try:
     import torch
 except Exception:
@@ -36,14 +37,15 @@ class RiskEngine:
         self.validated=False
         self.model=None
         self.load_error=None
-        validation_claim=False
+        self.validation_issues=[]
         if settings.metadata_path.exists():
             try:
                 m=json.loads(settings.metadata_path.read_text())
                 self.version=m.get('riskModelVersion',self.version)
-                validation_claim=bool(m.get('riskValidated',m.get('validated',False)))
             except Exception:
                 pass
+        validation=model_validation_status('risk',settings.snn_weights,settings.metadata_path)
+        self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
                 self.model=RiskSNN()
@@ -51,7 +53,7 @@ class RiskEngine:
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
                 self.model.eval()
-                self.validated=validation_claim
+                self.validated=bool(validation.get('passed'))
                 self.mode='snn-trained-weights' if self.validated else 'snn-trained-weights-unvalidated'
             except Exception as e:
                 self.model=None
@@ -125,6 +127,7 @@ class RiskEngine:
                 self.model=None
                 self.validated=False
                 self.mode='development/heuristic-fallback-runtime'
+                self.validation_issues=list(dict.fromkeys(self.validation_issues+['SNN runtime inference failed']))
                 score,level,confidence,explanation=self.heuristic(f)
         return {
             'score':score,'level':level,'confidence':confidence,
