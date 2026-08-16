@@ -36,7 +36,7 @@ for token in [
 ]:
     need(f'production-env:{token}',token in env)
 need('production template no real secrets','mongodb+srv://' not in env and 'sk-' not in env)
-need('google secret documented as unused','does not require a client secret' in env)
+need('google secret documented as unused','not require a client secret' in env)
 
 need('smoke checks backend readiness','backend+"/ready"' in smoke)
 need('smoke checks exact backend release','Exact backend Render commit' in smoke)
