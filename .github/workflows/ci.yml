@@ -63,6 +63,7 @@ jobs:
           python tests/v33_validated_ai_inference_contracts.py
           python tests/v34_production_readiness_contracts.py
           python tests/v35_production_release_watch_contracts.py
+          python tests/v37_completion_gate_contracts.py
           python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py ai-service/app/services/risk_service.py ai-service/app/services/detection_service.py ai-service/app/api/routes.py scripts/train_snn.py scripts/evaluate_snn.py scripts/production_smoke.py scripts/wait_for_render_release.py
           node --check backend/src/app.js
           node --check backend/src/services/productionReadinessService.js

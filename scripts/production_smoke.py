@@ -80,7 +80,9 @@ def main():
 
     def integration(name, passed, detail="not configured"):
         if passed:
-            ok(name, detail if detail and detail != "not configured" else "")
+            # Callers provide `detail` as the failure diagnosis. Never print a
+            # missing-credential/error message beside a PASS result.
+            ok(name)
         elif args.require_integrations:
             fail(name, detail)
         else:

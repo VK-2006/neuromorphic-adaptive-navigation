@@ -10,6 +10,7 @@ def health():
         'status':'ok',
         'service':'navora-ai',
         'commit':os.getenv('RENDER_GIT_COMMIT'),
+        'releasePolicy':'exact-sha-v37',
         'port':os.getenv('PORT') or os.getenv('AI_PORT') or '8000'
     }
 
