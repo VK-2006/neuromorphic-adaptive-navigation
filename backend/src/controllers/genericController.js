@@ -116,7 +116,9 @@ exports.memorySummary=async(req,res)=>{
 
 exports.notifications=async(req,res)=>ok(res,await Notification.find({userId:req.user._id}).sort({createdAt:-1}).limit(100));
 exports.readNotification=async(req,res)=>{
-  const n=await Notification.findOneAndUpdate({_id:req.params.id,userId:req.user._id},{$set:{readAt:new Date()}},{new:true});ok(res,n);
+  const n=await Notification.findOneAndUpdate({_id:req.params.id,userId:req.user._id},{$set:{readAt:new Date()}},{new:true});
+  if(!n)return res.status(404).json({success:false,message:'Notification not found'});
+  ok(res,n);
 };
 exports.contacts=async(req,res)=>ok(res,await TrustedContact.find({userId:req.user._id}));
 exports.addContact=async(req,res)=>ok(res,await TrustedContact.create({...pick(req.body,CONTACT_FIELDS),userId:req.user._id}),'Contact added',201);
