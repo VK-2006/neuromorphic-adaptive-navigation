@@ -10,23 +10,26 @@ DEFAULT_TARGETS=['person','bicycle','motorcycle','car','bus','truck','animal','b
 class Detector:
     def __init__(self):
         self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None
+        validation_claim=False
         if settings.metadata_path.exists():
             try:
-                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.validated=bool(m.get('detectorValidated',m.get('validated',False)));self.targets=m.get('detectorClasses') or self.targets
+                m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);validation_claim=bool(m.get('detectorValidated',m.get('validated',False)));self.targets=m.get('detectorClasses') or self.targets
             except Exception:pass
         if torch is not None and settings.detector_weights.exists():
             try:
                 if torchvision is None:
                     raise RuntimeError('torchvision is unavailable; scripted Faster R-CNN ops cannot be registered')
-                self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
+                self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.validated=validation_claim;self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
             except Exception as e:
-                self.model=None
+                self.model=None;self.validated=False
                 self.load_error=f'{type(e).__name__}: {e}'
+        if self.model is None:self.validated=False
         self.hog=cv2.HOGDescriptor();self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
     def detect(self,image):
         if self.model is not None:
             try:return self._torchscript(image)
-            except Exception:self.mode='development/heuristic-fallback-runtime';self.model=None
+            except Exception as e:
+                self.load_error=f'runtime {type(e).__name__}: {e}';self.mode='development/heuristic-fallback-runtime';self.model=None;self.validated=False
         out=[];h,w=image.shape[:2]
         boxes,weights=self.hog.detectMultiScale(image,winStride=(8,8),padding=(8,8),scale=1.05)
         for (x,y,bw,bh),conf in zip(boxes,weights):out.append({'objectClass':'person','confidence':float(min(1,conf)),'boundingBox':[x/w,y/h,bw/w,bh/h],'approximateDistance':float(max(1,45*(1-bh/h))),'metadata':{'detector':'opencv-hog','validated':False}})
