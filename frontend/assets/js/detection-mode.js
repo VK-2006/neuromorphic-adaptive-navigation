@@ -48,9 +48,9 @@
     const el=document.getElementById('perception-mode-description');
     if(!el)return;
     if(mode()==='cloud'){
-      el.textContent='Enhanced Cloud mode sends selected compressed camera snapshots to Roboflow only after explicit consent. Roboflow detections are scored by Navora risk AI. This remains research-only until detector and SNN validation pass.';
+      el.textContent='Enhanced Cloud mode sends selected compressed camera snapshots to Roboflow only after explicit consent. Detector output is treated as functional perception and is scored by NAVORA risk AI; live-risk eligibility remains governed by the separate SNN gate.';
     }else{
-      el.textContent='Private Local is the default: COCO-SSD runs in this browser. Frames stay in browser and metadata only sent to Navora risk scoring.';
+      el.textContent='Private Local is the default: COCO-SSD runs in this browser. Frames stay in browser and metadata only sent to NAVORA risk scoring. Detector scientific validation is not a current project-completion requirement.';
     }
   }
   function forceDetectionOff(){
@@ -131,11 +131,13 @@
       detections:Array.isArray(data?.inference?.detections)?data.inference.detections:[],
       risk:data.risk||null,
       hazardId:data.hazardId||null,
-      detectorValidated:data.detectorValidated===true,
+      detectorValidated:false,
+      detectorFunctional:data.detectorFunctional!==false,
+      detectorScientificValidationRequired:false,
       riskValidated:data.riskValidated===true,
       safetyEligible:data.safetyEligible===true,
       canAffectLive:data.canAffectLive===true,
-      researchOnly:data.researchOnly!==false,
+      researchOnly:data.researchOnly===true,
       cloudProcessed:true,
       detectionMode:'roboflow-cloud-yolo-world',
       privacy:data.privacy||{cloudProcessed:true,provider:'Roboflow',explicitConsent:true}
