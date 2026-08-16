@@ -23,6 +23,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -63,8 +65,13 @@ jobs:
           python tests/v33_validated_ai_inference_contracts.py
           python tests/v34_production_readiness_contracts.py
           python tests/v35_production_release_watch_contracts.py
-          python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py ai-service/app/services/risk_service.py ai-service/app/services/detection_service.py ai-service/app/api/routes.py scripts/train_snn.py scripts/evaluate_snn.py scripts/production_smoke.py scripts/wait_for_render_release.py
+          python tests/v36_detector_scope_contracts.py
+          git diff --check origin/main...HEAD
+          python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py ai-service/app/services/risk_service.py ai-service/app/services/detection_service.py ai-service/app/api/routes.py scripts/train_detector.py scripts/train_snn.py scripts/evaluate_snn.py scripts/model_readiness.py scripts/model_artifact_bundle.py scripts/production_smoke.py scripts/wait_for_render_release.py
           node --check backend/src/app.js
+          node --check backend/src/controllers/liveController.js
+          node --check backend/src/controllers/hazardMetadataController.js
+          node --check backend/src/services/roboflowRiskService.js
           node --check backend/src/services/productionReadinessService.js
           node --check frontend/assets/js/api.js
           node --check frontend/assets/js/app-shell.js
