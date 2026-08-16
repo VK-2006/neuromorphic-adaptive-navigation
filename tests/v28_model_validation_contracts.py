@@ -30,35 +30,39 @@ def main():
     ]:
         compile(source,name,'exec')
 
-    require('DATA_GATE_MINIMUMS' in helper,'V28+ data-gate policy floors missing')
-    require('DETECTOR_EVAL_MINIMUMS' in helper,'V28+ detector policy floors missing')
-    require('SNN_EVAL_MINIMUMS' in helper,'V28+ SNN policy floors missing')
-    require("evidence.get('schemaVersion') != 3" in helper,'runtime must reject pre-V30 validation evidence')
-    require('trained weight SHA-256 does not match validation evidence' in helper,'runtime weight hash binding missing')
-    require('detectorEvaluationSha256' in helper and 'snnEvaluationSha256' in helper,'runtime report-hash binding missing')
-    require('metadataSha256' in helper and 'dataGateSha256' in helper,'runtime metadata/data-gate hash binding missing')
+    require('DATA_GATE_MINIMUMS' in helper,'data-gate policy floors missing')
+    require('DETECTOR_EVAL_MINIMUMS' in helper,'detector development diagnostic floors missing')
+    require('SNN_EVAL_MINIMUMS' in helper,'SNN scientific policy floors missing')
+    require("evidence.get('schemaVersion') != 3" in helper,'SNN runtime must reject pre-V30 evidence')
+    require('trained weight SHA-256 does not match validation evidence' in helper,'SNN runtime weight hash binding missing')
+    require('snnEvaluationSha256' in helper,'SNN runtime report-hash binding missing')
+    require('metadataSha256' in helper and 'dataGateSha256' in helper,'SNN runtime metadata/data-gate hash binding missing')
 
-    require("model_validation_status('detector'" in detector,'detector does not use validation guard')
+    require('detector_integrity_status' in detector,'detector does not use functional artifact integrity guard')
+    require("model_validation_status('detector'" not in detector,'detector runtime must not depend on scientific-validation guard')
     require("model_validation_status('risk'" in risk,'SNN does not use validation guard')
-    require("self.validated=bool(validation.get('passed'))" in detector,'detector validation is not derived from validation guard')
+    require('self.integrity_ready' in detector and 'self.trained_weights_active' in detector,'detector functional readiness state missing')
     require("self.validated=bool(validation.get('passed'))" in risk,'SNN validation is not derived from validation guard')
-    require('validationIssues' in routes,'model/info must expose validation blockers')
+    require('scientificValidationRequired' in routes and "'validated':False" in routes,'detector API truthfulness fields missing')
+    require('validationIssues' in routes,'model/info must expose SNN validation blockers')
 
-    require('DATA_GATE_MINIMUMS' in gate and 'policyCompliant' in gate,'data gate must enforce policy floors')
-    require('DETECTOR_EVAL_MINIMUMS' in det_eval and 'validationEligible' in det_eval,'detector evaluator validation policy missing')
-    require('manifestSha256' in det_eval and 'evalSha256' in det_eval,'detector held-out SHA binding missing')
+    require('DATA_GATE_MINIMUMS' in gate and 'policyCompliant' in gate,'data gate must retain policy floors')
+    require('DETECTOR_EVAL_MINIMUMS' in det_eval and 'diagnosticPassed' in det_eval,'detector internal evaluation diagnostics missing')
+    require('manifestSha256' in det_eval and 'evalSha256' in det_eval,'detector development split SHA binding missing')
     require('perClass' in det_eval and 'macroF1' in det_eval,'detector class-wise diagnostics missing')
+    require('scientificValidationInScope' in det_eval and "'validationEligible':False" in det_eval,'detector evaluator must not establish scientific validation')
     require('SNN_EVAL_MINIMUMS' in snn_eval and 'validationEligible' in snn_eval,'SNN evaluator validation policy missing')
     require('datasetSha256' in snn_eval and 'evalSha256' in snn_eval,'SNN held-out SHA binding missing')
     require('balancedAccuracy' in snn_eval and 'negativeLogLikelihood' in snn_eval,'SNN stronger diagnostics missing')
 
-    require("'schemaVersion':3" in evidence,'current validation evidence schema missing')
-    require('detector evaluation report is not bound to the exact held-out manifest' in evidence,'detector report/dataset evidence binding missing')
+    # Historical combined evidence utility remains for reproducibility; SNN runtime now
+    # consumes only SNN-specific bindings and does not require detector evidence hashes.
+    require("'schemaVersion':3" in evidence,'historical validation evidence schema missing')
     require('SNN evaluation report is not bound to the exact held-out CSV' in evidence,'SNN report/dataset evidence binding missing')
-    require('detectorEvaluationSha256' in evidence and 'metadataSha256' in evidence,'evidence report hashes missing')
-    require("model_validation_status('detector'" in readiness and "model_validation_status('risk'" in readiness,'readiness must reuse live validation guard')
+    require("model_validation_status('risk'" in readiness,'readiness must reuse SNN scientific validation guard')
+    require('detector_integrity_status' in readiness,'readiness must use detector functional integrity guard')
 
-    print('V28+ MODEL VALIDATION CONTRACTS PASS')
+    print('V28+ MODEL CONTRACTS PASS: detector functional integrity + independent SNN scientific guard')
 
 
 if __name__=='__main__':
