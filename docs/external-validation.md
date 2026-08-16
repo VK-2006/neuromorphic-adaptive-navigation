@@ -16,7 +16,7 @@ The workflow checks all of the following:
 - navigation to the authenticated dashboard is not redirected to login;
 - no page-level browser errors occur.
 
-The storage state is never committed to the repository.
+The storage state is never committed to the repository. `scripts/capture_google_storage_state.js` is provided to capture it locally after a real interactive login, and `.gitignore` blocks the generated file.
 
 ## 2. TURN relay validation
 
@@ -32,8 +32,9 @@ This proves the configured TURN service is reachable and can allocate a relay. I
 
 ## 3. Held-out detector/SNN scientific validation
 
-The repository intentionally does not redistribute BDD100K/RDD2022 or claim synthetic fixtures as scientific evidence. The workflow therefore accepts private evaluation bundles through GitHub Actions secrets:
+The repository intentionally does not redistribute BDD100K/RDD2022 or claim synthetic fixtures as scientific evidence. The workflow therefore accepts private model and evaluation bundles through GitHub Actions secrets:
 
+- `MODEL_ARTIFACT_BUNDLE_URL` — tarball containing the candidate `detector.pt`, `risk_snn.pt`, `metadata.json`, and data-gate evidence required by the existing validators;
 - `DETECTOR_EVAL_BUNDLE_URL` — tarball containing the exact held-out detector manifest and its images;
 - `SNN_EVAL_BUNDLE_URL` — tarball containing the fresh held-out normalized SNN CSV.
 
@@ -45,6 +46,8 @@ A successful run must produce:
 - SNN held-out report with `validationEligible: true`;
 - metadata with both `detectorValidated=true` and `riskValidated=true`;
 - `scripts/model_readiness.py` PASS.
+
+The generated reports are uploaded as a GitHub Actions artifact for review; they are not silently committed as validation evidence.
 
 ## Running the workflow
 
