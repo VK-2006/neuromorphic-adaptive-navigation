@@ -8,6 +8,17 @@ function json(route,status,data,message){
   return route.fulfill({status,contentType:'application/json',body:JSON.stringify({success:status<400,data,message})});
 }
 
+async function waitForLocation(page,predicate,label,timeout=15000){
+  const deadline=Date.now()+timeout;
+  let last='';
+  while(Date.now()<deadline){
+    last=page.url();
+    try{if(predicate(new URL(last)))return last}catch{}
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw new Error(`${label}: timed out at ${last}`);
+}
+
 async function scenario(browser,kind){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1280,height:800}});
   const page=await context.newPage();
@@ -27,7 +38,8 @@ async function scenario(browser,kind){
 
   await page.goto(`${BASE}/dashboard.html`,{waitUntil:'domcontentloaded',timeout:60000});
   if(kind==='service'){
-    await page.waitForURL(url=>url.pathname.endsWith('/offline.html')&&url.searchParams.get('reason')==='service',{timeout:15000});
+    await waitForLocation(page,url=>url.pathname.endsWith('/offline.html')&&url.searchParams.get('reason')==='service','503 recovery');
+    await page.waitForLoadState('domcontentloaded').catch(()=>{});
     await page.waitForFunction(()=>document.querySelector('.page-head h1')?.textContent.includes('Live services temporarily unavailable'),null,{timeout:10000});
     const state=await page.evaluate(()=>({
       returnTo:sessionStorage.getItem('navora:returnTo'),
@@ -38,7 +50,8 @@ async function scenario(browser,kind){
     assert(state.retry==='dashboard.html',`503: retry=${state.retry}`);
     assert(state.title.includes('Live services temporarily unavailable'),`503: title=${state.title}`);
   }else{
-    await page.waitForURL(url=>url.pathname.endsWith('/login.html')&&url.searchParams.get('returnTo')==='dashboard.html',{timeout:15000});
+    await waitForLocation(page,url=>url.pathname.endsWith('/login.html')&&url.searchParams.get('returnTo')==='dashboard.html','401 login');
+    await page.waitForLoadState('domcontentloaded').catch(()=>{});
     const returnTo=await page.evaluate(()=>sessionStorage.getItem('navora:returnTo'));
     assert(returnTo==='dashboard.html',`401: returnTo=${returnTo}`);
   }
