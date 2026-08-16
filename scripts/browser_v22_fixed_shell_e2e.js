@@ -1,8 +1,9 @@
 const {chromium}=require('../backend/node_modules/playwright');
 
 const BASE=(process.argv[2]||'http://127.0.0.1:5000').replace(/\/$/,'');
-const APP_PAGES=['dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','notifications.html','profile.html','settings.html'];
+const APP_PAGES=['dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html'];
 const ADMIN_PAGES=['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
+const SHELL_PAGES=new Set(['dashboard.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html',...ADMIN_PAGES]);
 const assert=(value,message)=>{if(!value)throw new Error(message)};
 const reply=(route,data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify({success:status<400,data})});
 
@@ -36,74 +37,75 @@ async function browserPage(browser,page,viewport={width:1440,height:900}){
   });
   await p.goto(`${BASE}/${page}`,{waitUntil:'domcontentloaded',timeout:60000});
   await p.waitForFunction(()=>document.body.classList.contains('navora-app')||document.body.classList.contains('navora-admin'),null,{timeout:15000});
-  await p.waitForFunction(()=>Boolean(window.NavoraScrollSurfaceV22),null,{timeout:15000});
+  if(SHELL_PAGES.has(page))await p.waitForFunction(()=>Boolean(window.NavoraScrollSurfaceV22),null,{timeout:15000});
   return{context,p,errors};
 }
 
-async function checkFixedShell(browser,page){
+async function checkNavFixed(browser,page){
+  const {context,p,errors}=await browserPage(browser,page);
+  const result=await p.evaluate(async()=>{
+    const nav=document.querySelector('body > .navora-nav');
+    const links=nav?.querySelector(':scope > .nav-links');
+    const main=document.querySelector('body > main');
+    if(!nav||!links||!main)return{missing:true};
+    const before={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
+    window.scrollTo(0,800);
+    if(main.classList.contains('map-layout')){
+      const panel=main.querySelector('.route-panel');
+      const spacer=document.createElement('div');spacer.style.height='1800px';panel?.appendChild(spacer);if(panel)panel.scrollTop=700;
+    }
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const after={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
+    return{
+      missing:false,before,after,
+      position:getComputedStyle(nav).position,
+      navLinksOverflowY:getComputedStyle(links).overflowY,
+      bodyScrollY:scrollY
+    };
+  });
+  if(errors.length)throw new Error(`${page}: page errors: ${errors.join(' | ')}`);
+  assert(!result.missing,`${page}: nav/main missing`);
+  assert(result.position==='fixed',`${page}: nav position=${result.position}`);
+  assert(Math.abs(result.before.top-result.after.top)<0.5,`${page}: nav moved vertically ${result.before.top} -> ${result.after.top}`);
+  assert(Math.abs(result.before.left-result.after.left)<0.5,`${page}: nav moved horizontally`);
+  assert(Math.abs(result.after.top)<0.5,`${page}: nav top=${result.after.top}`);
+  assert(result.bodyScrollY===0,`${page}: body/window scrolled (${result.bodyScrollY})`);
+  assert(result.navLinksOverflowY==='hidden',`${page}: normal-height Navigation Workspace overflow=${result.navLinksOverflowY}`);
+  await context.close();
+}
+
+async function checkRightPaneScroll(browser,page){
   const {context,p,errors}=await browserPage(browser,page);
   const result=await p.evaluate(async()=>{
     const nav=document.querySelector('body > .navora-nav');
     const shell=document.querySelector('body > .page-shell');
-    const links=nav?.querySelector(':scope > .nav-links');
-    if(!nav||!shell||!links)return{missing:true};
+    if(!nav||!shell)return{missing:true};
     const spacer=document.createElement('div');
-    spacer.dataset.v22E2eSpacer='true';
-    spacer.style.height='2400px';
-    spacer.style.width='1px';
-    spacer.setAttribute('aria-hidden','true');
-    shell.appendChild(spacer);
-    const before={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
+    spacer.style.height='2400px';spacer.style.width='1px';spacer.setAttribute('aria-hidden','true');shell.appendChild(spacer);
+    const before=nav.getBoundingClientRect().top;
     shell.scrollTop=900;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    const after={top:nav.getBoundingClientRect().top,left:nav.getBoundingClientRect().left};
-    const styles=getComputedStyle(nav);
-    const linkStyles=getComputedStyle(links);
     const ui=getComputedStyle(document.documentElement).getPropertyValue('--ui-scroll').trim();
     const motion=getComputedStyle(document.documentElement).getPropertyValue('--motion-scroll').trim();
-    return{
-      missing:false,
-      before,after,
-      position:styles.position,
-      navHeight:nav.getBoundingClientRect().height,
-      viewportHeight:innerHeight,
-      navLinksOverflowY:linkStyles.overflowY,
-      bodyScrollY:scrollY,
-      shellScrollTop:shell.scrollTop,
-      uiScroll:ui,
-      motionScroll:motion
-    };
+    return{missing:false,before,after:nav.getBoundingClientRect().top,bodyScrollY:scrollY,shellScrollTop:shell.scrollTop,overflow:getComputedStyle(shell).overflowY,ui,motion};
   });
   if(errors.length)throw new Error(`${page}: page errors: ${errors.join(' | ')}`);
-  assert(!result.missing,`${page}: nav/page-shell missing`);
-  assert(result.position==='fixed',`${page}: nav position=${result.position}`);
-  assert(Math.abs(result.before.top-result.after.top)<0.5,`${page}: nav moved vertically ${result.before.top} -> ${result.after.top}`);
-  assert(Math.abs(result.before.left-result.after.left)<0.5,`${page}: nav moved horizontally during page scroll`);
-  assert(Math.abs(result.after.top)<0.5,`${page}: nav top is not viewport-locked (${result.after.top})`);
-  assert(result.bodyScrollY===0,`${page}: body/window scrolled (${result.bodyScrollY})`);
-  assert(result.shellScrollTop>400,`${page}: page-shell did not own scrolling (${result.shellScrollTop})`);
-  assert(result.navLinksOverflowY==='hidden',`${page}: normal-height Navigation Workspace overflow=${result.navLinksOverflowY}`);
-  assert(result.uiScroll&&result.uiScroll!=='0%'&&result.uiScroll!=='0.000%',`${page}: premium scroll progress did not follow page-shell (${result.uiScroll})`);
-  assert(Number(result.motionScroll)>0,`${page}: obsidian motion progress did not follow page-shell (${result.motionScroll})`);
+  assert(!result.missing,`${page}: page-shell missing`);
+  assert(Math.abs(result.before-result.after)<0.5,`${page}: nav moved during right-pane scroll`);
+  assert(result.bodyScrollY===0,`${page}: body scrolled while page-shell scrolled`);
+  assert(result.shellScrollTop>400,`${page}: page-shell scrollTop=${result.shellScrollTop}`);
+  assert(result.overflow==='auto'||result.overflow==='scroll',`${page}: page-shell overflow=${result.overflow}`);
+  assert(result.ui&&result.ui!=='0%'&&result.ui!=='0.000%',`${page}: --ui-scroll did not update (${result.ui})`);
+  assert(Number(result.motion)>0,`${page}: --motion-scroll did not update (${result.motion})`);
   await context.close();
 }
 
 async function mobileDrawer(browser){
   const {context,p,errors}=await browserPage(browser,'dashboard.html',{width:390,height:844});
   const toggle=p.locator('.nav-mobile-toggle');
-  await toggle.waitFor({state:'visible',timeout:10000});
-  await toggle.click();
+  await toggle.waitFor({state:'visible',timeout:10000});await toggle.click();
   await p.waitForFunction(()=>document.body.classList.contains('nav-open'),null,{timeout:5000});
-  const state=await p.evaluate(()=>{
-    const nav=document.querySelector('body > .navora-nav');
-    const shell=document.querySelector('body > .page-shell');
-    return{
-      position:getComputedStyle(nav).position,
-      top:nav.getBoundingClientRect().top,
-      bodyScroll:scrollY,
-      shellOverflow:getComputedStyle(shell).overflowY
-    };
-  });
+  const state=await p.evaluate(()=>{const nav=document.querySelector('body > .navora-nav'),shell=document.querySelector('body > .page-shell');return{position:getComputedStyle(nav).position,top:nav.getBoundingClientRect().top,bodyScroll:scrollY,shellOverflow:getComputedStyle(shell).overflowY}});
   if(errors.length)throw new Error(`mobile dashboard: ${errors.join(' | ')}`);
   assert(state.position==='fixed','mobile drawer is not viewport-fixed');
   assert(Math.abs(state.top)<0.5,`mobile drawer top=${state.top}`);
@@ -113,21 +115,16 @@ async function mobileDrawer(browser){
 }
 
 async function main(){
-  const browser=await chromium.launch({headless:true});
-  const failures=[];
+  const browser=await chromium.launch({headless:true});const failures=[];
   for(const page of [...APP_PAGES,...ADMIN_PAGES]){
-    try{await checkFixedShell(browser,page);console.log('PASS fixed-shell',page)}
-    catch(error){failures.push(error.message);console.error('FAIL fixed-shell',page,'—',error.message)}
+    try{await checkNavFixed(browser,page);console.log('PASS fixed-nav',page)}catch(error){failures.push(error.message);console.error('FAIL fixed-nav',page,'—',error.message)}
   }
-  try{await mobileDrawer(browser);console.log('PASS mobile fixed drawer')}
-  catch(error){failures.push(error.message);console.error('FAIL mobile fixed drawer —',error.message)}
+  for(const page of SHELL_PAGES){
+    try{await checkRightPaneScroll(browser,page);console.log('PASS right-pane-scroll',page)}catch(error){failures.push(error.message);console.error('FAIL right-pane-scroll',page,'—',error.message)}
+  }
+  try{await mobileDrawer(browser);console.log('PASS mobile fixed drawer')}catch(error){failures.push(error.message);console.error('FAIL mobile fixed drawer —',error.message)}
   await browser.close();
-  if(failures.length){
-    console.error('\nNAVORA V22 FIXED-SHELL BROWSER E2E: FAIL');
-    failures.forEach(f=>console.error(' -',f));
-    process.exit(1);
-  }
+  if(failures.length){console.error('\nNAVORA V22 FIXED-SHELL BROWSER E2E: FAIL');failures.forEach(f=>console.error(' -',f));process.exit(1)}
   console.log('\nNAVORA V22 FIXED-SHELL BROWSER E2E: PASS');
 }
-
 main().catch(error=>{console.error(error);process.exit(1)});
