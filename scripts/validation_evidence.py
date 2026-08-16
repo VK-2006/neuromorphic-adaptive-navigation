@@ -38,9 +38,11 @@ def main():
         print('VALIDATION EVIDENCE: BLOCKED - missing trained weights');return 2
 
     problems=[]
+    gate_detector=gate.get('detector',{})
+    gate_snn=gate.get('snn',{})
     if gate.get('passed') is not True: problems.append('real-data gate did not pass')
-    if gate.get('detector',{}).get('trainEvalImageOverlap')!=0: problems.append('detector train/eval overlap is not zero')
-    if gate.get('snn',{}).get('trainEvalRowOverlap')!=0: problems.append('SNN train/eval overlap is not zero')
+    if gate_detector.get('trainEvalImageOverlap')!=0: problems.append('detector train/eval overlap is not zero')
+    if gate_snn.get('trainEvalRowOverlap')!=0: problems.append('SNN train/eval overlap is not zero')
     if not thresholds_meet(gate.get('thresholds',{}),DATA_GATE_MINIMUMS): problems.append('data-gate thresholds are below validation policy floors')
     if det.get('passed') is not True: problems.append('detector held-out evaluation did not pass')
     if snn.get('passed') is not True: problems.append('SNN held-out evaluation did not pass')
@@ -52,6 +54,16 @@ def main():
     if meta.get('riskValidated') is not True: problems.append('metadata riskValidated is not true')
     if meta.get('validated') is not True: problems.append('metadata validated is not true')
 
+    gate_classes=gate_detector.get('trainClasses')
+    if not isinstance(gate_classes,list) or meta.get('detectorClasses')!=gate_classes:
+        problems.append('detector metadata class order does not match V29 data gate')
+    gate_sources=sorted((gate_detector.get('trainSources') or {}).keys())
+    metadata_sources=meta.get('trainingSources')
+    if not isinstance(metadata_sources,list) or sorted(metadata_sources)!=gate_sources:
+        problems.append('detector metadata training sources do not match V29 data gate')
+    if meta.get('trainingManifestSha256')!=gate_detector.get('trainSha256'):
+        problems.append('detector metadata training manifest fingerprint does not match V29 data gate')
+
     current={
         'detectorTrainSha256':sha(a.det_train),
         'detectorEvalSha256':sha(a.det_eval),
@@ -59,10 +71,10 @@ def main():
         'snnEvalSha256':sha(a.snn_eval),
     }
     expected={
-        'detectorTrainSha256':gate.get('detector',{}).get('trainSha256'),
-        'detectorEvalSha256':gate.get('detector',{}).get('evalSha256'),
-        'snnTrainSha256':gate.get('snn',{}).get('trainSha256'),
-        'snnEvalSha256':gate.get('snn',{}).get('evalSha256'),
+        'detectorTrainSha256':gate_detector.get('trainSha256'),
+        'detectorEvalSha256':gate_detector.get('evalSha256'),
+        'snnTrainSha256':gate_snn.get('trainSha256'),
+        'snnEvalSha256':gate_snn.get('evalSha256'),
     }
     for key in current:
         if current[key]!=expected[key]:
@@ -82,6 +94,11 @@ def main():
             'riskSnnSha256':sha(risk)
         },
         'datasets':current,
+        'detectorContract':{
+            'classes':gate_classes,
+            'trainingSources':gate_sources,
+            'trainingManifestSha256':gate_detector.get('trainSha256'),
+        },
         'reports':{
             'dataGateSha256':sha(gate_path),
             'detectorEvaluationSha256':sha(det_path),
