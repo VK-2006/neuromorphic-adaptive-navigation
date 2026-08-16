@@ -1,9 +1,9 @@
-const CACHE='navora-guarded-v17-9-1';
+const CACHE='navora-fullstack-v18-0-1';
 const LEGACY_CACHE_MARKER='navora-v7-functional-product-1'; // retained only so older audit tooling recognizes the migrated lineage.
 const SHELL=["/", "/index.html", "/register.html", "/verify-email.html", "/login.html", "/forgot-password.html", "/verify-otp.html", "/reset-password.html", "/dashboard.html", "/map.html", "/journey.html", "/world-chat.html", "/devices.html", "/memory.html", "/journey-replay.html", "/history.html", "/notifications.html", "/profile.html", "/settings.html", "/camera-share.html", "/shared-journey.html", "/offline.html", "/admin.html", "/admin-users.html", "/admin-devices.html", "/admin-hazards.html", "/admin-chat.html", "/admin-health.html", "/admin-audit.html", "/manifest.json", "/assets/css/main.css",
   "/assets/css/obsidian.css",
   "/assets/css/obsidian-motion.css",
-  "/assets/css/purple-gold-border-motion.css", "/assets/css/product-repair-v10.css", "/assets/css/navora-v7.css", "/assets/css/premium-ui.css", "/assets/js/theme.js", "/assets/js/premium-ui.js", "/assets/js/api.js", "/assets/js/app-shell.js",
+  "/assets/css/purple-gold-border-motion.css", "/assets/css/product-repair-v10.css", "/assets/css/navora-v7.css", "/assets/css/premium-ui.css", "/assets/css/media-frames-v18.css", "/assets/js/theme.js", "/assets/js/premium-ui.js", "/assets/js/api.js", "/assets/js/app-shell.js",
   "/assets/js/obsidian-ui.js",
   "/assets/js/obsidian-motion.js",
   "/assets/js/purple-gold-border-motion.js", "/assets/js/product-repair-v10.js", "/assets/js/auth.js", "/assets/js/webauthn.js", "/assets/js/dashboard.js", "/assets/js/map.js", "/assets/js/journey.js", "/assets/js/local-detection-bridge.js", "/assets/js/detection-mode.js", "/assets/js/chat.js", "/assets/js/devices.js", "/assets/js/data-pages.js", "/assets/js/replay.js", "/assets/js/account.js", "/assets/js/camera-share.js", "/assets/js/shared-journey.js", "/assets/js/admin.js", "/assets/js/offline.js", "/assets/js/v9-functional.js", "/assets/js/three-scenes.js", "/assets/js/three-research.js", "/assets/js/research-telemetry.js", "/assets/icons/navora.svg", "/assets/icons/navora-192.png", "/assets/icons/navora-512.png", "/assets/css/light-theme-profile-v17.css", "/assets/js/profile-all-pages-v17.js"];
