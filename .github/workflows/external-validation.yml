@@ -14,7 +14,7 @@ on:
         type: boolean
         default: false
       run_models:
-        description: 'Run held-out detector + SNN validation against supplied real datasets'
+        description: 'Run held-out detector + SNN validation against supplied real datasets and model artifacts'
         required: true
         type: boolean
         default: false
@@ -80,6 +80,7 @@ jobs:
     if: ${{ inputs.run_models }}
     runs-on: ubuntu-latest
     env:
+      MODEL_ARTIFACT_BUNDLE_URL: ${{ secrets.MODEL_ARTIFACT_BUNDLE_URL }}
       DETECTOR_EVAL_BUNDLE_URL: ${{ secrets.DETECTOR_EVAL_BUNDLE_URL }}
       SNN_EVAL_BUNDLE_URL: ${{ secrets.SNN_EVAL_BUNDLE_URL }}
       DETECTOR_MANIFEST_PATH: ${{ inputs.detector_manifest_path }}
@@ -89,16 +90,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download private held-out evaluation bundles
+      - name: Download private model and held-out evaluation bundles
         run: |
+          test -n "$MODEL_ARTIFACT_BUNDLE_URL"
           test -n "$DETECTOR_EVAL_BUNDLE_URL"
           test -n "$SNN_EVAL_BUNDLE_URL"
-          mkdir -p /tmp/navora-detector /tmp/navora-snn
+          mkdir -p /tmp/navora-model /tmp/navora-detector /tmp/navora-snn
+          curl --fail --location --retry 3 "$MODEL_ARTIFACT_BUNDLE_URL" -o /tmp/models.tar.gz
           curl --fail --location --retry 3 "$DETECTOR_EVAL_BUNDLE_URL" -o /tmp/detector.tar.gz
           curl --fail --location --retry 3 "$SNN_EVAL_BUNDLE_URL" -o /tmp/snn.tar.gz
+          tar -xzf /tmp/models.tar.gz -C /tmp/navora-model
           tar -xzf /tmp/detector.tar.gz -C /tmp/navora-detector
           tar -xzf /tmp/snn.tar.gz -C /tmp/navora-snn
-          mkdir -p heldout
+          mkdir -p ai-service/trained_models heldout/detector heldout/snn
+          cp -a /tmp/navora-model/. ai-service/trained_models/
           cp -a /tmp/navora-detector/. heldout/detector/
           cp -a /tmp/navora-snn/. heldout/snn/
       - name: Install AI evaluation dependencies
@@ -112,3 +117,12 @@ jobs:
           python scripts/evaluate_snn.py --csv "heldout/snn/${SNN_EVAL_PATH}" --mark-validation
       - name: Re-check model readiness truthfulness
         run: python scripts/model_readiness.py
+      - name: Publish validation reports as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: navora-held-out-validation-reports
+          path: |
+            ai-service/trained_models/detector-evaluation.json
+            ai-service/trained_models/snn-evaluation.json
+            ai-service/trained_models/metadata.json
+          if-no-files-found: error
