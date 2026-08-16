@@ -7,16 +7,36 @@ exports.readiness=async(req,res)=>{
   const routingLive=!['mock','development'].includes(env.routingProvider);
   const trafficLive=env.trafficProvider==='tomtom'&&!!env.trafficApiKey;
   const aiReachable=!info?.degraded;
-  const detectorValidated=info?.detector?.validated===true;
+  const detectorFunctional=info?.detector?.functional!==false;
+  const detectorIntegrityReady=info?.detector?.integrityReady===true;
+  const detectorValidated=false; // legacy compatibility only; detector science is out of current scope.
   const riskValidated=info?.riskModel?.validated===true;
-  const aiSafetyEligible=aiReachable&&detectorValidated&&riskValidated;
+  const aiSafetyEligible=aiReachable&&riskValidated;
   const warnings=[];
   if(!routingLive)warnings.push('Live routing provider is not configured.');
   if(!trafficLive)warnings.push('Live traffic is not configured; ETA will use routing-provider duration.');
-  if(!aiReachable)warnings.push('AI service is unavailable. Camera perception will be disabled for safety decisions.');
-  else if(!aiSafetyEligible)warnings.push('AI weights are not marked validated; browser-local detections are research-only and will not trigger automatic live safety decisions.');
+  if(!aiReachable)warnings.push('AI service is unavailable. Camera-derived risk processing will be degraded.');
+  else if(!riskValidated)warnings.push('SNN weights are not marked validated; live automatic safety decisions remain restricted by the SNN gate.');
+  if(!detectorIntegrityReady)warnings.push('AI detector.pt is not active; detector fallback/browser perception may still provide functional detection metadata.');
   if(env.simulationMode)warnings.push('Server simulation capability is enabled; keep the route simulation toggle OFF for field journeys.');
-  ok(res,{fieldMode:true,routing:{provider:env.routingProvider,live:routingLive},traffic:{provider:env.trafficProvider||null,live:trafficLive},ai:{reachable:aiReachable,detectorValidated,riskValidated,safetyEligible:aiSafetyEligible,mode:info?.detector?.mode||info?.riskModel?.mode||'unavailable'},simulationCapability:env.simulationMode,requireValidatedAiForLive:env.liveRequireValidatedAi,warnings});
+  ok(res,{
+    fieldMode:true,
+    routing:{provider:env.routingProvider,live:routingLive},
+    traffic:{provider:env.trafficProvider||null,live:trafficLive},
+    ai:{
+      reachable:aiReachable,
+      detectorValidated,
+      detectorFunctional,
+      detectorIntegrityReady,
+      detectorScientificValidationRequired:false,
+      riskValidated,
+      safetyEligible:aiSafetyEligible,
+      mode:info?.detector?.mode||info?.riskModel?.mode||'unavailable'
+    },
+    simulationCapability:env.simulationMode,
+    requireValidatedAiForLive:env.liveRequireValidatedAi,
+    warnings
+  });
 };
 
 exports.webrtcConfig=async(req,res)=>{
