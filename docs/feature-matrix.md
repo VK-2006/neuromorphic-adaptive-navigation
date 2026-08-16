@@ -1,6 +1,6 @@
 # Master Feature Matrix
 
-Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIFIED** = exercised by available automated/static/runtime tests in this environment; **CREDENTIAL/ENV** = implementation exists but external credentials, packages, browser hardware or services are required for live verification.
+Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIFIED** = exercised by available automated/static/runtime tests in this environment; **FUNCTIONAL** = retained product module governed by normal runtime integrity/readiness rather than an independent scientific-validation requirement; **DATASET GATE** = scientific/model claim still requires its governed dataset evidence; **CREDENTIAL/ENV** = implementation exists but external credentials, packages, browser hardware or services are required for live verification.
 
 | Area | Status | Connected implementation |
 |---|---|---|
@@ -13,8 +13,8 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Journey lifecycle | IMPLEMENTED | Plan/start/pause/resume/reroute/complete + CRM update |
 | Camera privacy | IMPLEMENTED / VERIFIED static | Explicit Detection OFF default; no inference/hazard creation while off; no MediaRecorder storage |
 | Device connectivity | IMPLEMENTED | MediaDevices, WebRTC P2P camera, optional documented Web Bluetooth GATT control/sensor reads |
-| Object / road-damage detection | IMPLEMENTED / DATASET GATE | BDD100K/RDD2022 prep/train/evaluate path; independent detectorValidated gate; explicit OpenCV fallback |
-| SNN | IMPLEMENTED / AI tests VERIFIED fallback / DATASET GATE | snnTorch LIF, temporal encoding, spike/membrane decode, train/evaluate path, independent riskValidated gate |
+| Object / road-damage detection | IMPLEMENTED / FUNCTIONAL | BDD100K + optional RDD2022 prep/train/evaluate tooling; retained taxonomy, detector.pt runtime path, confidence thresholds, integrity/load/error handling, detection API and camera→risk metadata flow. Independent cross-dataset detector scientific validation is outside current scope. |
+| SNN | IMPLEMENTED / AI tests VERIFIED fallback / DATASET GATE | snnTorch LIF, temporal encoding, spike/membrane decode, train/evaluate path, independent `riskValidated` evidence gate and V32 research lock |
 | CRM + DTW + EMA | IMPLEMENTED / VERIFIED algorithms | Completed journeys update memory; future route scoring uses history and route similarity |
 | ACO | IMPLEMENTED / VERIFIED algorithms | Multi-ant exploration, pheromone/deposit/evaporation/iterations, route-specific utility |
 | Explainable AI | IMPLEMENTED / VERIFIED algorithms | Real SNN/hazard/traffic/DTW/EMA/history/preference/ACO metrics and reasons |
@@ -36,6 +36,6 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Socket.IO | IMPLEMENTED | Authenticated rooms, ownership checks, journey/GPS/device/hazard/SNN/route/chat/notification events |
 | Admin | IMPLEMENTED | Dashboard, users/RBAC, hazard verification, chat moderation, devices, health, audit |
 | Security | IMPLEMENTED / VERIFIED static | Helmet/CORS/rate limits/validation/RBAC/ownership, no committed real secrets, private-location rules |
-| Tests | GENERATED / VERIFIED LOCALLY | Windows Jest 9/9 suites, 25/25 tests; AI Pytest 6/6; static/algorithm/compliance suites; consolidated runtime E2E + CI included |
+| Tests | GENERATED / VERIFIED LOCALLY | Backend Jest, AI Pytest, static/algorithm/compliance suites, consolidated runtime E2E + CI included |
 | Docker | GENERATED / ENV | Compose + backend/AI Dockerfiles; Docker daemon unavailable in sandbox |
 | Render readiness | SOURCE READY | Exact PORT/start contract; pre-push audit verifies the preserved checked-in `backend/package-lock.json` matches direct dependency specs |
