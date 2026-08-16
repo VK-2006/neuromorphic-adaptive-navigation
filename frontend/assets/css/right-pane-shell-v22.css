@@ -1,0 +1,92 @@
+/* NAVORA V22 — authoritative fixed navigation workspace / right-pane-only scroll
+ * Loaded after V20/V21 so the final cascade always keeps the left workspace
+ * stationary while authenticated app/admin content owns vertical scrolling.
+ */
+
+body.navora-app,
+body.navora-admin{
+  height:100vh !important;
+  height:100svh !important;
+  min-height:100svh !important;
+  max-height:100svh !important;
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+}
+
+body.navora-app > .navora-nav,
+body.navora-admin > .navora-nav{
+  position:fixed !important;
+  top:0 !important;
+  left:0 !important;
+  height:100vh !important;
+  height:100svh !important;
+  min-height:100svh !important;
+  max-height:100svh !important;
+  overflow:hidden !important;
+  overscroll-behavior:none !important;
+}
+
+/* Normal screens: the Navigation Workspace is completely stationary. */
+body.navora-app > .navora-nav > .nav-links,
+body.navora-admin > .navora-nav > .nav-links{
+  overflow-x:hidden !important;
+  overflow-y:hidden !important;
+  overscroll-behavior:none !important;
+  scrollbar-gutter:auto !important;
+}
+
+body.navora-app > .page-shell,
+body.navora-admin > .page-shell,
+body.navora-app > main.page-shell,
+body.navora-admin > main.page-shell{
+  position:relative !important;
+  box-sizing:border-box !important;
+  height:100vh !important;
+  height:100svh !important;
+  min-height:0 !important;
+  max-height:100svh !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  overscroll-behavior-y:contain !important;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  scroll-behavior:smooth;
+}
+
+@media (min-width:821px){
+  body.navora-app > .page-shell,
+  body.navora-admin > .page-shell,
+  body.navora-app > main.page-shell,
+  body.navora-admin > main.page-shell{
+    margin-left:var(--navora-left-rail-w,var(--nav-sidebar-w,268px)) !important;
+    width:calc(100vw - var(--navora-left-rail-w,var(--nav-sidebar-w,268px))) !important;
+  }
+}
+
+@media (max-width:820px){
+  body.navora-app > .page-shell,
+  body.navora-admin > .page-shell,
+  body.navora-app > main.page-shell,
+  body.navora-admin > main.page-shell{
+    margin-left:0 !important;
+    width:100vw !important;
+  }
+}
+
+/* Only physically short screens may scroll the link well so every action stays
+ * reachable. The rail itself remains fixed to the viewport. */
+@media (max-height:760px){
+  body.navora-app > .navora-nav > .nav-links,
+  body.navora-admin > .navora-nav > .nav-links{
+    overflow-y:auto !important;
+    overscroll-behavior:contain !important;
+    scrollbar-width:thin;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  body.navora-app > .page-shell,
+  body.navora-admin > .page-shell{
+    scroll-behavior:auto;
+  }
+}
