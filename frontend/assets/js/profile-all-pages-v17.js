@@ -1,9 +1,11 @@
-/* NAVORA v19 profile shell + NAVORA v20 universal left-navbar loader */
+/* NAVORA profile shell + ordered V20/V22 navigation loaders */
 (() => {
   "use strict";
 
   const PROFILE_CLASS = "navora-profile-global-v17";
   const NAVBAR_STYLE = "/assets/css/universal-left-navbar-v20.css";
+  const RIGHT_PANE_STYLE = "/assets/css/right-pane-shell-v22.css";
+  const RIGHT_PANE_SCRIPT = "/assets/js/scroll-surface-v22.js";
   let cachedUser;
   let userResolved = false;
   let userPromise = null;
@@ -16,6 +18,23 @@
     link.href = NAVBAR_STYLE;
     link.dataset.navoraLeftNavbarV20 = "true";
     document.head.appendChild(link);
+  }
+
+  function ensureV22RightPaneShell() {
+    if (!document.querySelector('link[data-navora-right-pane-v22]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = RIGHT_PANE_STYLE;
+      link.dataset.navoraRightPaneV22 = "true";
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('script[data-navora-scroll-surface-v22]')) {
+      const script = document.createElement("script");
+      script.src = RIGHT_PANE_SCRIPT;
+      script.defer = true;
+      script.dataset.navoraScrollSurfaceV22 = "true";
+      document.head.appendChild(script);
+    }
   }
 
   const bodyMode = () => {
@@ -201,6 +220,7 @@
 
   function start() {
     ensureV20NavbarStyle();
+    ensureV22RightPaneShell();
     syncThemeColor();
     queueEnsure();
 
@@ -245,5 +265,9 @@
   window.NavoraLeftNavbar = {
     version: "20.0.0",
     ensureStyle: ensureV20NavbarStyle
+  };
+  window.NavoraRightPaneShell = {
+    version: "22.0.0",
+    ensure: ensureV22RightPaneShell
   };
 })();

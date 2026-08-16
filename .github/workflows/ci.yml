@@ -49,6 +49,8 @@ jobs:
           python tests/v19_sidebar_light_theme_contracts.py
           python tests/v20_universal_left_navbar_contracts.py
           python tests/v21_true_fixed_sidebar_contracts.py
+          python tests/v22_right_pane_scroll_contracts.py
+          node --check frontend/assets/js/scroll-surface-v22.js
           node tests/pure-smoke.js
           node tests/performance_smoke.js
       - name: Install backend
