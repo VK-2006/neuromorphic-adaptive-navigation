@@ -18,6 +18,7 @@ def main():
     splitter = read(Path('scripts/split_detection_manifest.py'))
     gate = read(Path('scripts/model_data_gate.py'))
     validation = read(Path('ai-service/app/model_validation.py'))
+    evidence = read(Path('scripts/validation_evidence.py'))
 
     for source, name in [
         (taxonomy, 'detector_taxonomy.py'),
@@ -25,6 +26,7 @@ def main():
         (splitter, 'split_detection_manifest.py'),
         (gate, 'model_data_gate.py'),
         (validation, 'model_validation.py'),
+        (evidence, 'validation_evidence.py'),
     ]:
         compile(source, name, 'exec')
 
@@ -59,6 +61,11 @@ def main():
     require('detector metadata class order does not match the V29 data gate' in validation, 'runtime class-order binding missing')
     require('detector metadata training sources do not match the V29 data gate' in validation, 'runtime source binding missing')
     require('detector metadata training manifest fingerprint does not match the V29 data gate' in validation, 'runtime training-manifest binding missing')
+
+    require('detector metadata class order does not match V29 data gate' in evidence, 'evidence class-order binding missing')
+    require('detector metadata training sources do not match V29 data gate' in evidence, 'evidence source binding missing')
+    require('detector metadata training manifest fingerprint does not match V29 data gate' in evidence, 'evidence training-manifest binding missing')
+    require("'detectorContract'" in evidence, 'evidence must record V29 detector contract')
 
     print('V29 RDD DETECTOR TRAINING CONTRACTS PASS')
 
