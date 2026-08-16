@@ -36,6 +36,7 @@ class RiskEngine:
         self.mode='development/heuristic-fallback'
         self.validated=False
         self.model=None
+        self.unvalidated_weights_present=False
         self.load_error=None
         self.validation_issues=[]
         if settings.metadata_path.exists():
@@ -48,17 +49,28 @@ class RiskEngine:
         self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
-                self.model=RiskSNN()
-                self.model.load_state_dict(
+                candidate=RiskSNN()
+                candidate.load_state_dict(
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
-                self.model.eval()
+                candidate.eval()
                 self.validated=bool(validation.get('passed'))
-                self.mode='snn-trained-weights' if self.validated else 'snn-trained-weights-unvalidated'
+                if self.validated:
+                    self.model=candidate
+                    self.mode='snn-trained-weights-validated'
+                else:
+                    # Never expose unvalidated trained weights through the normal prediction API.
+                    # The file may remain on disk as research evidence, but runtime predictions
+                    # stay on the deterministic fail-safe development path until validation passes.
+                    self.model=None
+                    self.validated=False
+                    self.unvalidated_weights_present=True
+                    self.mode='development/heuristic-fallback-unvalidated-weights'
             except Exception as e:
                 self.model=None
                 self.validated=False
                 self.load_error=f'{type(e).__name__}: {e}'
+                self.mode='development/heuristic-fallback-load-error'
         if self.model is None:
             self.validated=False
 
@@ -81,10 +93,13 @@ class RiskEngine:
         score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
         idx=0 if score<.3 else 1 if score<.55 else 2 if score<.78 else 3
         confidence=float(np.clip(.55+.35*f.confidence,0,1))
+        note='Deterministic development fallback; not a validated trained SNN prediction.'
+        if self.unvalidated_weights_present:
+            note='Unvalidated/research-only SNN weights are present but blocked from normal inference; deterministic development fallback is active.'
         return score,CLASSES[idx],confidence,{
             'topFactors':self.top_factors(f,v),
             'canonicalObjectClass':canonical_object_class(f.objectClass),
-            'note':'Deterministic development fallback; not a validated trained SNN prediction.'
+            'note':note
         }
 
     def top_factors(self,f,v):
@@ -117,7 +132,8 @@ class RiskEngine:
         }
 
     def predict(self,f):
-        if self.model is None:
+        # Defense in depth: only an evidence-bound validated model may serve trained inference.
+        if self.model is None or not self.validated:
             score,level,confidence,explanation=self.heuristic(f)
         else:
             try:
