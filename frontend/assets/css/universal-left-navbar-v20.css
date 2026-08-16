@@ -1,0 +1,305 @@
+/* NAVORA V20 — universal fixed left navbar
+ * Desktop: every page uses the same fixed left rail.
+ * Mobile/tablet: the rail becomes an accessible off-canvas drawer.
+ * This layer is structural and intentionally preserves V19 theme/profile styling.
+ */
+:root{
+  --navora-left-rail-w:var(--nav-sidebar-w,268px);
+  --navora-left-rail-mobile:min(88vw,320px);
+  --navora-left-rail-safe:12px;
+}
+
+@media (min-width:821px){
+  body.navora-public,
+  body.navora-auth{
+    padding-left:var(--navora-left-rail-w) !important;
+  }
+
+  body.navora-public > .navora-nav,
+  body.navora-auth > .navora-nav,
+  body.navora-app > .navora-nav,
+  body.navora-admin > .navora-nav{
+    position:fixed !important;
+    inset:0 auto 0 0 !important;
+    width:var(--navora-left-rail-w) !important;
+    height:100dvh !important;
+    min-height:100dvh !important;
+    max-height:100dvh !important;
+    margin:0 !important;
+    padding:18px 14px max(14px,env(safe-area-inset-bottom)) !important;
+    display:grid !important;
+    grid-template-rows:auto minmax(0,1fr) auto !important;
+    align-items:stretch !important;
+    align-content:stretch !important;
+    gap:10px !important;
+    overflow:hidden !important;
+    border-right:1px solid color-mix(in srgb,var(--nav-line-strong) 70%,transparent) !important;
+    border-bottom:0 !important;
+    box-shadow:16px 0 50px rgba(22,10,30,.10) !important;
+    z-index:1500 !important;
+    backdrop-filter:blur(22px) saturate(1.15) !important;
+    -webkit-backdrop-filter:blur(22px) saturate(1.15) !important;
+  }
+
+  body.navora-public > .navora-nav,
+  body.navora-auth > .navora-nav{
+    background:linear-gradient(180deg,var(--nav-sidebar),var(--nav-sidebar-2)) !important;
+    color:var(--nav-sidebar-text) !important;
+    padding-bottom:196px !important;
+  }
+
+  body.navora-public > .navora-nav > .brand,
+  body.navora-auth > .navora-nav > .brand,
+  body.navora-app > .navora-nav > .brand,
+  body.navora-admin > .navora-nav > .brand{
+    grid-row:1 !important;
+    width:100% !important;
+    margin:0 !important;
+    padding:2px 8px 14px !important;
+    border-bottom:1px solid color-mix(in srgb,var(--nav-line-strong) 62%,transparent) !important;
+  }
+
+  body.navora-public > .navora-nav > .nav-links,
+  body.navora-auth > .navora-nav > .nav-links,
+  body.navora-app > .navora-nav > .nav-links,
+  body.navora-admin > .navora-nav > .nav-links{
+    grid-row:2 !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:8px 0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    justify-content:flex-start !important;
+    gap:5px !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-gutter:stable;
+  }
+
+  body.navora-public > .navora-nav > .nav-links > a,
+  body.navora-auth > .navora-nav > .nav-links > a,
+  body.navora-app > .navora-nav > .nav-links > a,
+  body.navora-admin > .navora-nav > .nav-links > a{
+    width:100% !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:10px 12px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    border-radius:12px !important;
+    white-space:normal !important;
+  }
+
+  body.navora-public > .navora-nav > .icon-btn,
+  body.navora-auth > .navora-nav > .icon-btn{
+    position:absolute !important;
+    left:14px !important;
+    right:14px !important;
+    bottom:154px !important;
+    width:calc(100% - 28px) !important;
+    min-height:42px !important;
+    margin:0 !important;
+    z-index:3 !important;
+  }
+
+  body.navora-app > .navora-nav > .nav-account,
+  body.navora-admin > .navora-nav > .nav-account{
+    grid-row:3 !important;
+    align-self:end !important;
+    margin:0 !important;
+  }
+
+  body.navora-public > .navora-profile-global-v17,
+  body.navora-auth > .navora-profile-global-v17{
+    left:12px !important;
+    bottom:max(12px,env(safe-area-inset-bottom)) !important;
+    width:calc(var(--navora-left-rail-w) - 24px) !important;
+    max-width:calc(var(--navora-left-rail-w) - 24px) !important;
+    z-index:1600 !important;
+  }
+
+  body.navora-public .hero,
+  body.navora-auth .auth-shell{
+    min-height:100dvh !important;
+  }
+
+  body.navora-public > main,
+  body.navora-auth > main{
+    min-width:0 !important;
+    width:100% !important;
+  }
+
+  .nav-mobile-toggle{display:none !important;}
+}
+
+@media (max-width:820px){
+  body.navora-public,
+  body.navora-auth{
+    padding-left:0 !important;
+  }
+
+  body.navora-public > .navora-nav,
+  body.navora-auth > .navora-nav,
+  body.navora-app > .navora-nav,
+  body.navora-admin > .navora-nav{
+    position:fixed !important;
+    inset:0 auto 0 0 !important;
+    width:var(--navora-left-rail-mobile) !important;
+    height:100dvh !important;
+    min-height:100dvh !important;
+    max-height:100dvh !important;
+    margin:0 !important;
+    padding:16px 12px max(14px,env(safe-area-inset-bottom)) !important;
+    display:grid !important;
+    grid-template-rows:auto minmax(0,1fr) auto !important;
+    align-items:stretch !important;
+    gap:8px !important;
+    overflow:hidden !important;
+    background:linear-gradient(180deg,var(--nav-sidebar),var(--nav-sidebar-2)) !important;
+    border-right:1px solid var(--nav-line-strong) !important;
+    box-shadow:24px 0 70px rgba(8,4,14,.34) !important;
+    transform:translate3d(-105%,0,0) !important;
+    transition:transform .28s cubic-bezier(.2,.72,.16,1) !important;
+    z-index:1900 !important;
+  }
+
+  body.nav-open > .navora-nav{
+    transform:translate3d(0,0,0) !important;
+  }
+
+  body.navora-public > .navora-nav > .brand,
+  body.navora-auth > .navora-nav > .brand,
+  body.navora-app > .navora-nav > .brand,
+  body.navora-admin > .navora-nav > .brand{
+    grid-row:1 !important;
+    padding:2px 8px 12px !important;
+    border-bottom:1px solid color-mix(in srgb,var(--nav-line-strong) 65%,transparent) !important;
+  }
+
+  body.navora-public > .navora-nav > .nav-links,
+  body.navora-auth > .navora-nav > .nav-links,
+  body.navora-app > .navora-nav > .nav-links,
+  body.navora-admin > .navora-nav > .nav-links{
+    grid-row:2 !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:0 !important;
+    margin:0 !important;
+    padding:8px 0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:5px !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  body.navora-public > .navora-nav > .nav-links > a,
+  body.navora-auth > .navora-nav > .nav-links > a,
+  body.navora-app > .navora-nav > .nav-links > a,
+  body.navora-admin > .navora-nav > .nav-links > a{
+    width:100% !important;
+    min-height:46px !important;
+    padding:11px 12px !important;
+  }
+
+  body.navora-app > .navora-nav > .nav-account,
+  body.navora-admin > .navora-nav > .nav-account,
+  body.navora-public > .navora-nav > .icon-btn,
+  body.navora-auth > .navora-nav > .icon-btn{
+    grid-row:3 !important;
+    align-self:end !important;
+    width:100% !important;
+    margin:0 !important;
+  }
+
+  body.navora-public > .navora-profile-global-v17,
+  body.navora-auth > .navora-profile-global-v17{
+    left:12px !important;
+    bottom:max(12px,env(safe-area-inset-bottom)) !important;
+    width:calc(var(--navora-left-rail-mobile) - 24px) !important;
+    max-width:calc(var(--navora-left-rail-mobile) - 24px) !important;
+    opacity:0 !important;
+    pointer-events:none !important;
+    transform:translate3d(-110%,0,0) !important;
+    transition:transform .28s cubic-bezier(.2,.72,.16,1),opacity .2s ease !important;
+    z-index:1950 !important;
+  }
+
+  body.nav-open.navora-public > .navora-profile-global-v17,
+  body.nav-open.navora-auth > .navora-profile-global-v17{
+    opacity:1 !important;
+    pointer-events:auto !important;
+    transform:translate3d(0,0,0) !important;
+  }
+
+  body.navora-public > .navora-nav,
+  body.navora-auth > .navora-nav{
+    padding-bottom:188px !important;
+  }
+
+  body.navora-public > .navora-nav > .icon-btn,
+  body.navora-auth > .navora-nav > .icon-btn{
+    position:absolute !important;
+    left:12px !important;
+    right:12px !important;
+    bottom:148px !important;
+    width:calc(100% - 24px) !important;
+  }
+
+  .nav-mobile-toggle{
+    display:grid !important;
+    place-items:center !important;
+    position:fixed !important;
+    top:max(12px,env(safe-area-inset-top)) !important;
+    left:max(12px,env(safe-area-inset-left)) !important;
+    width:46px !important;
+    height:46px !important;
+    min-width:46px !important;
+    min-height:46px !important;
+    padding:0 !important;
+    border:1px solid var(--nav-line-strong) !important;
+    border-radius:14px !important;
+    background:color-mix(in srgb,var(--nav-surface) 92%,transparent) !important;
+    color:var(--nav-text) !important;
+    box-shadow:0 12px 34px rgba(20,10,26,.18) !important;
+    backdrop-filter:blur(18px) !important;
+    -webkit-backdrop-filter:blur(18px) !important;
+    z-index:2100 !important;
+  }
+
+  body.nav-open .nav-mobile-toggle{
+    left:min(calc(var(--navora-left-rail-mobile) - 58px),calc(100vw - 58px)) !important;
+  }
+
+  body.nav-open::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:1850;
+    background:rgba(8,4,14,.48);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+  }
+}
+
+@media (max-width:420px){
+  :root{--navora-left-rail-mobile:min(92vw,310px);}
+}
+
+@media (prefers-reduced-motion:reduce){
+  body > .navora-nav,
+  .nav-mobile-toggle,
+  .navora-profile-global-v17{
+    transition:none !important;
+  }
+}

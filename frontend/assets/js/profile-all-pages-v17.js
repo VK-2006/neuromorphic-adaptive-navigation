@@ -1,12 +1,22 @@
-/* NAVORA v19 - universal profile shell + fixed sidebar-bottom account dock */
+/* NAVORA v19 profile shell + NAVORA v20 universal left-navbar loader */
 (() => {
   "use strict";
 
   const PROFILE_CLASS = "navora-profile-global-v17";
+  const NAVBAR_STYLE = "/assets/css/universal-left-navbar-v20.css";
   let cachedUser;
   let userResolved = false;
   let userPromise = null;
   let ensureQueued = false;
+
+  function ensureV20NavbarStyle() {
+    if (document.querySelector('link[data-navora-left-navbar-v20]')) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = NAVBAR_STYLE;
+    link.dataset.navoraLeftNavbarV20 = "true";
+    document.head.appendChild(link);
+  }
 
   const bodyMode = () => {
     const b = document.body;
@@ -190,6 +200,7 @@
   }
 
   function start() {
+    ensureV20NavbarStyle();
     syncThemeColor();
     queueEnsure();
 
@@ -230,5 +241,9 @@
   window.NavoraV17Profile = {
     version: "19.0.0",
     ensure: queueEnsure
+  };
+  window.NavoraLeftNavbar = {
+    version: "20.0.0",
+    ensureStyle: ensureV20NavbarStyle
   };
 })();
