@@ -38,7 +38,7 @@ echo   SNN_TRAIN_CSV and SNN_EVAL_CSV are used only by the retained SNN workflow
 echo.
 echo Optional detector diagnostic:
 echo   RUN_INTERNAL_DETECTOR_EVAL=1
-necho ================================================================
+echo ================================================================
 
 echo.
 echo [PREFLIGHT] Checking Python...
