@@ -20,6 +20,7 @@ def main():
     doc = DOC.read_text(encoding='utf-8')
     test = TEST.read_text(encoding='utf-8')
 
+    # V33 SNN protection remains unchanged.
     require('if self.model is None or not self.validated:' in risk,
             'risk API must fall back unless trained SNN is validated')
     require("self.mode='development/heuristic-fallback-unvalidated-weights'" in risk,
@@ -27,29 +28,35 @@ def main():
     require('self.model=None' in risk and 'self.unvalidated_weights_present=True' in risk,
             'unvalidated SNN candidate must not remain active for normal inference')
 
-    require('if self.model is not None and self.validated:' in detect,
-            'detector must execute trained inference only when validated')
-    require("self.mode='development/heuristic-fallback-unvalidated-weights'" in detect,
-            'detector must explicitly identify blocked unvalidated weights')
+    # Detector inference is now functional/integrity-gated rather than science-gated.
+    require('if self.model is not None and self.integrity_ready:' in detect,
+            'detector trained inference must depend on functional artifact integrity')
+    require("self.mode='torchscript-trained-weights-functional'" in detect,
+            'detector functional trained mode missing')
+    require('self.validated=False' in detect,
+            'detector must not claim independent scientific validation')
     require('return self._fallback_detect(image)' in detect,
-            'detector must have an explicit normal fallback path')
+            'detector must retain explicit fallback path')
+    require('if float(score)<.3:continue' in detect,
+            'detector normal confidence threshold must be preserved')
 
-    require('Unvalidated or research-only weights are blocked from normal prediction/detection' in routes,
-            'model-info truthfulness note missing')
-    require('unvalidated trained weights are not served by this endpoint' in routes,
-            'detection endpoint must describe validated-only policy')
+    require('scientificValidationRequired' in routes and 'integrityReady' in routes,
+            'model-info detector functional scope fields missing')
+    require('independent cross-dataset detector scientific validation' in routes,
+            'detector scope truthfulness note missing')
 
-    require('V33 validated-only runtime inference' in doc,
-            'validated-only runtime policy must be documented')
+    require('SNN scientific-validation chain' in doc,
+            'independent SNN scientific runtime policy must be documented')
     require('test_unvalidated_snn_never_serves_trained_prediction' in test,
             'SNN unvalidated inference regression missing')
-    require('test_unvalidated_detector_never_serves_trained_detection' in test,
-            'detector unvalidated inference regression missing')
-    require('test_validated_snn_serves_trained_prediction' in test and
-            'test_validated_detector_serves_trained_detection' in test,
-            'validated trained inference positive controls missing')
+    require('test_validated_snn_serves_trained_prediction' in test,
+            'validated SNN positive control missing')
+    require('test_integrity_ready_detector_serves_trained_detection_without_science_gate' in test,
+            'functional detector positive control missing')
+    require('test_detector_without_active_trained_artifact_uses_fallback' in test,
+            'detector fallback regression missing')
 
-    print('V33 VALIDATED-ONLY AI INFERENCE CONTRACTS PASS')
+    print('V33 AI INFERENCE CONTRACTS PASS: validated-only SNN + functional detector integrity')
 
 
 if __name__ == '__main__':
