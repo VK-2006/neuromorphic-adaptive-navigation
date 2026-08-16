@@ -1,36 +1,55 @@
-# Detector + SNN Validation Workflow
+# NAVORA Model Validation and Functional Detector Scope
 
-Navora separates **training**, **evaluation**, **live safety eligibility**, and **normal runtime inference**. A metadata boolean is never enough to make a live model validated.
+NAVORA separates **detector functional readiness** from **SNN scientific validation**. The detector remains an operational perception component; the SNN risk model retains its separately governed scientific-validation controls.
 
-## V30+ validation chain
+## Functional detector contract
 
-1. Prepare real upstream data under each dataset's license.
-2. For detector data, `prepare_detection_data.py` can create a unified BDD100K/RDD2022 manifest. `split_detection_manifest.py` can then create a deterministic source-aware internal train/evaluation split with zero shared image rows and minimum held-out class coverage.
-3. Run `scripts/model_data_gate.py`. It blocks too-small datasets, malformed images/boxes, invalid source/class pairs, duplicate detector images, train/evaluation leakage, evaluation-only detector classes/sources, trained sources missing from held-out data, weak held-out class coverage, non-normalized SNN rows, and any attempt to weaken the built-in validation policy floors.
-4. Train with `scripts/train_detector.py` and `scripts/train_snn.py`. Training always leaves live validation false. Detector training stores the exact training-manifest SHA-256 in metadata.
-5. Evaluate with `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` using only fresh held-out splits. The evaluators publish global plus per-class diagnostics and refuse safety validation when configured thresholds are weaker than policy.
-6. **V30 class-aware gate:** aggregate accuracy/F1 is not enough. Every trained detector class must meet minimum held-out precision, recall and F1, including `pothole`/`road damage`. Every SNN risk class must meet minimum F1, and `HIGH`/`CRITICAL` must also meet a stronger recall floor. This prevents common/easy classes from hiding a failed safety-critical class.
-7. `--mark-validation` is bound to the passing data gate: the exact held-out manifest/CSV SHA-256 must match the gated evaluation split. A different or modified file cannot be marked validated.
-8. Run `scripts/validation_evidence.py` immediately after both evaluations. V30 evidence schema 3 binds the exact training/evaluation dataset fingerprints, data-gate report, detector evaluation report, SNN evaluation report, per-class metrics/policy results, metadata, and both weight files with SHA-256.
-9. Run `scripts/model_readiness.py`. `validated=true` is accepted only when both live model guards independently reproduce the complete V30 evidence chain.
-10. Run `scripts/model_artifact_bundle.py` to create a local validated model ZIP under `model-artifacts/`.
-11. At service startup, `app/model_validation.py` re-checks policy/report/dataset/weight bindings and the V30 per-class gates. Detector startup also verifies that metadata class order, training sources and training-manifest SHA-256 match the V29+ data gate. Any stale or tampered component immediately downgrades the model to unvalidated mode.
-12. **V32 research lock:** a candidate that fails an immutable one-time external final evaluation is fingerprinted as research-only. A consumed external final-set fingerprint is permanently blocked from SNN training/tuning or re-evaluation/model-selection feedback.
-13. **V33 validated-only runtime inference:** normal `/api/v1/risk/*` and `/api/v1/detect` trained inference is served only when the exact loaded weights pass the full validation guard. If trained weights exist but are unvalidated, research-only, stale, or evidence-mismatched, the service does not execute them for normal requests and uses the deterministic development fallback instead. `validated=false` remains explicit in responses.
+The object-detection module is retained as a functional perception component developed using the project’s BDD100K detector workflow. Independent cross-dataset detector scientific validation is outside the current project scope and may be considered future work.
+
+Current detector requirements are functional engineering requirements, not a new scientific holdout gate:
+
+1. Keep the `ai-service/trained_models/detector.pt` runtime path and BDD100K-based training workflow.
+2. Keep detector taxonomy and class order, including `person`, `bicycle`, `motorcycle`, `car`, `bus` and `truck`; optional RDD2022 road-damage classes remain supported by the development tooling.
+3. Keep artifact existence, non-empty/hash integrity checks when metadata provides an expected artifact hash, TorchScript loadability checks, inference error handling and development fallback behavior.
+4. Keep normal detector confidence thresholds and `/api/v1/detect` behavior.
+5. Keep camera/local/cloud perception paths producing `objectClass` + `confidence` for NAVORA runtime risk features.
+6. Keep `scripts/prepare_detection_data.py`, `scripts/split_detection_manifest.py`, `scripts/train_detector.py` and `scripts/evaluate_detector.py` available for normal development, debugging, regression measurement and reproducibility.
+7. Treat internal detector evaluation metrics as diagnostics only. They are not a safety certification, official upstream benchmark or current project-completion prerequisite.
+
+The detector API deliberately reports functional/integrity state separately from the legacy `validated` field. The legacy detector scientific-validation flag remains false so the project cannot accidentally claim an independently validated, safety-certified, cross-dataset validated or externally validated detector.
+
+## SNN scientific-validation chain
+
+Detector scope simplification does **not** weaken or replace SNN scientific validation. The SNN path retains its held-out-data, class-aware, exact-hash and research-lock controls.
+
+1. Prepare the separately governed real SNN risk data under the applicable data policy.
+2. Run the SNN data-quality/leakage checks and keep train/evaluation fingerprints stable.
+3. Train with `scripts/train_snn.py`. Training alone never establishes scientific validation.
+4. Evaluate with `scripts/evaluate_snn.py` on a fresh held-out SNN split. Configured thresholds cannot weaken the built-in policy floors.
+5. Every SNN risk class must meet the class-aware policy, with the stronger recall requirement for `HIGH`/`CRITICAL` retained.
+6. `riskValidated` remains evidence-bound to the exact held-out SNN CSV, SNN evaluation report, metadata and `risk_snn.pt` SHA-256.
+7. `app/model_validation.py` continues to reject stale/tampered SNN evidence and retains the V32 research lock.
+8. Normal `/api/v1/risk/*` trained inference remains validated-only; otherwise the deterministic development fallback is used.
+
+Legacy combined detector+SNN evidence tooling may remain in the repository for reproducibility of older development runs, but detector evidence is no longer a runtime or current project-completion prerequisite. Runtime SNN validation evaluates the SNN-specific evidence bindings and does not require detector scientific-validation success.
 
 ## Phase-4 SNN research disposition
 
 The locked 2025 one-time external SNN evaluation is recorded in `docs/snn-phase4-2025-external-validation.md`. Its HIER_B candidate failed the final production gate and is permanently `RESEARCH_ONLY / NOT_PRODUCTION_VALIDATED`. The consumed 2025 final set must not be reused for development decisions. Any future SNN production-validation claim requires a newly frozen candidate and a new independently reserved untouched final set.
 
-## Detector scope
+## Detector development details
 
-The V29+ Faster R-CNN trainer supports a dynamic class head built from the real classes present in the training manifest. Supported source/class pairs are:
+The retained Faster R-CNN trainer supports a dynamic class head built from the real classes present in the training manifest. Supported source/class pairs are:
 
 - **BDD100K:** `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, `barrier`.
 - **RDD2022:** `road damage`, `pothole`.
 
-COCO-overlap classes reuse their pretrained Faster R-CNN classifier/regressor rows. Navora-specific road classes such as `road damage` and `pothole` use freshly initialized head rows and therefore become meaningful only after real RDD2022 training.
+COCO-overlap classes reuse their pretrained Faster R-CNN classifier/regressor rows. NAVORA-specific road classes such as `road damage` and `pothole` use freshly initialized head rows and therefore require real RDD2022 samples if those classes are trained.
 
-This support does **not** mean the repository already contains a validated pothole model. The upstream datasets and generated weights are intentionally not committed. A real detector remains unvalidated until the local training data, held-out data, class-level metrics, evidence and exact weights all pass the complete gate. The OpenCV road-damage heuristic remains development-only and must not be described as validated pothole AI.
+The deterministic split produced by `split_detection_manifest.py` is an internal development/evaluation split, not an official BDD100K or RDD2022 benchmark result. The OpenCV fallback remains a development fallback. Neither the fallback nor internal detector metrics should be described as detector scientific certification.
 
-The deterministic split produced by `split_detection_manifest.py` is an internal development/validation split, not an official BDD100K or RDD2022 benchmark result.
+## End-to-end retained flow
+
+`Camera → Object Detector → objectClass + confidence → NAVORA runtime risk features → SNN / risk processing → ACO + Cognitive Route Memory → safest-route recommendation`
+
+This flow remains part of NAVORA even though independent detector scientific validation is outside current scope.
