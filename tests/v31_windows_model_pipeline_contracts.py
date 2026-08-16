@@ -12,6 +12,10 @@ def require(condition, message):
 def main():
     text = BAT.read_text(encoding='utf-8')
     lower = text.lower()
+    executable = '\n'.join(
+        line for line in lower.splitlines()
+        if line.strip() and not line.lstrip().startswith(('rem ', 'echo '))
+    )
 
     require('setlocal enableextensions' in lower, 'V31 BAT must use an isolated command environment')
     require('cd /d "%~dp0.."' in lower, 'V31 BAT must anchor itself to repository root')
@@ -33,17 +37,16 @@ def main():
         'model_artifact_bundle.py',
     ]
     for name in required_scripts:
-        require(name in text, f'V31 pipeline stage missing: {name}')
+        require(name in executable, f'V31 executable pipeline stage missing: {name}')
 
-    positions = [lower.index(name.lower()) for name in required_scripts]
+    positions = [executable.index(name.lower()) for name in required_scripts]
     require(positions == sorted(positions), 'V31 model pipeline stages are not in guarded order')
 
-    require('--mark-validation' in lower, 'held-out evaluators must be the only marking stage')
-    require(lower.count('--mark-validation') == 2, 'both and only both held-out evaluators must mark validation')
-    require('--max-samples' not in lower, 'V31 real detector training must not use partial-sample mode')
-    require('--smoke' not in lower, 'V31 real model pipeline must not use smoke training')
-    require('validation_evidence.py' in lower and 'model_readiness.py' in lower, 'V30 evidence/readiness chain missing')
-    require('model_artifact_bundle.py' in lower, 'validated artifact bundle stage missing')
+    require(executable.count('--mark-validation') == 2, 'both and only both held-out evaluators must mark validation')
+    require('--max-samples' not in executable, 'V31 real detector training must not use partial-sample mode')
+    require('--smoke' not in executable, 'V31 real model pipeline must not use smoke training')
+    require('validation_evidence.py' in executable and 'model_readiness.py' in executable, 'V30 evidence/readiness chain missing')
+    require('model_artifact_bundle.py' in executable, 'validated artifact bundle stage missing')
     require('if errorlevel 1 goto :failed' in lower, 'V31 must fail closed after guarded commands')
     require('no success claim is made' in lower, 'V31 failure path must explicitly avoid success claims')
     require('do not commit datasets, trained weights, .env files or model-artifacts zips' in lower, 'V31 artifact hygiene warning missing')
