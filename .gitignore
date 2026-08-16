@@ -31,6 +31,9 @@ qa-screens/*.jpeg
 *.before-*
 *before-zip-update*
 
+# Generated browser authentication state — treat as a credential.
+navora-google-storage-state.json
+
 # Trained weights are generated locally and may be large.
 ai-service/trained_models/*.pt
 !ai-service/trained_models/README.md
