@@ -8,7 +8,7 @@ const ms=v=>{const n=new Date(v).getTime();return Number.isFinite(n)?n:null};
 
 function leafletReady(){return Boolean(window.L&&map)}
 function mapUnavailable(){const host=$('replay-map');if(host)host.innerHTML='<div class="navora-state-panel"><h3>Map unavailable</h3><p class="muted">Leaflet could not load. Replay details remain available.</p></div>'}
-function replayable(j){return['COMPLETED','ACTIVE','PAUSED'].includes(j?.status)}
+function replayable(j){return['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.status||'').toUpperCase())}
 
 async function init(){
   if(window.L){
@@ -38,7 +38,7 @@ function drawRoutes(){
   routes.forEach(r=>{
     const coords=arr(r?.coordinates).filter(p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lng)));if(coords.length<2)return;
     const isOriginal=String(r?._id)===String(data.originalRoute?._id),isCurrent=String(r?._id)===String(data.currentRoute?._id);
-    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:isCurrent?7:5,opacity:isCurrent?.95:.55,dashArray:isOriginal&&!isCurrent?'9 8':undefined}).addTo(map).bindTooltip(`${isOriginal?'Original':isCurrent?'Final':'Reroute'} · ${r.label||'route'} · ACO ${Number(r.acoScore||0).toFixed(2)}`);
+    const line=window.L.polyline(coords.map(p=>[p.lat,p.lng]),{weight:isCurrent?7:5,opacity:isCurrent ? .95 : .55,dashArray:isOriginal&&!isCurrent?'9 8':undefined}).addTo(map).bindTooltip(`${isOriginal?'Original':isCurrent?'Final':'Reroute'} · ${r.label||'route'} · ACO ${Number(r.acoScore||0).toFixed(2)}`);
     routeLayers.push(line);
   });
   const group=routeLayers.length?window.L.featureGroup(routeLayers):null;if(group?.getBounds?.().isValid())map.fitBounds(group.getBounds(),{padding:[30,30]});
@@ -76,15 +76,18 @@ function activeEvent(time){
   let latest=null;for(const x of events){if(x.t<=time)latest=x.e;else break}return latest;
 }
 async function load(id){
-  if(!id)return;clearInterval(timer);pos=0;
+  if(!id)return;clearInterval(timer);pos=0;data=null;clearRoutes();hazardLayer?.clearLayers?.();marker?.remove?.();marker=null;
+  if($('replay-summary'))$('replay-summary').textContent='Loading replay…';
+  if($('replay-events'))$('replay-events').innerHTML='';
+  if($('replay-event'))$('replay-event').textContent='Loading journey…';
   try{
-    data=(await api(`/journeys/${encodeURIComponent(id)}/replay`))||{};hazardLayer?.clearLayers?.();drawRoutes();buildTimeline();
+    data=(await api(`/journeys/${encodeURIComponent(id)}/replay`))||{};drawRoutes();buildTimeline();
     for(const h of arr(data.hazards)){const c=h?.location?.coordinates;if(leafletReady()&&Array.isArray(c)&&c.length>=2)window.L.circleMarker([c[1],c[0]],{radius:7}).bindPopup(`${esc(h.type)} · ${esc(h.snnRiskLevel||'')} · trust ${Math.round((Number(h.trustScore)||0)*100)}%`).addTo(hazardLayer)}
     const events=arr(data.events),reroutes=events.filter(e=>e?.type==='REROUTE_ACCEPTED').length,traffic=events.filter(e=>e?.type==='TRAFFIC_CHANGE').length,aco=events.filter(e=>e?.type==='ACO_REEVALUATION').length,points=arr(data.points),hazards=arr(data.hazards);
     if($('replay-summary'))$('replay-summary').textContent=`${data.journey?.mode||'—'} · ${points.length} GPS points · ${hazards.length} hazards · ${reroutes} reroutes · ${aco} ACO decisions · ${traffic} traffic changes · timestamp-synchronized`;
     if($('replay-events'))$('replay-events').innerHTML=events.map(e=>`<div class="event-item"><strong>${esc(e?.type)}</strong><div class="muted">${e?.at?new Date(e.at).toLocaleString():''}${detail(e)?' · '+esc(detail(e)):''}</div></div>`).join('')||'<div class="empty-state">No recorded decision events.</div>';
     render();
-  }catch(e){data=null;toast(e.message,'error')}
+  }catch(e){data=null;if($('replay-summary'))$('replay-summary').textContent='Replay unavailable.';if($('replay-event'))$('replay-event').textContent='Could not load journey';toast(e.message,'error')}
 }
 function render(){
   if(!data)return;if(slider)slider.value=Math.round(pos*10);if($('replay-position'))$('replay-position').textContent=`${Math.round(pos)}%`;
@@ -100,4 +103,4 @@ function play(){
   const pctPerSecond=100000/Math.max(1000,timeline.duration);
   timer=setInterval(()=>{pos=Math.min(100,pos+pctPerSecond*speed*.06);render();if(pos>=100)clearInterval(timer)},60);
 }
-addEventListener('pagehide',()=>{clearInterval(timer);clearRoutes()});init();
+addEventListener('pagehide',()=>{clearInterval(timer);clearRoutes();marker?.remove?.();hazardLayer?.clearLayers?.()});init();
