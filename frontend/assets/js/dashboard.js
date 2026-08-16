@@ -3,7 +3,7 @@ import{api,toast}from'./api.js';
 const byId=id=>document.getElementById(id);
 const list=v=>Array.isArray(v)?v:[];
 const num=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
-let chart=null;
+let chart=null,unitMode='METRIC';
 
 function set(id,v){const el=byId(id);if(el)el.textContent=v}
 function renderList(id,arr,fn){
@@ -11,6 +11,9 @@ function renderList(id,arr,fn){
   const rows=list(arr);
   h.innerHTML=rows.length?rows.map(x=>`<div class="data-row">${fn(x||{})}</div>`).join(''):'<div class="empty-state">No stored data yet.</div>';
 }
+function storedUnits(){try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return String(p?.units||'METRIC').toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{return'METRIC'}}
+function formatDistance(meters){const m=Math.max(0,num(meters));return unitMode==='IMPERIAL'?`${(m/1609.344).toFixed(1)} mi`:`${(m/1000).toFixed(1)} km`}
+async function loadUnits(){unitMode=storedUnits();try{const u=await api('/users/me');const units=String(u?.preferences?.units||unitMode).toUpperCase();unitMode=units==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{}}
 
 function chartTheme(){
   const s=getComputedStyle(document.documentElement);
@@ -71,13 +74,14 @@ function buildChart(canvas,trend){
 
 async function load(){
   try{
+    await loadUnits();
     const d=(await api('/users/dashboard'))||{},m=d.metrics||{},trend=list(d.trend);
     set('metric-safety',m.safetyTrend==null?'—':`${Math.round(num(m.safetyTrend))}%`);
     set('metric-memory',Math.max(0,num(m.routeMemories)));
     set('metric-success',Math.max(0,num(m.successfulJourneys)));
     set('metric-avoided',Math.max(0,num(m.verifiedHazardsAvoided)));
     set('metric-unread',Math.max(0,num(m.unreadNotifications)));
-    renderList('recent-journeys',d.recentJourneys,j=>`<strong>${String(j.status||'Unknown')}</strong><div class="muted">${String(j.mode||'—')} · ${(num(j.distanceCovered)/1000).toFixed(1)} km covered · ${j.createdAt?new Date(j.createdAt).toLocaleDateString():'—'}</div>`);
+    renderList('recent-journeys',d.recentJourneys,j=>`<strong>${String(j.status||'Unknown')}</strong><div class="muted">${String(j.mode||'—')} · ${formatDistance(j.distanceCovered)} covered · ${j.createdAt?new Date(j.createdAt).toLocaleDateString():'—'}</div>`);
     renderList('recent-memories',d.recentMemories,r=>`<strong>Familiarity ${Math.round(num(r.familiarity)*100)}%</strong><div class="muted">Journeys ${Math.max(0,num(r.journeyCount))} · historical safety ${Math.round(num(r.historicalSafety)*100)}%</div>`);
     const canvas=byId('safety-chart'),empty=byId('trend-empty');
     if(window.Chart&&canvas&&trend.length){
