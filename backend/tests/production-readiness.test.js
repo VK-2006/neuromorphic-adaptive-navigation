@@ -21,6 +21,7 @@ function productionConfig(overrides={}){
     weatherProvider:'openweathermap',
     openWeatherApiKey:'weather-secret-placeholder',
     roboflowApiKey:'roboflow-secret-placeholder',
+    roboflowWorkspace:'navora-workspace',
     roboflowWorkflowId:'navora-workflow',
     roboflowWorkflowUrl:'',
     webrtcTurnUrl:'turns:turn.example.com:5349',
@@ -100,6 +101,7 @@ describe('V34 production readiness',()=>{
         trafficApiKey:'',
         openWeatherApiKey:'',
         roboflowApiKey:'',
+        roboflowWorkspace:'',
         roboflowWorkflowId:'',
         webrtcTurnUrl:'',
         webrtcTurnUsername:'',
@@ -126,5 +128,7 @@ describe('V34 production readiness',()=>{
     expect(serialized).not.toContain(refresh);
     expect(serialized).not.toContain('brevo-secret-placeholder');
     expect(serialized).not.toContain('tomtom-secret-placeholder');
+    expect(serialized).not.toContain('roboflow-secret-placeholder');
+    expect(serialized).not.toContain('turn-secret-placeholder');
   });
 });
