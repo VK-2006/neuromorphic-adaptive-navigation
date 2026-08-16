@@ -88,8 +88,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     A metadata boolean alone is never sufficient. Live validation requires the overall
     two-model gate, non-weakened policy floors, passing held-out reports, V28+ evidence,
     exact report/dataset fingerprints, and the SHA-256 of the weight file being loaded.
-    Detector validation additionally binds the dynamic class order and training sources
-    recorded in metadata to the source-aware V29 data-gate report.
+    Detector validation additionally binds the dynamic class order, training sources and
+    exact training-manifest fingerprint to the source-aware V29 data-gate report.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
@@ -142,6 +142,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         gate_sources = sorted((gate_detector.get('trainSources') or {}).keys())
         if not isinstance(metadata_sources, list) or sorted(metadata_sources) != gate_sources:
             issues.append('detector metadata training sources do not match the V29 data gate')
+        if metadata.get('trainingManifestSha256') != gate_detector.get('trainSha256'):
+            issues.append('detector metadata training manifest fingerprint does not match the V29 data gate')
 
     evaluation = _load_json(eval_path, issues, f'{kind} evaluation report')
     if evaluation.get('passed') is not True:
