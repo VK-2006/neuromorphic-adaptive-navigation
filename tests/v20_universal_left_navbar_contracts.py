@@ -50,7 +50,12 @@ for token in [
     assert token in profile, f'V20 navbar loader contract missing: {token}'
 
 mobile_start = shell.index('function mobile(){')
-mobile_end = shell.index('async function user()', mobile_start)
+end_markers = [
+    marker for marker in ('function returnTo()', 'async function userSession()', 'async function user()')
+    if marker in shell[mobile_start:]
+]
+assert end_markers, 'V20 mobile-nav contract could not find a stable function boundary after mobile()'
+mobile_end = min(shell.index(marker, mobile_start) for marker in end_markers)
 mobile = shell[mobile_start:mobile_end]
 assert "if(!protectedPages.has(page)&&!adminPages.has(page))return" not in mobile
 for token in [
