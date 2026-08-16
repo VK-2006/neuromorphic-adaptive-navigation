@@ -4,10 +4,11 @@ Supported source/class pairs are centralized in ``app.detector_taxonomy``. The m
 built dynamically from the classes actually present in the training manifest. COCO-overlap
 rows keep their pretrained classifier/regressor initialization; Navora-specific road classes
 such as ``road damage`` and ``pothole`` start with fresh head rows and must be learned from
-real RDD2022 samples.
+real RDD2022 samples when those optional classes are included.
 
-Training never implies validation. The untouched held-out manifest must still pass the V28+
-data/evaluation/evidence chain before detectorValidated can become true.
+This utility is retained for normal detector development. Training produces a functional
+``detector.pt`` artifact plus provenance/integrity metadata; it does not establish or require
+an independent cross-dataset detector scientific-validation claim.
 """
 from __future__ import annotations
 
@@ -212,7 +213,7 @@ def main():
     if args.device == 'cuda' and not torch.cuda.is_available():
         raise SystemExit('CUDA requested but torch.cuda.is_available() is False')
     if args.max_samples and not args.smoke:
-        raise SystemExit('--max-samples is smoke/development-only; validated-capable training must consume the complete gated training manifest')
+        raise SystemExit('--max-samples is smoke/development-only; normal detector training consumes the complete selected training manifest')
 
     manifest_path = Path(args.manifest)
     ds = ManifestDataset(manifest_path, args.max_samples)
@@ -322,7 +323,8 @@ def main():
 
     model.eval().cpu()
     scripted = torch.jit.script(model)
-    scripted.save(str(out / 'detector.pt'))
+    detector_path = out / 'detector.pt'
+    scripted.save(str(detector_path))
 
     meta_path = out / 'metadata.json'
     try:
@@ -355,12 +357,15 @@ def main():
         'detectorModelVersion': version,
         'detectorClasses': ds.classes,
         'detectorValidated': False,
+        'detectorScientificValidationInScope': False,
+        'detectorScope': 'functional perception component',
+        'detectorArtifactSha256': sha256_file(detector_path),
         'trainingSources': sources,
         'trainingSourceImageCounts': dict(ds.source_counts),
         'trainingClassInstances': dict(ds.class_counts),
         'detectorTrainingProtocol': (
-            'V29 source-aware BDD100K/RDD2022 training; validation requires a '
-            'separate leakage-free held-out manifest through the V28 evidence chain.'
+            'Source-aware BDD100K/RDD2022 functional detector training with internal '
+            'development diagnostics available separately.'
         ),
         'officialBddBenchmarkClaim': False,
         'officialRddBenchmarkClaim': False,
@@ -379,19 +384,20 @@ def main():
             ),
         },
         'note': (
-            'Training never implies validation. New road-damage/pothole head rows are '
-            'learned only from supplied RDD2022 samples. Run model_data_gate.py, '
-            'evaluate_detector.py and validation_evidence.py on untouched held-out data.'
+            'detector.pt is a functional perception artifact. Internal detector evaluation '
+            'may be run for development/debugging. Independent cross-dataset detector '
+            'scientific validation is outside the current NAVORA project scope.'
         ),
     })
-    meta['validated'] = bool(
-        meta.get('detectorValidated', False) and meta.get('riskValidated', False)
-    )
+    # Overall scientific validation follows the SNN risk gate only; detector training
+    # must never revoke or fabricate the independent SNN scientific state.
+    meta['validated'] = bool(meta.get('riskValidated', False))
     meta_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
 
-    print('saved', out / 'detector.pt')
+    print('saved', detector_path)
+    print('detector artifact SHA-256 =', meta['detectorArtifactSha256'])
     print('training manifest SHA-256 =', meta['trainingManifestSha256'])
-    print('detectorValidated = FALSE')
+    print('detector scientific validation in scope = FALSE')
     print('official BDD100K benchmark claim = FALSE')
     print('official RDD2022 benchmark claim = FALSE')
 
