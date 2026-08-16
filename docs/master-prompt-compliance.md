@@ -1,22 +1,28 @@
 # Final Master-Prompt Compliance Cross-Check
 
-The repository is checked against the locked Navora master prompt rather than a reduced CRUD interpretation.
+The repository is checked against the locked NAVORA product requirements rather than a reduced CRUD interpretation.
 
 ## Connected application chain
 
-`Authentication → source/destination → road candidates → traffic → verified/community/camera hazard evidence → SNN risk → CRM/DTW/EMA → ACO → explainable adaptive route → journey → live GPS + optional camera → geofence/risk re-evaluation → reroute → completion → CRM/EMA update → replay.`
+`Authentication → source/destination → road candidates → traffic → verified/community/camera hazard evidence → objectClass + confidence → SNN risk → CRM/DTW/EMA → ACO → explainable adaptive route → journey → live GPS + optional camera → geofence/risk re-evaluation → reroute → completion → CRM/EMA update → replay.`
 
 ## Final compliance hardening included
 
 - All 28 frontend pages are included in the master cross-check.
-- Bootstrap 5, GSAP, AOS and Lottie are actually integrated while the custom Navora design system remains the visual authority.
+- Bootstrap 5, GSAP, AOS and Lottie are integrated while the custom NAVORA design system remains the visual authority.
 - Hazard deduplication uses type + geographic proximity + time window + journey + detection similarity.
 - QA scripts are repository-relative and have no hardcoded `/mnt/data` or BeautifulSoup dependency.
-- Detector and SNN validation are independent; one model cannot accidentally validate the other.
-- Training scripts never mark a model validated. Held-out evaluation scripts own validation decisions.
+- Detector functionality and SNN scientific validation are separate concerns. Detector runtime uses functional artifact/integrity readiness; SNN validation retains its evidence-bound scientific gate.
+- Detector training/evaluation utilities remain for normal development/debugging and never create a safety-certification claim.
 - Historical update/backup files and generated QA screenshots are excluded from final source and ignored going forward.
 - `prepush_audit.py` checks Git-tracked secrets, ignored runtime env files, backup/generated artifacts and package-lock consistency.
 - GitHub Actions CI runs source contracts, backend Jest/audit, Mongo-backed runtime E2E and lightweight AI fallback/API tests after push.
+
+## Detector scope boundary
+
+The object-detection module is retained as a functional perception component developed using the project’s BDD100K detector workflow. Independent cross-dataset detector scientific validation is outside the current project scope and may be considered future work.
+
+Current completion therefore requires the detector module, taxonomy, camera/perception integration, detection API, `objectClass`/`confidence` risk inputs, runtime loading/error handling and normal integrity/readiness checks. It does **not** require a new external detector holdout or a cross-dataset detector scientific claim.
 
 ## Safeguards
 
@@ -28,7 +34,8 @@ The repository is checked against the locked Navora master prompt rather than a 
 - Exact private GPS is not globally broadcast.
 - Single-state GPS/camera/Socket/Three.js lifecycle avoids duplicate watchers/streams/listeners/RAF loops.
 - Familiarity is not equated with safety.
-- Unvalidated detector/SNN output is research-only when live safety validation is required.
+- Detector output is documented as functional perception, not independently validated or safety-certified perception.
+- SNN trained inference remains governed by its independent evidence-bound scientific-validation policy and V32 research lock.
 
 ## Verification commands
 
@@ -50,4 +57,4 @@ Pre-push Git audit:
 python scripts/prepush_audit.py
 ```
 
-The remaining non-code gates are real production credentials, real held-out model evaluation and physical browser/device permission testing. They are intentionally not replaced with fabricated PASS claims.
+The remaining non-code gates are real production credentials, SNN scientific evidence where applicable, and physical browser/device permission testing. Detector cross-dataset scientific validation is not a current NAVORA completion gate.
