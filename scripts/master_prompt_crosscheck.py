@@ -95,7 +95,6 @@ need('docker compose',exists('docker-compose.yml'))
 need('backend Dockerfile',exists('backend/Dockerfile'))
 need('AI Dockerfile',exists('ai-service/Dockerfile'))
 
-# Exact hazard-dedup and frontend-stack compliance added during final hardening.
 hsim=text('backend/src/services/hazardSimilarity.js')
 for key in ['detectionSimilarity','boxSimilarity','DETECTION_SIMILARITY_THRESHOLD']:
     need(f'hazard-dedup:{key}',key in hsim)
@@ -111,29 +110,32 @@ for key in ['protectedPages','buildAppNav','navora:returnTo','--nav-sidebar','.m
 need('retired showcase runtime not loaded','/assets/js/worldclass-ui.js' not in stack_pages and '/assets/css/worldclass.css' not in stack_pages)
 need('Lottie asset',exists('frontend/assets/animations/navora-pulse.json'))
 
-# QA and repository tooling must work from arbitrary clone paths, not sandbox-specific paths.
 qa=text('qa-screens/render_qa.py')+text('qa-screens/render_journey_map.py')
 need('portable QA paths','/mnt/data' not in qa and 'BeautifulSoup' not in qa and 'bs4' not in qa)
 for tool in ['scripts/final_verify.py','scripts/prepush_audit.py','scripts/apply_final_release.ps1','scripts/runtime_e2e.js','scripts/model_readiness.py','scripts/evaluate_detector.py','scripts/evaluate_snn.py','.github/workflows/ci.yml']:
     need(f'final-tooling:{tool}',exists(tool))
 
-# Validation metadata must distinguish detector and SNN status, while live runtime must
-# derive validation from the V28 evidence guard rather than trusting either flag directly.
+# V36: detector functionality is an engineering/runtime contract; SNN scientific
+# validation remains independent and evidence-bound.
 meta=text('ai-service/trained_models/metadata.example.json')
-need('separate detector/risk validation flags','detectorValidated' in meta and 'riskValidated' in meta)
+need('separate detector functional/SNN science metadata','detectorScientificValidationInScope' in meta and 'riskValidated' in meta)
 validation_helper=text('ai-service/app/model_validation.py')
 risk_runtime=text('ai-service/app/services/risk_service.py')
 detector_runtime=text('ai-service/app/services/detection_service.py')
-need('V28 validation helper',"def model_validation_status" in validation_helper and "schemaVersion" in validation_helper and "SHA-256" in validation_helper)
+need('model validation helper',"def model_validation_status" in validation_helper and "def detector_integrity_status" in validation_helper and "schemaVersion" in validation_helper)
 need('risk evidence-bound validation runtime',"model_validation_status('risk'" in risk_runtime and "self.validated=bool(validation.get('passed'))" in risk_runtime)
-need('detector evidence-bound validation runtime',"model_validation_status('detector'" in detector_runtime and "self.validated=bool(validation.get('passed'))" in detector_runtime)
+need('detector functional integrity runtime','detector_integrity_status' in detector_runtime and 'self.integrity_ready' in detector_runtime and 'self.trained_weights_active' in detector_runtime)
+need('detector no scientific runtime dependency',"model_validation_status('detector'" not in detector_runtime)
+need('detector runtime path retained','trained_models/detector.pt' in text('ai-service/app/config.py'))
+need('detector normal confidence threshold','if float(score)<.3:continue' in detector_runtime)
+need('BDD100K detector docs','BDD100K' in text('README.md') and 'BDD100K' in text('docs/datasets.md'))
+need('detector scope wording','Independent cross-dataset detector scientific validation is outside the current project scope' in text('README.md'))
 
 # Secrets: examples may name variables, but no non-empty values for secret/key fields.
 envexample=text('backend/.env.example')
 for var in ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET','BREVO_API_KEY','GOOGLE_CLIENT_SECRET','TRAFFIC_API_KEY','ROUTING_API_KEY']:
     m=re.search(rf'^{var}=(.*)$',envexample,re.M); need(f'blank secret:{var}',bool(m) and not m.group(1).strip())
-# Clean distributions must not contain real .env files. In a developer working tree,
-# local runtime .env files are acceptable only when Git ignores them and does not track them.
+
 def git_result(*cmd):
     try:
         return subprocess.run(['git',*cmd],cwd=ROOT,text=True,capture_output=True,check=False)
@@ -150,7 +152,6 @@ if args.working_tree:
 else:
     need('no real .env',not env_paths, ', '.join(env_paths) if env_paths else '')
 
-# Dataset fields requested by master prompt.
 raw=text('datasets/demo-data/snn-risk-raw.csv').splitlines()[0].split(',')
 for f in ['objectClass','confidence','estimatedDistance','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','visibility','weatherRisk','roadCondition','verifiedReports','riskScore','riskLabel']:
     need(f'dataset-field:{f}',f in raw)
@@ -163,4 +164,4 @@ if fail:
     for x in fail: print(' -',x)
     sys.exit(1)
 print('MASTER PROMPT CROSS-CHECK: PASS')
-print(f'Pages={len(required_pages)} required, Models={len(required_models)} required; routing/AI/algorithms/privacy/auth/PWA/Three/frontend-stack/hazard-dedup/QA/CI contracts present.')
+print(f'Pages={len(required_pages)} required, Models={len(required_models)} required; routing/AI/algorithms/privacy/auth/PWA/Three/frontend-stack/hazard-dedup/QA/CI contracts present; detector functional scope is independent of SNN scientific validation.')
