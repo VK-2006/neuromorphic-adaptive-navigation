@@ -34,27 +34,33 @@ def test_validated_snn_serves_trained_prediction():
     assert out['explanation']['source'] == 'snn'
 
 
-def _detector(validated: bool):
+def _detector(integrity_ready: bool, model_present: bool = True):
     detector = Detector.__new__(Detector)
-    detector.model = object()
-    detector.validated = validated
-    detector.mode = 'torchscript-trained-weights-validated' if validated else 'development/heuristic-fallback-unvalidated-weights'
+    detector.model = object() if model_present else None
+    detector.validated = False
+    detector.functional = True
+    detector.integrity_ready = integrity_ready
+    detector.trained_weights_active = bool(model_present and integrity_ready)
+    detector.mode = 'torchscript-trained-weights-functional' if detector.trained_weights_active else 'development/heuristic-fallback'
     detector.load_error = None
-    detector.validation_issues = []
+    detector.integrity_issues = []
+    detector.validation_issues = detector.integrity_issues
     return detector
 
 
-def test_unvalidated_detector_never_serves_trained_detection():
-    detector = _detector(False)
-    detector._torchscript = lambda _: (_ for _ in ()).throw(AssertionError('unvalidated detector inference executed'))
-    detector._fallback_detect = lambda _: [{'objectClass': 'fallback'}]
-    out = Detector.detect(detector, object())
-    assert out == [{'objectClass': 'fallback'}]
-
-
-def test_validated_detector_serves_trained_detection():
+def test_integrity_ready_detector_serves_trained_detection_without_science_gate():
     detector = _detector(True)
-    detector._fallback_detect = lambda _: (_ for _ in ()).throw(AssertionError('validated detector was sent to fallback'))
+    detector._fallback_detect = lambda _: (_ for _ in ()).throw(AssertionError('functional detector was sent to fallback'))
     detector._torchscript = lambda _: [{'objectClass': 'trained'}]
     out = Detector.detect(detector, object())
+    assert detector.validated is False
     assert out == [{'objectClass': 'trained'}]
+
+
+def test_detector_without_active_trained_artifact_uses_fallback():
+    detector = _detector(False, model_present=False)
+    detector._torchscript = lambda _: (_ for _ in ()).throw(AssertionError('inactive trained detector inference executed'))
+    detector._fallback_detect = lambda _: [{'objectClass': 'fallback'}]
+    out = Detector.detect(detector, object())
+    assert detector.validated is False
+    assert out == [{'objectClass': 'fallback'}]
