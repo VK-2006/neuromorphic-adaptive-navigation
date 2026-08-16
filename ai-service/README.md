@@ -1,6 +1,6 @@
 # Navora AI Service
 
-Separate FastAPI service for camera detections and SNN risk inference. It never presents missing/unvalidated weights as validated safety AI.
+Separate FastAPI service for camera detections and SNN risk inference. It never presents missing, stale, tampered, or merely metadata-flagged weights as validated safety AI.
 
 ## Runtime
 
@@ -8,21 +8,33 @@ Separate FastAPI service for camera detections and SNN risk inference. It never 
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-## Model truthfulness
+## V28 model truthfulness
 
-- `detectorValidated` independently gates the visual detector.
-- `riskValidated` independently gates the snnTorch risk model.
-- global `validated` is true only when both held-out validation gates pass.
-- without validated weights, the service reports research/development fallback or unvalidated trained mode.
+A live model is validated only when all of these agree:
+
+- overall `validated=true` and the model-specific validation flag;
+- non-weakened data-gate policy floors;
+- zero train/evaluation leakage;
+- a passing held-out evaluation bound to the gated evaluation dataset SHA-256;
+- V28 validation evidence bound to the exact gate/evaluation/metadata report hashes;
+- the SHA-256 of the exact `.pt` weight file loaded by the service.
+
+If any link is missing or changes, the service reports an unvalidated trained mode or development fallback. `/model/info` exposes `validationIssues` so deployment problems are visible without claiming safety validation.
 
 ## Training / evaluation
 
+Run the data gate first, then training, evaluation, evidence generation and readiness checks:
+
 ```bash
-python scripts/train_detector.py --manifest <training-manifest.jsonl>
-python scripts/evaluate_detector.py --manifest <held-out-manifest.jsonl> --mark-validation
-python scripts/train_snn.py --csv <training.csv>
-python scripts/evaluate_snn.py --csv <held-out.csv> --mark-validation
+python scripts/model_data_gate.py --det-train <det-train.jsonl> --det-eval <det-eval.jsonl> --snn-train <snn-train.csv> --snn-eval <snn-eval.csv>
+python scripts/train_detector.py --manifest <det-train.jsonl>
+python scripts/evaluate_detector.py --manifest <det-eval.jsonl> --mark-validation
+python scripts/train_snn.py --csv <snn-train.csv>
+python scripts/evaluate_snn.py --csv <snn-eval.csv> --mark-validation
+python scripts/validation_evidence.py --det-train <det-train.jsonl> --det-eval <det-eval.jsonl> --snn-train <snn-train.csv> --snn-eval <snn-eval.csv>
 python scripts/model_readiness.py
 ```
 
-Large BDD100K/RDD2022 datasets and generated `.pt` weights are intentionally not committed.
+The current validatable detector trainer is BDD100K-only for `person`, `bicycle`, `motorcycle`, `car`, `bus`, and `truck`. RDD2022 preparation exists, but pothole/road-damage classes are not yet part of the validated V4 detector trainer.
+
+Large upstream datasets, generated `.pt` weights, evaluation reports, metadata and evidence are intentionally not committed.
