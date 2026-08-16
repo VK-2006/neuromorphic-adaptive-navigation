@@ -89,7 +89,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     two-model gate, non-weakened policy floors, passing held-out reports, V28+ evidence,
     exact report/dataset fingerprints, and the SHA-256 of the weight file being loaded.
     Detector validation additionally binds the dynamic class order, training sources and
-    exact training-manifest fingerprint to the source-aware V29 data-gate report.
+    exact training-manifest fingerprint to the V29 data gate. V30 adds the same provenance
+    guarantee for the risk SNN by binding its exact training CSV SHA-256 to the data gate.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
@@ -144,6 +145,9 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
             issues.append('detector metadata training sources do not match the V29 data gate')
         if metadata.get('trainingManifestSha256') != gate_detector.get('trainSha256'):
             issues.append('detector metadata training manifest fingerprint does not match the V29 data gate')
+    else:
+        if metadata.get('riskTrainingCsvSha256') != gate_snn.get('trainSha256'):
+            issues.append('SNN metadata training CSV fingerprint does not match the V30 data gate')
 
     evaluation = _load_json(eval_path, issues, f'{kind} evaluation report')
     if evaluation.get('passed') is not True:
@@ -164,6 +168,18 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         issues.append('validation evidence is not V28 schema version 2')
     if evidence.get('passed') is not True:
         issues.append('validation evidence did not pass')
+    if kind == 'detector':
+        detector_contract = evidence.get('detectorContract', {})
+        if detector_contract.get('classes') != gate_detector.get('trainClasses'):
+            issues.append('validation evidence detector class contract does not match the data gate')
+        if sorted(detector_contract.get('trainingSources') or []) != sorted((gate_detector.get('trainSources') or {}).keys()):
+            issues.append('validation evidence detector source contract does not match the data gate')
+        if detector_contract.get('trainingManifestSha256') != gate_detector.get('trainSha256'):
+            issues.append('validation evidence detector training fingerprint does not match the data gate')
+    else:
+        risk_contract = evidence.get('riskContract', {})
+        if risk_contract.get('trainingCsvSha256') != gate_snn.get('trainSha256'):
+            issues.append('validation evidence SNN training fingerprint does not match the data gate')
 
     actual_sha = None
     if not weights_path.exists() or not weights_path.is_file() or weights_path.stat().st_size <= 0:
