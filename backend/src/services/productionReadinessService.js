@@ -32,6 +32,10 @@ function turnReady(config){
   return /^turns?:/i.test(String(config.webrtcTurnUrl||''))&&!!config.webrtcTurnUsername&&!!config.webrtcTurnCredential;
 }
 
+function roboflowReady(config){
+  return !!config.roboflowApiKey&&!!config.roboflowWorkspace&&!!config.roboflowWorkflowId;
+}
+
 function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=false}={}){
   if(!config)throw new Error('Production readiness requires resolved config');
   const production=config.nodeEnv==='production';
@@ -54,7 +58,7 @@ function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=fa
     traffic:{required:false,pass:config.trafficProvider==='tomtom'&&!!config.trafficApiKey,message:'TomTom live traffic requires TRAFFIC_PROVIDER=tomtom and TRAFFIC_API_KEY'},
     passkeys:{required:false,pass:!production||passkeyReady(config),message:'Production passkeys require HTTPS WEBAUTHN_ORIGIN whose hostname equals WEBAUTHN_RP_ID'},
     weather:{required:false,pass:config.weatherProvider==='openweathermap'&&!!config.openWeatherApiKey,message:'OpenWeather live weather risk requires OPENWEATHER_API_KEY'},
-    roboflow:{required:false,pass:!!config.roboflowApiKey&&!!(config.roboflowWorkflowUrl||config.roboflowWorkflowId),message:'Roboflow cloud inference requires API key plus workflow URL or workflow ID'},
+    roboflow:{required:false,pass:roboflowReady(config),message:'Roboflow cloud inference requires ROBOFLOW_API_KEY, ROBOFLOW_WORKSPACE and ROBOFLOW_WORKFLOW_ID'},
     turn:{required:false,pass:turnReady(config),message:'Remote WebRTC reliability requires a TURN URL, username and credential'}
   };
 
