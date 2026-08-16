@@ -12,8 +12,10 @@ This update changes the primary journey experience from a screen-only demo into 
 - Destination arrival requires repeated qualifying fixes before automatic journey completion/CRM update.
 - Camera inference uses smaller compressed frames with backpressure to reduce mobile data/CPU pressure.
 
-## Safety gate
-Unvalidated AI is never treated as safety-certified. The AI service now reports whether detector/SNN weights are marked validated. For LIVE journeys, unvalidated camera detections may be shown for research but do not automatically persist as live camera hazards or trigger camera-driven automatic rerouting when `LIVE_REQUIRE_VALIDATED_AI=true`.
+## Safety and perception scope
+Detector output remains a **functional perception input** and is not presented as safety-certified. Detector scientific validation is outside the current project scope, so LIVE eligibility no longer depends on a detector scientific-validation flag. Normal detector artifact integrity/loadability checks, confidence thresholds and fallback/error handling remain active.
+
+SNN scientific validation remains separate. When `LIVE_REQUIRE_VALIDATED_AI=true`, automatic camera-derived live-risk actions remain protected by the SNN `riskValidated` gate; if the SNN gate is not satisfied, perception/risk information may still be displayed while live automatic safety decisions remain restricted.
 
 ## Deployment requirement
 Real phone field use requires one public HTTPS origin for the frontend/backend, a reachable AI service, a real routing provider, and phone permissions for location/camera. A normal mobile browser cannot be relied on for unrestricted background GPS after the page becomes hidden or the device locks; Navora therefore treats foreground/installed-PWA use as the supported field mode.
