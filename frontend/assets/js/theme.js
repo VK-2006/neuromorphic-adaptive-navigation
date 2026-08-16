@@ -4,6 +4,9 @@
   if(!document.querySelector('link[data-navora-media-v18]')){
     const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/media-frames-v18.css';link.dataset.navoraMediaV18='true';document.head.appendChild(link);
   }
+  if(!document.querySelector('link[data-navora-fixed-sidebar-v21]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/fixed-sidebar-v21.css';link.dataset.navoraFixedSidebarV21='true';document.head.appendChild(link);
+  }
   const normalize=value=>order.includes(value)?value:'system';
   const media=()=>typeof window.matchMedia==='function'?window.matchMedia('(prefers-color-scheme: dark)'):null;
   function render(value){document.querySelectorAll('[data-theme-toggle]').forEach(button=>{button.textContent=label[value];button.setAttribute('aria-label',`Theme is ${value}. Activate to change theme.`);button.setAttribute('title',`Theme: ${value}`)})}
