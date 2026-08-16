@@ -58,7 +58,7 @@ def main():
 
     gate_classes=gate_detector.get('trainClasses')
     if not isinstance(gate_classes,list) or meta.get('detectorClasses')!=gate_classes:
-        problems.append('detector metadata class order does not match V29+ data gate')
+        problems.append('detector metadata class order does not match V29 data gate')
     det_per=det.get('perClass')
     if not isinstance(det_per,dict) or any(cls not in det_per for cls in (gate_classes or [])):
         problems.append('detector per-class evidence is incomplete for trained classes')
@@ -69,9 +69,9 @@ def main():
     gate_sources=sorted((gate_detector.get('trainSources') or {}).keys())
     metadata_sources=meta.get('trainingSources')
     if not isinstance(metadata_sources,list) or sorted(metadata_sources)!=gate_sources:
-        problems.append('detector metadata training sources do not match V29+ data gate')
+        problems.append('detector metadata training sources do not match V29 data gate')
     if meta.get('trainingManifestSha256')!=gate_detector.get('trainSha256'):
-        problems.append('detector metadata training manifest fingerprint does not match V29+ data gate')
+        problems.append('detector metadata training manifest fingerprint does not match V29 data gate')
 
     current={
         'detectorTrainSha256':sha(a.det_train),
