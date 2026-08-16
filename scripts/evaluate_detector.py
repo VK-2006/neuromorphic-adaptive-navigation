@@ -1,13 +1,20 @@
-"""Evaluate detector.pt against a held-out BDD100K/RDD2022-derived manifest.
+"""Evaluate detector.pt against a held-out BDD100K-derived manifest.
 
-Metrics use class-aware greedy IoU matching. The script can update detectorValidated, but only
-when the held-out sample count and precision/recall/F1 thresholds are met.
+Metrics use class-aware greedy IoU matching. Validation marking is deliberately stricter
+than diagnostic evaluation: the V12/V28 data gate must have passed, its policy floors may
+not be weakened, and the exact held-out manifest SHA-256 must match the gated dataset.
 """
 from __future__ import annotations
 from pathlib import Path
 import argparse,json,os,sys
 import cv2
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'ai-service'))
+from app.model_validation import (
+    DATA_GATE_MINIMUMS,
+    DETECTOR_EVAL_MINIMUMS,
+    sha256_file,
+)
 
 def iou(a,b):
     ax1,ay1,aw,ah=a;bx1,by1,bw,bh=b;ax2,ay2=ax1+aw,ay1+ah;bx2,by2=bx1+bw,by1+bh
@@ -17,23 +24,51 @@ def iou(a,b):
 def norm_gt(box,w,h):
     x1,y1,x2,y2=map(float,box);return [x1/w,y1/h,max(0,(x2-x1)/w),max(0,(y2-y1)/h)]
 
-def update_metadata(passed,report_path):
-    model_dir=ROOT/'ai-service/trained_models';mp=model_dir/'metadata.json'
-    try:m=json.loads(mp.read_text()) if mp.exists() else {}
+def thresholds_meet(actual,minimums):
+    return all(isinstance(actual.get(k),(int,float)) and not isinstance(actual.get(k),bool) and actual[k]>=v for k,v in minimums.items())
+
+def update_metadata(metadata_path,passed,report_path):
+    metadata_path.parent.mkdir(parents=True,exist_ok=True)
+    try:m=json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     except Exception:m={}
     m['detectorValidated']=bool(passed);m['validated']=bool(m.get('riskValidated',False) and m.get('detectorValidated',False))
     m.setdefault('validation',{})['detectorReport']=report_path.name
-    mp.write_text(json.dumps(m,indent=2),encoding='utf-8')
+    metadata_path.write_text(json.dumps(m,indent=2),encoding='utf-8')
+
+def gated_manifest_status(manifest):
+    gate_path=ROOT/'ai-service/trained_models/data-gate-report.json'
+    problems=[]
+    try:gate=json.loads(gate_path.read_text(encoding='utf-8'))
+    except Exception as e:return False,[f'missing/invalid data-gate report: {type(e).__name__}']
+    if gate.get('passed') is not True:problems.append('data gate did not pass')
+    if gate.get('detector',{}).get('trainEvalImageOverlap')!=0:problems.append('detector train/eval overlap is not zero')
+    if not thresholds_meet(gate.get('thresholds',{}),DATA_GATE_MINIMUMS):problems.append('data-gate thresholds are below validation policy floors')
+    current=sha256_file(manifest)
+    expected=gate.get('detector',{}).get('evalSha256')
+    if not expected or current!=expected:problems.append('held-out detector manifest SHA-256 does not match the data gate')
+    return not problems,problems
+
+def per_class_metrics(per):
+    output={};f1s=[]
+    for cls,counts in sorted(per.items()):
+        tp=counts['tp'];fp=counts['fp'];fn=counts['fn']
+        precision=tp/(tp+fp) if tp+fp else 0
+        recall=tp/(tp+fn) if tp+fn else 0
+        f1=2*precision*recall/(precision+recall) if precision+recall else 0
+        output[cls]={**counts,'precision':round(precision,6),'recall':round(recall,6),'f1':round(f1,6)}
+        if tp+fn:f1s.append(f1)
+    return output,(sum(f1s)/len(f1s) if f1s else 0)
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--manifest',type=Path,required=True,help='Held-out JSONL manifest, not training data')
     ap.add_argument('--weights',type=Path,default=ROOT/'ai-service/trained_models/detector.pt');ap.add_argument('--metadata',type=Path,default=ROOT/'ai-service/trained_models/metadata.json')
-    ap.add_argument('--iou',type=float,default=.5);ap.add_argument('--min-samples',type=int,default=200);ap.add_argument('--min-precision',type=float,default=.65);ap.add_argument('--min-recall',type=float,default=.60);ap.add_argument('--min-f1',type=float,default=.62);ap.add_argument('--mark-validation',action='store_true')
+    ap.add_argument('--iou',type=float,default=.5);ap.add_argument('--min-samples',type=int,default=DETECTOR_EVAL_MINIMUMS['minSamples']);ap.add_argument('--min-precision',type=float,default=DETECTOR_EVAL_MINIMUMS['minPrecision']);ap.add_argument('--min-recall',type=float,default=DETECTOR_EVAL_MINIMUMS['minRecall']);ap.add_argument('--min-f1',type=float,default=DETECTOR_EVAL_MINIMUMS['minF1']);ap.add_argument('--mark-validation',action='store_true')
     a=ap.parse_args()
+    configured={'minSamples':a.min_samples,'minPrecision':a.min_precision,'minRecall':a.min_recall,'minF1':a.min_f1}
+    policy_problems=[f'configured threshold {k}={configured[k]} is below policy floor {v}' for k,v in DETECTOR_EVAL_MINIMUMS.items() if configured[k]<v]
     if not a.weights.exists():raise SystemExit(f'Missing detector weights: {a.weights}')
     os.environ['DETECTOR_WEIGHTS_PATH']=str(a.weights.resolve().relative_to((ROOT/'ai-service').resolve())) if str(a.weights.resolve()).startswith(str((ROOT/'ai-service').resolve())) else str(a.weights.resolve())
     os.environ['MODEL_METADATA_PATH']=str(a.metadata.resolve().relative_to((ROOT/'ai-service').resolve())) if a.metadata.exists() and str(a.metadata.resolve()).startswith(str((ROOT/'ai-service').resolve())) else str(a.metadata.resolve())
-    sys.path.insert(0,str(ROOT/'ai-service'))
     from app.services.detection_service import Detector
     detector=Detector()
     if detector.model is None:
@@ -58,10 +93,21 @@ def main():
         for i,g in enumerate(gts):
             if i not in matched:fn+=1;per.setdefault(g['objectClass'],{'tp':0,'fp':0,'fn':0})['fn']+=1
     precision=tp/(tp+fp) if tp+fp else 0;recall=tp/(tp+fn) if tp+fn else 0;f1=2*precision*recall/(precision+recall) if precision+recall else 0
-    enough=used>=a.min_samples;passed=enough and precision>=a.min_precision and recall>=a.min_recall and f1>=a.min_f1
-    report={'images':used,'tp':tp,'fp':fp,'fn':fn,'precision':round(precision,6),'recall':round(recall,6),'f1':round(f1,6),'iouThreshold':a.iou,'thresholds':{'minSamples':a.min_samples,'minPrecision':a.min_precision,'minRecall':a.min_recall,'minF1':a.min_f1},'passed':passed,'perClass':per,'manifest':str(a.manifest)}
+    detailed_per,macro_f1=per_class_metrics(per)
+    enough=used>=a.min_samples
+    metric_pass=enough and precision>=a.min_precision and recall>=a.min_recall and f1>=a.min_f1
+    policy_compliant=not policy_problems
+    passed=metric_pass and policy_compliant
+    gate_ok,gate_problems=gated_manifest_status(a.manifest)
+    validation_eligible=passed and gate_ok
+    report={'images':used,'tp':tp,'fp':fp,'fn':fn,'precision':round(precision,6),'recall':round(recall,6),'f1':round(f1,6),'macroF1':round(macro_f1,6),'iouThreshold':a.iou,'thresholds':configured,'policyFloors':DETECTOR_EVAL_MINIMUMS,'policyCompliant':policy_compliant,'metricPassed':metric_pass,'dataGateBound':gate_ok,'validationEligible':validation_eligible,'passed':passed,'perClass':detailed_per,'manifest':str(a.manifest),'manifestSha256':sha256_file(a.manifest),'problems':policy_problems+gate_problems}
     out=ROOT/'ai-service/trained_models/detector-evaluation.json';out.write_text(json.dumps(report,indent=2),encoding='utf-8');print(json.dumps(report,indent=2))
-    if a.mark_validation:update_metadata(passed,out);print('metadata detectorValidated =',passed)
+    if a.mark_validation:
+        update_metadata(a.metadata,validation_eligible,out);print('metadata detectorValidated =',validation_eligible)
+        if not gate_ok:
+            print('VALIDATION BLOCKED: detector evaluation is not bound to the passing data gate.')
     if not enough:print('VALIDATION BLOCKED: held-out evaluation set is too small.')
-    sys.exit(0 if passed else 2)
+    if policy_problems:
+        print('VALIDATION BLOCKED: configured detector thresholds are weaker than policy floors.')
+    sys.exit(0 if (passed and (not a.mark_validation or validation_eligible)) else 2)
 if __name__=='__main__':main()
