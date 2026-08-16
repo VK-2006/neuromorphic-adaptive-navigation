@@ -5,6 +5,7 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import math
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,10 @@ from app.model_validation import DATA_GATE_MINIMUMS
 def stable_key(seed: str, row: dict) -> str:
     raw = f"{seed}|{row['source']}|{Path(row['image']).as_posix().lower()}"
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+def row_class_counts(row: dict) -> Counter:
+    return Counter(str(ann['class']) for ann in row['boxes'])
 
 
 def load_rows(path: Path) -> list[dict]:
@@ -33,12 +38,25 @@ def load_rows(path: Path) -> list[dict]:
         boxes = row.get('boxes')
         if not image or not isinstance(boxes, list) or not boxes:
             raise ValueError(f'{path}:{line_no}: image and non-empty boxes are required')
-        image_key = str(Path(image).expanduser().resolve()).lower()
+        image_path = Path(image).expanduser()
+        if not image_path.is_absolute():
+            image_path = Path.cwd() / image_path
+        image_path = image_path.resolve()
+        if not image_path.exists():
+            raise ValueError(f'{path}:{line_no}: image missing: {image_path}')
+        image_key = str(image_path).lower()
         if image_key in seen_images:
             raise ValueError(f'{path}:{line_no}: duplicate image row: {image}')
         seen_images.add(image_key)
         for ann in boxes:
-            validate_source_class(source, str(ann.get('class') or ''))
+            class_name = str(ann.get('class') or '')
+            validate_source_class(source, class_name)
+            box = ann.get('box')
+            if not isinstance(box, list) or len(box) != 4:
+                raise ValueError(f'{path}:{line_no}: invalid box for {class_name!r}')
+            values = [float(x) for x in box]
+            if not all(math.isfinite(x) for x in values) or values[2] <= values[0] or values[3] <= values[1]:
+                raise ValueError(f'{path}:{line_no}: invalid xyxy box {box!r}')
         rows.append(row)
     if not rows:
         raise ValueError(f'empty manifest: {path}')
@@ -48,7 +66,7 @@ def load_rows(path: Path) -> list[dict]:
 def class_instances(rows: list[dict]) -> Counter:
     counts = Counter()
     for row in rows:
-        counts.update(str(ann['class']) for ann in row['boxes'])
+        counts.update(row_class_counts(row))
     return counts
 
 
@@ -56,9 +74,29 @@ def source_images(rows: list[dict]) -> Counter:
     return Counter(str(row['source']) for row in rows)
 
 
+def can_move_train_to_eval(row: dict, train: list[dict]) -> bool:
+    source = str(row['source'])
+    remaining_sources = source_images([x for x in train if x is not row])
+    if remaining_sources.get(source, 0) <= 0:
+        return False
+    remaining_classes = class_instances([x for x in train if x is not row])
+    return all(remaining_classes.get(class_name, 0) > 0 for class_name in row_class_counts(row))
+
+
+def can_move_eval_to_train(row: dict, evaluation: list[dict]) -> bool:
+    source = str(row['source'])
+    remaining_sources = source_images([x for x in evaluation if x is not row])
+    return remaining_sources.get(source, 0) > 0
+
+
 def split_rows(rows: list[dict], eval_fraction: float, seed: str, min_eval_instances: int):
     if not 0 < eval_fraction < 0.5:
         raise ValueError('--eval-fraction must be > 0 and < 0.5')
+    policy_floor = DATA_GATE_MINIMUMS['minDetectorEvalInstancesPerTrainedClass']
+    if min_eval_instances < policy_floor:
+        raise ValueError(
+            f'--min-eval-class-instances {min_eval_instances} is below policy floor {policy_floor}'
+        )
 
     by_source = {}
     for row in rows:
@@ -75,27 +113,57 @@ def split_rows(rows: list[dict], eval_fraction: float, seed: str, min_eval_insta
         evaluation.extend(ordered[:eval_count])
         train.extend(ordered[eval_count:])
 
-    trained_classes = ordered_classes(class_instances(rows))
-    eval_counts = class_instances(evaluation)
+    all_classes = ordered_classes(class_instances(rows))
 
-    # Deterministically promote training images into held-out data only when needed to
-    # preserve minimum class coverage. The held-out set is never used for training later.
-    for class_name in trained_classes:
-        while eval_counts.get(class_name, 0) < min_eval_instances:
+    # First guarantee every class remains learnable. A rare-class image that happened to
+    # hash into held-out data is moved back to training when necessary, while preserving
+    # at least one held-out image for that source.
+    for class_name in all_classes:
+        if class_instances(train).get(class_name, 0) > 0:
+            continue
+        candidates = [
+            row for row in evaluation
+            if row_class_counts(row).get(class_name, 0) > 0
+            and can_move_eval_to_train(row, evaluation)
+        ]
+        if not candidates:
+            raise ValueError(f'cannot preserve any training example for class {class_name!r}')
+        chosen = min(candidates, key=lambda row: stable_key(seed + '|restore-train|' + class_name, row))
+        evaluation.remove(chosen)
+        train.append(chosen)
+
+    # Then guarantee held-out class coverage without ever removing the final training
+    # instance of any class carried by the promoted image.
+    for class_name in all_classes:
+        while class_instances(evaluation).get(class_name, 0) < min_eval_instances:
             candidates = [
                 row for row in train
-                if any(str(ann['class']) == class_name for ann in row['boxes'])
-                and source_images([x for x in train if x is not row]).get(str(row['source']), 0) > 0
+                if row_class_counts(row).get(class_name, 0) > 0
+                and can_move_train_to_eval(row, train)
             ]
             if not candidates:
+                current = class_instances(evaluation).get(class_name, 0)
                 raise ValueError(
-                    f'cannot provide {min_eval_instances} held-out instances for {class_name!r}; '
-                    f'available held-out instances={eval_counts.get(class_name, 0)}'
+                    f'cannot provide {min_eval_instances} held-out instances for {class_name!r} '
+                    f'without removing its final training coverage; available held-out instances={current}'
                 )
             chosen = min(candidates, key=lambda row: stable_key(seed + '|promote|' + class_name, row))
             train.remove(chosen)
             evaluation.append(chosen)
-            eval_counts.update(str(ann['class']) for ann in chosen['boxes'])
+
+    train_counts = class_instances(train)
+    eval_counts = class_instances(evaluation)
+    for class_name in all_classes:
+        if train_counts.get(class_name, 0) <= 0:
+            raise ValueError(f'training coverage vanished for class {class_name!r}')
+        if eval_counts.get(class_name, 0) < min_eval_instances:
+            raise ValueError(f'held-out coverage remains insufficient for class {class_name!r}')
+
+    train_sources = source_images(train)
+    eval_sources = source_images(evaluation)
+    for source in by_source:
+        if train_sources.get(source, 0) <= 0 or eval_sources.get(source, 0) <= 0:
+            raise ValueError(f'source {source!r} must remain represented in both train and held-out data')
 
     return train, evaluation
 
@@ -145,6 +213,7 @@ def main():
     report = {
         'seed': args.seed,
         'evalFractionRequested': args.eval_fraction,
+        'minEvalClassInstances': args.min_eval_class_instances,
         'trainImages': len(train),
         'evalImages': len(evaluation),
         'trainSources': dict(source_images(train)),
