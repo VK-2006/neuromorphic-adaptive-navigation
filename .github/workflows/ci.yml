@@ -115,6 +115,8 @@ jobs:
         run: node scripts/browser_v8_full_sweep.js http://127.0.0.1:5000
       - name: V22 fixed-navigation physical scroll E2E
         run: node scripts/browser_v22_fixed_shell_e2e.js http://127.0.0.1:5000
+      - name: Camera local/cloud privacy Chromium E2E
+        run: node scripts/browser_v11_7_detection_modes_e2e.js http://127.0.0.1:5000
       - name: Browser server log on failure
         if: failure()
         run: cat /tmp/navora-browser-server.log || true
