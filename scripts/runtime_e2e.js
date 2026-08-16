@@ -96,8 +96,9 @@ async function aiSmoke(){
   const aiBase=process.env.AI_SERVICE_URL||'http://127.0.0.1:8000';
   try{
     const health=await fetch(aiBase+'/health');assert(health.ok,'AI /health failed');
+    const infoRes=await fetch(aiBase+'/model/info');if(infoRes.ok){const info=await infoRes.json();for(const model of [info.riskModel,info.detector])if(model&&String(model.mode).includes('fallback'))assert(model.validated===false,`${model.mode} must not be validated`)}
     const risk=await fetch(aiBase+'/api/v1/risk/predict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({features:{objectClass:'road blockage',confidence:.95,estimatedDistance:3,relativeSpeed:10,userSpeed:12,objectPersistence:.9,trafficDensity:.8,hazardFrequency:.7,visibility:.4,weatherRisk:.4,roadCondition:.9,verifiedReports:4}})});
-    assert(risk.ok,`AI risk HTTP ${risk.status}`);const j=await risk.json();assert(Number.isFinite(Number(j.score))&&j.level,'AI risk response invalid');return true;
+    assert(risk.ok,`AI risk HTTP ${risk.status}`);const j=await risk.json();assert(Number.isFinite(Number(j.score))&&j.level,'AI risk response invalid');if(String(j.mode).includes('fallback'))assert(j.validated===false,'Fallback risk response claimed validation');return true;
   }catch(e){console.warn('AI direct smoke WARNING:',e.message);return false}
 }
 async function main(){
@@ -109,16 +110,20 @@ async function main(){
   const otp=reg?.data?.delivery?.developmentOtp;assert(/^\d{6}$/.test(String(otp||'')),'Development verification OTP was not returned; E2E forces Brevo off');
   await request('/api/v1/auth/verify-email',{method:'POST',auth:false,body:{email,otp:String(otp)}});
   await request('/api/v1/auth/login',{method:'POST',auth:false,body:{email,password}});
-  const me=await request('/api/v1/users/me');assert(me?.data?.email===email,'Authenticated profile mismatch');
+  const me=await request('/api/v1/users/me');assert(me?.data?.email===email,'Authenticated profile mismatch');const userId=me?.data?.id;assert(userId,'Authenticated user ID missing');
   await request('/api/v1/auth/refresh',{method:'POST'});
 
   const source={lat:17.3850,lng:78.4867},destination={lat:17.4375,lng:78.4483};
   const cmp=await request('/api/v1/routes/compare',{method:'POST',body:{source,destination,preferences:{safety:.8,traffic:.6,familiarity:.5},simulation:true}});
   const routes=cmp?.data?.routes||[];assert(routes.length>=3,'Route comparison did not return alternatives');
   const selected=routes.find(r=>r.id===cmp.data.recommendedRouteId);assert(selected?.databaseId,'Authenticated route was not persisted');
+  const unknownRoute=crypto.randomBytes(12).toString('hex');
+  await request('/api/v1/journeys',{method:'POST',body:{routeId:unknownRoute,mode:'SIMULATION',source,destination},expectStatus:404});
 
   const created=await request('/api/v1/journeys',{method:'POST',body:{routeId:selected.databaseId,mode:'SIMULATION',source,destination},expectStatus:201});
   const journeyId=created?.data?._id;assert(journeyId,'Journey create failed');
+  await request('/api/v1/tracking/update',{method:'POST',body:{journeyId,lat:source.lat,lng:source.lng,accuracy:8,timestamp:Date.now()},expectStatus:409});
+  await request(`/api/v1/journeys/${journeyId}/start`,{method:'POST'});
   await request(`/api/v1/journeys/${journeyId}/start`,{method:'POST'});
 
   const points=selected.coordinates||[];assert(points.length>=3,'Selected route has insufficient geometry');
@@ -129,12 +134,18 @@ async function main(){
 
   const rr=await request('/api/v1/routes/reroute',{method:'POST',body:{journeyId,currentLocation:points[Math.floor(points.length/2)],preferences:{safety:.8,traffic:.6,familiarity:.5}}});
   assert(Array.isArray(rr?.data?.routes),'Reroute comparison missing route alternatives');
+  assert(rr?.data?.shouldOffer===false||rr?.data?.recommendedRoute,'Reroute offered without a recommendation');
 
   await socketRoundTrip(journeyId);
   const restChat=await request('/api/v1/chat/messages/global',{method:'POST',body:{content:`Navora REST chat ${Date.now()}`},expectStatus:201});
   assert(restChat?.data?.content,'REST chat fallback failed');
   const chatHistory=await request('/api/v1/chat/messages/global');
   assert((chatHistory?.data?.messages||[]).some(x=>x.id===restChat.data.id),'REST chat message was not persisted');
+  await request('/api/v1/chat/messages/global?before=not-a-date',{expectStatus:422});
+  const disposable=await request('/api/v1/chat/messages/global',{method:'POST',body:{content:`Disposable ${Date.now()}`},expectStatus:201});
+  await request(`/api/v1/chat/messages/${disposable.data.id}`,{method:'DELETE'});
+  await request(`/api/v1/chat/messages/${disposable.data.id}/reactions`,{method:'POST',body:{emoji:'👍'},expectStatus:404});
+  await request('/api/v1/chat/blocks/not-an-id',{method:'POST',expectStatus:422});
   const readiness=await request('/api/v1/live/readiness');assert(readiness?.data?.ai,'Live readiness response missing AI state');
 
   await request('/api/v1/trusted-contacts',{method:'POST',body:{name:'E2E Contact',email:'e2e-contact@example.com',phone:'+910000000000',relationship:'Test',sharePermission:true},expectStatus:201});
@@ -142,8 +153,13 @@ async function main(){
   assert(sos?.data?.emergencyActive===true,'SOS flow did not activate journey emergency state');
 
   await request(`/api/v1/journeys/${journeyId}/complete`,{method:'POST',body:{success:true,userFeedback:.9}});
-  const memory=await request('/api/v1/memory');assert((memory?.data||[]).length>=1,'CRM was not updated after completed journey');
+  const memory=await request('/api/v1/memory');assert((memory?.data||[]).length>=1,'CRM was not updated after completed journey');const learnedCount=Number(memory.data[0]?.journeyCount||0);assert(learnedCount>=1,'CRM journey count missing');
+  await request(`/api/v1/journeys/${journeyId}/complete`,{method:'POST',body:{success:true,userFeedback:.9}});
+  const memoryAfterDuplicate=await request('/api/v1/memory');assert(Number(memoryAfterDuplicate.data[0]?.journeyCount||0)===learnedCount,'Duplicate completion updated CRM twice');
+  await request('/api/v1/tracking/update',{method:'POST',body:{journeyId,lat:points.at(-1).lat,lng:points.at(-1).lng,accuracy:8,timestamp:Date.now()},expectStatus:409});
+  await request('/api/v1/routes/reroute',{method:'POST',body:{journeyId,currentLocation:points.at(-1)},expectStatus:409});
   const replay=await request(`/api/v1/journeys/${journeyId}/replay`);assert((replay?.data?.events||[]).length>=2,'Journey replay events missing');
+  await request(`/api/v1/notifications/${crypto.randomBytes(12).toString('hex')}/read`,{method:'PATCH',expectStatus:404});
 
   const forgot=await request('/api/v1/auth/forgot-password',{method:'POST',auth:false,body:{email}});
   const resetOtp=forgot?.data?.developmentOtp;assert(/^\d{6}$/.test(String(resetOtp||'')),'Password-reset development OTP missing');
@@ -154,7 +170,9 @@ async function main(){
 
   await makeAdmin();jar.clear();await request('/api/v1/auth/login',{method:'POST',auth:false,body:{email,password:password2}});
   const admin=await request('/api/v1/admin/overview');assert(admin?.data,'Admin RBAC/overview failed after role promotion');
+  await request(`/api/v1/admin/users/${userId}`,{method:'PATCH',body:{role:'USER'},expectStatus:422});
+  await request(`/api/v1/admin/users/${userId}`,{method:'PATCH',body:{disabled:true},expectStatus:422});
 
-  console.log('RUNTIME_E2E PASS: auth/OTP/refresh/reset, Mongo persistence, route/ACO pipeline, journey/tracking/reroute, Socket.IO/chat, readiness, SOS/trusted contact, CRM/replay, admin RBAC'+(aiUp?', AI direct smoke':' (AI unavailable warning)'));
+  console.log('RUNTIME_E2E PASS: auth/OTP/refresh/reset, Mongo persistence, route/ACO pipeline, lifecycle guards, journey/tracking/reroute, Socket.IO/chat guards, readiness, SOS/trusted contact, CRM idempotence/replay, notification ownership, admin RBAC'+(aiUp?', AI direct smoke':' (AI unavailable warning)'));
 }
 main().then(async()=>{if(child){child.kill('SIGTERM');await sleep(400)}await dropDb();process.exit(0)}).catch(async e=>{console.error('RUNTIME_E2E FAIL:',e.stack||e);if(child){child.kill('SIGTERM');await sleep(400)}await dropDb();process.exit(1)});
