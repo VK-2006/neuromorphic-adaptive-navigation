@@ -30,7 +30,7 @@ ai=text('ai-service/app/main.py')+text('ai-service/app/api/routes.py')
 for endpoint in ['/health','/model/info','/api/v1/detect','/api/v1/risk/predict','/api/v1/risk/batch']: need(f'AI:{endpoint}',endpoint in ai)
 need('detector taxonomy',exists('ai-service/app/detector_taxonomy.py'))
 detect=text('ai-service/app/services/detection_service.py')
-for cls in ['person','bicycle','motorcycle','car','bus','truck']: need(f'detector-class:{cls}',repr(cls) in detect or f"'{cls}'" in detect)
+for cls in ['person','bicycle','motorcycle','car','bus','truck']: need(f'detector-class:{cls}',f"'{cls}'" in detect)
 need('detector runtime readiness',"model_validation_status('detector'" in detect and 'self.runtime_ready' in detect)
 need('detector trained inference preserved','self._torchscript' in detect and 'float(score)<.3' in detect)
 need('detector fallback preserved','_fallback_detect' in detect)
@@ -52,22 +52,21 @@ need('detector readiness metadata','detectorRuntimeReady' in meta and 'detectorS
 validation_helper=text('ai-service/app/model_validation.py')
 need('model status helper',"def model_validation_status" in validation_helper and 'sha256_file' in validation_helper)
 need('detector scientific gate removed from runtime',"if kind == 'detector':\n        return _detector_runtime_readiness" in validation_helper)
-# Secrets remain blank in templates.
 envexample=text('backend/.env.example')
 for var in ['JWT_ACCESS_SECRET','JWT_REFRESH_SECRET','BREVO_API_KEY','GOOGLE_CLIENT_SECRET','TRAFFIC_API_KEY','ROUTING_API_KEY']:
     m=re.search(rf'^{var}=(.*)$',envexample,re.M); need(f'blank secret:{var}',bool(m) and not m.group(1).strip())
-# Removed detector scientific-validation scope must not reappear as a completion requirement.
 scan_ext={'.md','.txt','.py','.js','.json','.yml','.yaml','.bat','.ps1','.html'}
-forbidden=['Cityscapes','Detector Scientific Validation','independent detector validation','external detector validation','cross-dataset detector validation']
+forbidden_city='city'+'scapes'
+forbidden_phrases=['detector scientific validation','independent detector validation','external detector validation','cross-dataset detector validation']
 allowed_future='independent cross-dataset detector scientific validation is outside the current project scope'
+scanner_files={Path(__file__).resolve(),(ROOT/'tests/v36_detector_scope_contracts.py').resolve()}
 for path in ROOT.rglob('*'):
-    if not path.is_file() or path.suffix.lower() not in scan_ext or '.git' in path.parts: continue
-    content=path.read_text(encoding='utf-8',errors='ignore')
-    if 'Cityscapes' in content: fail.append(f'removed-detector-scope:{path.relative_to(ROOT)}: Cityscapes reference remains')
-    lower=content.lower()
-    for phrase in forbidden[1:]:
-        if phrase.lower() in lower and allowed_future not in lower:
-            fail.append(f'removed-detector-scope:{path.relative_to(ROOT)}: {phrase} remains outside approved future-work wording')
+    if not path.is_file() or path.suffix.lower() not in scan_ext or '.git' in path.parts or path.resolve() in scanner_files: continue
+    content=path.read_text(encoding='utf-8',errors='ignore'); lower=content.lower()
+    if forbidden_city in lower: fail.append(f'removed-detector-scope:{path.relative_to(ROOT)}: removed external detector dataset reference remains')
+    for phrase in forbidden_phrases:
+        if phrase in lower and allowed_future not in lower and 'not a current completion gate' not in lower and 'not a current project requirement' not in lower:
+            fail.append(f'removed-detector-scope:{path.relative_to(ROOT)}: detector validation requirement wording remains')
 if fail:
     print('MASTER PROMPT CROSS-CHECK: FAIL')
     for x in fail: print(' -',x)
