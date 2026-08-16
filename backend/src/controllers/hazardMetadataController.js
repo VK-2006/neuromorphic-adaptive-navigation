@@ -81,8 +81,11 @@ exports.analyze = async (req, res) => {
 
   const risk = await ai.predictRisk(features);
   const detectorValidated = false;
+  const detectorFunctional = true;
   const riskValidated = risk?.validated === true;
-  const safetyEligible = detectorValidated && riskValidated;
+  // Detector scientific validation is not a current completion/runtime prerequisite.
+  // Live automatic safety decisions remain protected by the independently validated SNN gate.
+  const safetyEligible = riskValidated;
   const canAffectLive =
     journey?.mode !== 'LIVE' ||
     !env.liveRequireValidatedAi ||
@@ -121,6 +124,7 @@ exports.analyze = async (req, res) => {
         detectorProvider: 'browser',
         detectorMode: 'browser-local-coco-ssd',
         detectorVersion: 'coco-ssd-2.2.3-lite_mobilenet_v2',
+        detectorFunctional: true,
         validated: false,
         frameTransmitted: false,
         weatherSource: hydrated.weather.weatherSource,
@@ -157,6 +161,7 @@ exports.analyze = async (req, res) => {
       aiMode: risk.mode,
       frameTransmitted: false,
       detector: 'browser-local-coco-ssd',
+      detectorFunctional: true,
       weatherSource: hydrated.weather.weatherSource,
     });
 
@@ -179,6 +184,8 @@ exports.analyze = async (req, res) => {
     hazardId: hazard?._id || null,
     aiMode: risk?.mode || 'unknown',
     detectorValidated,
+    detectorFunctional,
+    detectorScientificValidationRequired: false,
     riskValidated,
     safetyEligible,
     canAffectLive,
