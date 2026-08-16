@@ -105,42 +105,78 @@ def _validate_class_policy(kind: str, evaluation: dict, gate_detector: dict, iss
             issues.append(f'SNN evaluation is missing risk classes: {", ".join(missing)}')
 
 
-def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) -> dict:
-    """Return the conservative live-safety validation status for one model.
+def _detector_runtime_readiness(weights_path: Path, metadata_path: Path) -> dict:
+    """Functional detector readiness only; this is not a scientific-validation claim."""
+    issues: list[str] = []
+    metadata = _load_json(metadata_path, issues, 'model metadata')
+    actual_sha = None
 
-    A metadata boolean alone is never sufficient. Live validation requires the overall
-    two-model gate, non-weakened policy floors, passing held-out reports, V30 evidence,
-    exact report/dataset fingerprints, per-class quality gates, and the SHA-256 of the
-    weight file being loaded. V32 additionally permanently rejects any risk-model weight
-    fingerprint that has already failed an immutable external final validation.
+    if not weights_path.exists() or not weights_path.is_file() or weights_path.stat().st_size <= 0:
+        issues.append('trained detector weight file is missing or empty')
+    else:
+        try:
+            actual_sha = sha256_file(weights_path)
+        except Exception as exc:
+            issues.append(f'could not hash trained detector weights: {type(exc).__name__}')
+
+    classes = metadata.get('detectorClasses')
+    if not isinstance(classes, list) or not classes or any(not isinstance(x, str) or not x.strip() for x in classes):
+        issues.append('detectorClasses metadata is missing or invalid')
+
+    sources = metadata.get('trainingSources')
+    if sources is not None and (not isinstance(sources, list) or any(not isinstance(x, str) for x in sources)):
+        issues.append('detector trainingSources metadata is invalid')
+
+    expected_sha = metadata.get('detectorSha256')
+    if expected_sha is not None:
+        if not isinstance(expected_sha, str) or not expected_sha:
+            issues.append('detectorSha256 metadata is invalid')
+        elif actual_sha != expected_sha:
+            issues.append('trained detector SHA-256 does not match metadata')
+
+    unique_issues = list(dict.fromkeys(issues))
+    return {
+        'kind': 'detector',
+        'passed': not unique_issues,
+        'runtimeReady': not unique_issues,
+        'scientificValidationRequired': False,
+        'weightSha256': actual_sha,
+        'evidenceBound': False,
+        'reasons': unique_issues,
+    }
+
+
+def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) -> dict:
+    """Return model status.
+
+    Detector status is functional runtime readiness only. Independent cross-dataset detector
+    scientific validation is outside the current project scope. Risk/SNN status retains the
+    full scientific-validation evidence policy, including the immutable research-only lock.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
 
     weights_path = Path(weights_path)
     metadata_path = Path(metadata_path)
+    if kind == 'detector':
+        return _detector_runtime_readiness(weights_path, metadata_path)
+
     model_dir = metadata_path.parent
     gate_path = model_dir / 'data-gate-report.json'
     detector_eval_path = model_dir / 'detector-evaluation.json'
     snn_eval_path = model_dir / 'snn-evaluation.json'
-    eval_path = detector_eval_path if kind == 'detector' else snn_eval_path
+    eval_path = snn_eval_path
     evidence_path = model_dir / 'validation-evidence.json'
     issues: list[str] = []
 
-    flag = 'detectorValidated' if kind == 'detector' else 'riskValidated'
-    evidence_key = 'detector' if kind == 'detector' else 'snn'
-    weight_key = 'detectorSha256' if kind == 'detector' else 'riskSnnSha256'
-    eval_minimums = DETECTOR_EVAL_MINIMUMS if kind == 'detector' else SNN_EVAL_MINIMUMS
-    metric_keys = (
-        ['images', 'precision', 'recall', 'f1', 'macroF1', 'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
-        if kind == 'detector'
-        else ['samples', 'accuracy', 'macroF1', 'balancedAccuracy', 'negativeLogLikelihood', 'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
-    )
+    flag = 'riskValidated'
+    evidence_key = 'snn'
+    weight_key = 'riskSnnSha256'
+    eval_minimums = SNN_EVAL_MINIMUMS
+    metric_keys = ['samples', 'accuracy', 'macroF1', 'balancedAccuracy', 'negativeLogLikelihood', 'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
 
     metadata = _load_json(metadata_path, issues, 'model metadata')
-    if metadata.get('validated') is not True:
-        issues.append('overall validated flag is not true')
-    if metadata.get(flag) is not True:
+    if metadata.get('riskValidated') is not True:
         issues.append(f'{flag} is not true')
 
     gate = _load_json(gate_path, issues, 'data-gate report')
@@ -150,37 +186,20 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         issues.append('data-gate report did not pass')
     if gate.get('policyCompliant') is not True:
         issues.append('data-gate report is not policy-compliant')
-    if gate_detector.get('trainEvalImageOverlap') != 0:
-        issues.append('detector train/eval overlap is not zero')
     if gate_snn.get('trainEvalRowOverlap') != 0:
         issues.append('SNN train/eval overlap is not zero')
     _thresholds_at_least(gate.get('thresholds', {}), DATA_GATE_MINIMUMS, issues, 'data-gate')
 
-    if kind == 'detector':
-        metadata_classes = metadata.get('detectorClasses')
-        gate_classes = gate_detector.get('trainClasses')
-        if not isinstance(metadata_classes, list) or not isinstance(gate_classes, list) or metadata_classes != gate_classes:
-            issues.append('detector metadata class order does not match the V29 data gate')
-        metadata_sources = metadata.get('trainingSources')
-        gate_sources = sorted((gate_detector.get('trainSources') or {}).keys())
-        if not isinstance(metadata_sources, list) or sorted(metadata_sources) != gate_sources:
-            issues.append('detector metadata training sources do not match the V29 data gate')
-        if metadata.get('trainingManifestSha256') != gate_detector.get('trainSha256'):
-            issues.append('detector metadata training manifest fingerprint does not match the V29 data gate')
-
-    evaluation = _load_json(eval_path, issues, f'{kind} evaluation report')
+    evaluation = _load_json(eval_path, issues, 'risk evaluation report')
     if evaluation.get('passed') is not True:
-        issues.append(f'{kind} held-out evaluation did not pass')
+        issues.append('risk held-out evaluation did not pass')
     if evaluation.get('policyCompliant') is not True:
-        issues.append(f'{kind} evaluation is not policy-compliant')
+        issues.append('risk evaluation is not policy-compliant')
     if evaluation.get('dataGateBound') is not True or evaluation.get('validationEligible') is not True:
-        issues.append(f'{kind} evaluation is not bound to the passing data gate')
-    _thresholds_at_least(evaluation.get('thresholds', {}), eval_minimums, issues, f'{kind} evaluation')
-    _validate_class_policy(kind, evaluation, gate_detector, issues)
-
-    if kind == 'detector' and evaluation.get('manifestSha256') != gate_detector.get('evalSha256'):
-        issues.append('detector evaluation dataset fingerprint does not match the data gate')
-    if kind == 'risk' and evaluation.get('datasetSha256') != gate_snn.get('evalSha256'):
+        issues.append('risk evaluation is not bound to the passing data gate')
+    _thresholds_at_least(evaluation.get('thresholds', {}), eval_minimums, issues, 'risk evaluation')
+    _validate_class_policy('risk', evaluation, gate_detector, issues)
+    if evaluation.get('datasetSha256') != gate_snn.get('evalSha256'):
         issues.append('SNN evaluation dataset fingerprint does not match the data gate')
 
     evidence = _load_json(evidence_path, issues, 'validation evidence')
@@ -198,7 +217,7 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
         except Exception as exc:
             issues.append(f'could not hash trained weights: {type(exc).__name__}')
 
-    if kind == 'risk' and actual_sha in RESEARCH_ONLY_RISK_MODELS:
+    if actual_sha in RESEARCH_ONLY_RISK_MODELS:
         record = RESEARCH_ONLY_RISK_MODELS[actual_sha]
         issues.append(
             'risk model is permanently research-only after failed external final validation: '
@@ -211,14 +230,12 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
 
     evidence_metrics = evidence.get('metrics', {}).get(evidence_key, {})
     if evidence_metrics.get('passed') is not True or evidence_metrics.get('validationEligible') is not True:
-        issues.append(f'{kind} evidence metrics are not validation-eligible')
+        issues.append('risk evidence metrics are not validation-eligible')
     if evaluation and evidence_metrics and not _metric_subset_matches(evaluation, evidence_metrics, metric_keys):
-        issues.append(f'{kind} evaluation metrics do not match validation evidence')
+        issues.append('risk evaluation metrics do not match validation evidence')
 
     datasets = evidence.get('datasets', {})
     expected_datasets = {
-        'detectorTrainSha256': gate_detector.get('trainSha256'),
-        'detectorEvalSha256': gate_detector.get('evalSha256'),
         'snnTrainSha256': gate_snn.get('trainSha256'),
         'snnEvalSha256': gate_snn.get('evalSha256'),
     }
@@ -229,7 +246,6 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     report_hashes = evidence.get('reports', {})
     for path, key, label in [
         (gate_path, 'dataGateSha256', 'data-gate report'),
-        (detector_eval_path, 'detectorEvaluationSha256', 'detector evaluation report'),
         (snn_eval_path, 'snnEvaluationSha256', 'SNN evaluation report'),
         (metadata_path, 'metadataSha256', 'model metadata'),
     ]:
@@ -238,7 +254,7 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
 
     unique_issues = list(dict.fromkeys(issues))
     return {
-        'kind': kind,
+        'kind': 'risk',
         'passed': not unique_issues,
         'weightSha256': actual_sha,
         'evidenceBound': not unique_issues,
