@@ -1,16 +1,20 @@
 import{api,toast}from'./api.js';
 
-let map,marker,hazardLayer,routeLayers=[],timer=null,pos=0,speed=1,data=null,timeline={start:0,end:0,duration:0};
+let map,marker,hazardLayer,routeLayers=[],timer=null,pos=0,speed=1,data=null,timeline={start:0,end:0,duration:0},unitMode='METRIC';
 const $=id=>document.getElementById(id),slider=$('replay-slider');
 const arr=v=>Array.isArray(v)?v:[];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const ms=v=>{const n=new Date(v).getTime();return Number.isFinite(n)?n:null};
+function localUnits(){try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return String(p?.units||'METRIC').toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{return'METRIC'}}
+async function loadUnits(){unitMode=localUnits();try{const u=await api('/users/me');unitMode=String(u?.preferences?.units||unitMode).toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{}}
+function fmtSpeed(metersPerSecond){const s=Math.max(0,Number(metersPerSecond)||0);return unitMode==='IMPERIAL'?`${(s*2.236936).toFixed(1)} mph`:`${(s*3.6).toFixed(1)} km/h`}
 
 function leafletReady(){return Boolean(window.L&&map)}
 function mapUnavailable(){const host=$('replay-map');if(host)host.innerHTML='<div class="navora-state-panel"><h3>Map unavailable</h3><p class="muted">Leaflet could not load. Replay details remain available.</p></div>'}
 function replayable(j){return['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.status||'').toUpperCase())}
 
 async function init(){
+  await loadUnits();
   if(window.L){
     try{map=window.L.map('replay-map').setView([17.385,78.4867],12);window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);hazardLayer=window.L.layerGroup().addTo(map)}
     catch(e){map=null;hazardLayer=null;mapUnavailable();toast(`Replay map: ${e.message}`,'warning')}
@@ -94,7 +98,7 @@ function render(){
   const t=currentTime(),p=interpolatePoint(t);
   if(p){
     const c=p?.location?.coordinates;if(leafletReady()&&Array.isArray(c)&&c.length>=2){const ll=[c[1],c[0]];if(!marker)marker=window.L.circleMarker(ll,{radius:9}).addTo(map);else marker.setLatLng(ll)}
-    if($('replay-event'))$('replay-event').textContent=`${new Date(t).toLocaleTimeString()} · GPS ${(Number(p?.speed||0)*3.6).toFixed(1)} km/h`;
+    if($('replay-event'))$('replay-event').textContent=`${new Date(t).toLocaleTimeString()} · GPS ${fmtSpeed(p?.speed)}`;
   }
   const e=activeEvent(t);if(e&&$('replay-event'))$('replay-event').textContent=`${new Date(t).toLocaleTimeString()} · ${e.type||'Event'}${detail(e)?' · '+detail(e):''}`;
 }

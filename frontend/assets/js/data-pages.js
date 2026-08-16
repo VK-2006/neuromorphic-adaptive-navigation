@@ -5,11 +5,14 @@ const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const arr=v=>Array.isArray(v)?v:[];
 const num=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
 const when=v=>{const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString()};
-const km=v=>Number.isFinite(Number(v))?`${(Number(v)/1000).toFixed(1)} km`:'—';
+let unitMode='METRIC';
+const km=v=>Number.isFinite(Number(v))?(unitMode==='IMPERIAL'?`${(Number(v)/1609.344).toFixed(1)} mi`:`${(Number(v)/1000).toFixed(1)} km`):'—';
 const pct=v=>Number.isFinite(Number(v))?`${Math.round(Number(v)*100)}%`:'—';
 const safety=j=>j?.averageRisk!=null?`${Math.round(100*(1-Number(j.averageRisk)))}%`:'—';
 const replayable=j=>['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.status||'').toUpperCase());
 const labelOf=p=>p?.label||p?.name||(Number.isFinite(Number(p?.lat))?`${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`:'—');
+function localUnits(){try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return String(p?.units||'METRIC').toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{return'METRIC'}}
+async function loadUnits(){unitMode=localUnits();try{const u=await api('/users/me');unitMode=String(u?.preferences?.units||unitMode).toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC'}catch{}}
 
 let detailMap=null,detailLayers=[];
 
@@ -183,4 +186,5 @@ async function notifications(){
   }catch(e){h.innerHTML='<div class="empty-state">Notifications are temporarily unavailable.</div>';toast(e.message,'error')}
 }
 $('journey-detail-close')?.addEventListener('click',closeDialog);
-history();memory();notifications();
+async function init(){await loadUnits();history();memory();notifications()}
+init();
