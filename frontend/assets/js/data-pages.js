@@ -49,7 +49,7 @@ function renderDetailMap(bundle){
     const lat=Number(h?.location?.coordinates?.[1]),lng=Number(h?.location?.coordinates?.[0]);
     if(Number.isFinite(lat)&&Number.isFinite(lng)){
       const m=L.circleMarker([lat,lng],{radius:7,weight:2,fillOpacity:.55}).addTo(detailMap);
-      m.bindTooltip(`${String(h?.type||'Hazard')} · ${String(h?.snnRiskLevel||'UNKNOWN')}`);detailLayers.push(m);
+      m.bindTooltip(`${esc(h?.type||'Hazard')} · ${esc(h?.snnRiskLevel||'UNKNOWN')}`);detailLayers.push(m);
     }
   });
   setTimeout(()=>detailMap?.invalidateSize(),80);
