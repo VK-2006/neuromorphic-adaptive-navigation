@@ -4,6 +4,8 @@ from pathlib import Path
 import hashlib
 import json
 
+from app.research_lock import RESEARCH_ONLY_RISK_MODELS
+
 DATA_GATE_MINIMUMS = {
     'minDetectorTrainImages': 400,
     'minDetectorEvalImages': 200,
@@ -55,12 +57,7 @@ def _load_json(path: Path, issues: list[str], label: str) -> dict:
     return value
 
 
-def _thresholds_at_least(
-    actual: dict,
-    minimums: dict[str, float | int],
-    issues: list[str],
-    label: str,
-) -> None:
+def _thresholds_at_least(actual: dict, minimums: dict[str, float | int], issues: list[str], label: str) -> None:
     if not isinstance(actual, dict):
         issues.append(f'{label} thresholds missing')
         return
@@ -114,9 +111,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     A metadata boolean alone is never sufficient. Live validation requires the overall
     two-model gate, non-weakened policy floors, passing held-out reports, V30 evidence,
     exact report/dataset fingerprints, per-class quality gates, and the SHA-256 of the
-    weight file being loaded. Detector validation additionally binds the dynamic class
-    order, training sources and exact training-manifest fingerprint to the source-aware
-    V29+ data-gate report.
+    weight file being loaded. V32 additionally permanently rejects any risk-model weight
+    fingerprint that has already failed an immutable external final validation.
     """
     if kind not in {'detector', 'risk'}:
         raise ValueError(f'unsupported model validation kind: {kind}')
@@ -201,6 +197,13 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
             actual_sha = sha256_file(weights_path)
         except Exception as exc:
             issues.append(f'could not hash trained weights: {type(exc).__name__}')
+
+    if kind == 'risk' and actual_sha in RESEARCH_ONLY_RISK_MODELS:
+        record = RESEARCH_ONLY_RISK_MODELS[actual_sha]
+        issues.append(
+            'risk model is permanently research-only after failed external final validation: '
+            f"{record.get('candidate', 'unknown candidate')}"
+        )
 
     expected_sha = evidence.get('weights', {}).get(weight_key)
     if not expected_sha or actual_sha != expected_sha:
