@@ -1,0 +1,48 @@
+name: Navora Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: Backend/frontend Render origin
+        required: true
+        default: https://navora-backend-clzp.onrender.com
+        type: string
+      ai_url:
+        description: AI Render origin
+        required: true
+        default: https://navora-ai-ttsr.onrender.com
+        type: string
+      expected_commit:
+        description: Exact Git commit expected on BOTH Render services; blank uses dispatched GitHub SHA
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run exact-release production smoke
+        env:
+          BACKEND_URL: ${{ inputs.backend_url }}
+          AI_URL: ${{ inputs.ai_url }}
+          INPUT_EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+        run: |
+          EXPECTED="$INPUT_EXPECTED_COMMIT"
+          if [ -z "$EXPECTED" ]; then
+            EXPECTED="$GITHUB_SHA"
+          fi
+          echo "Expected release SHA: $EXPECTED"
+          python scripts/production_smoke.py \
+            --backend "$BACKEND_URL" \
+            --ai "$AI_URL" \
+            --expected-commit "$EXPECTED"
