@@ -51,7 +51,13 @@ jobs:
           python tests/v21_true_fixed_sidebar_contracts.py
           python tests/v22_right_pane_scroll_contracts.py
           python tests/v23_security_pwa_contracts.py
+          python tests/v24_runtime_hardening_contracts.py
           node --check backend/src/app.js
+          node --check frontend/assets/js/api.js
+          node --check frontend/assets/js/app-shell.js
+          node --check frontend/assets/js/v9-functional.js
+          node --check frontend/assets/js/replay.js
+          node --check frontend/assets/js/data-pages.js
           node --check frontend/assets/js/scroll-surface-v22.js
           node tests/pure-smoke.js
           node tests/performance_smoke.js
