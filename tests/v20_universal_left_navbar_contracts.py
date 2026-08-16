@@ -49,14 +49,17 @@ for token in [
 ]:
     assert token in profile, f'V20 navbar loader contract missing: {token}'
 
-assert "if(!protectedPages.has(page)&&!adminPages.has(page))return" not in shell
+mobile_start = shell.index('function mobile(){')
+mobile_end = shell.index('async function user()', mobile_start)
+mobile = shell[mobile_start:mobile_end]
+assert "if(!protectedPages.has(page)&&!adminPages.has(page))return" not in mobile
 for token in [
     "b.setAttribute('aria-expanded','false')",
     "event.key==='Escape'",
     "document.body.classList.toggle('nav-open',open)",
     "window.matchMedia?.('(max-width:820px)').matches",
 ]:
-    assert token in shell, f'V20 universal mobile nav contract missing: {token}'
+    assert token in mobile, f'V20 universal mobile nav contract missing: {token}'
 
 assert "navora-left-navbar-v20-0-0" in sw
 assert '"/assets/css/universal-left-navbar-v20.css"' in sw
