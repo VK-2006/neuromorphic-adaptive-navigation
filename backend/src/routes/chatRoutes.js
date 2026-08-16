@@ -1,4 +1,5 @@
 const r=require('express').Router();
+const mongoose=require('mongoose');
 const {authenticate}=require('../middleware/auth');
 const ChatRoom=require('../models/ChatRoom');
 const ChatMessage=require('../models/ChatMessage');
@@ -7,10 +8,12 @@ const ChatReport=require('../models/ChatReport');
 const Blocked=require('../models/BlockedUser');
 const Journey=require('../models/Journey');
 const Route=require('../models/Route');
+const User=require('../models/User');
 r.get('/status',(req,res)=>res.json({success:true,data:{available:true,realtime:!!req.app.get('io'),restFallback:true,requiresAuthentication:true}}));
 r.use(authenticate);
 
 const clean=s=>String(s||'').trim().replace(/<[^>]*>/g,'').slice(0,1000);
+const validId=id=>mongoose.isValidObjectId(id);
 async function globalRoom(){return ChatRoom.findOneAndUpdate({type:'GLOBAL',name:'Global'},{$setOnInsert:{active:true}},{upsert:true,new:true})}
 async function canAccess(req,room){
   if(!room?.active)return false;
@@ -19,7 +22,7 @@ async function canAccess(req,room){
   if(room.type==='ROUTE')return !!await Route.exists({_id:room.routeId,userId:req.user._id});
   return false;
 }
-async function getRoom(id){return id==='global'?globalRoom():ChatRoom.findById(id)}
+async function getRoom(id){if(id==='global')return globalRoom();if(!validId(id))return null;return ChatRoom.findById(id)}
 async function emitMessageRoom(req,message,event,payload){
   const io=req.app.get('io'); if(!io||!message)return;
   io.to(`chat:${String(message.roomId)}`).emit(event,payload);
@@ -39,6 +42,8 @@ r.get('/rooms',async(req,res)=>{
 r.post('/rooms',async(req,res)=>{
   const type=String(req.body.type||'').toUpperCase();
   if(!['NEARBY','REGION','ROUTE','JOURNEY'].includes(type))return res.status(422).json({success:false,message:'Unsupported room type'});
+  if(type==='JOURNEY'&&!validId(req.body.journeyId))return res.status(422).json({success:false,message:'Valid journey ID required'});
+  if(type==='ROUTE'&&!validId(req.body.routeId))return res.status(422).json({success:false,message:'Valid route ID required'});
   if(type==='JOURNEY'&&!await Journey.exists({_id:req.body.journeyId,userId:req.user._id}))return res.status(403).json({success:false,message:'Journey room forbidden'});
   if(type==='ROUTE'&&!await Route.exists({_id:req.body.routeId,userId:req.user._id}))return res.status(403).json({success:false,message:'Route room forbidden'});
   const name=clean(req.body.name).slice(0,80)||type;
@@ -50,7 +55,7 @@ r.post('/rooms',async(req,res)=>{
 r.get('/messages/:roomId',async(req,res)=>{
   const room=await getRoom(req.params.roomId); if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Room forbidden'});
   const limit=Math.min(100,Math.max(10,Number(req.query.limit)||50));
-  const before=req.query.before?{createdAt:{$lt:new Date(req.query.before)}}:{};
+  let before={};if(req.query.before){const d=new Date(req.query.before);if(Number.isNaN(d.getTime()))return res.status(422).json({success:false,message:'Invalid message pagination timestamp'});before={createdAt:{$lt:d}}}
   const blocks=await Blocked.find({userId:req.user._id}).select('blockedUserId').lean();
   const blocked=blocks.map(x=>x.blockedUserId);
   const docs=await ChatMessage.find({roomId:room._id,deletedAt:null,userId:{$nin:blocked},...before}).sort({createdAt:-1}).limit(limit)
@@ -64,7 +69,7 @@ r.get('/messages/:roomId',async(req,res)=>{
 r.post('/messages/:roomId',async(req,res)=>{
   const room=await getRoom(req.params.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Room forbidden'});
   const content=clean(req.body.content);if(!content)return res.status(422).json({success:false,message:'Message cannot be empty'});
-  let reply=null;if(req.body.replyTo){reply=await ChatMessage.findOne({_id:req.body.replyTo,roomId:room._id,deletedAt:null}).populate('userId','name');if(!reply)return res.status(422).json({success:false,message:'Reply target unavailable'})}
+  let reply=null;if(req.body.replyTo){if(!validId(req.body.replyTo))return res.status(422).json({success:false,message:'Invalid reply target'});reply=await ChatMessage.findOne({_id:req.body.replyTo,roomId:room._id,deletedAt:null}).populate('userId','name');if(!reply)return res.status(422).json({success:false,message:'Reply target unavailable'})}
   const msg=await ChatMessage.create({roomId:room._id,userId:req.user._id,content,replyTo:reply?._id});
   const payload={id:String(msg._id),roomId:req.params.roomId,dbRoomId:String(room._id),content,replyTo:reply?{id:String(reply._id),content:reply.content,user:{id:String(reply.userId?._id),name:reply.userId?.name}}:null,createdAt:msg.createdAt,user:{id:String(req.user._id),name:req.user.name,avatarUrl:req.user.avatarUrl},reactions:[]};
   const io=req.app.get('io');if(io){const docs=await Blocked.find({$or:[{userId:req.user._id},{blockedUserId:req.user._id}]}).lean();const excluded=docs.map(b=>`user:${String(String(b.userId)===String(req.user._id)?b.blockedUserId:b.userId)}`);io.to(`chat:${req.params.roomId}`).except(excluded).emit('chat:message',payload);if(['GLOBAL','NEARBY','REGION'].includes(room.type))io.to('authenticated').except([`user:${String(req.user._id)}`,...excluded]).emit('chat:unread',{roomId:req.params.roomId,roomName:room.name,senderId:String(req.user._id)})}
@@ -72,14 +77,15 @@ r.post('/messages/:roomId',async(req,res)=>{
 });
 
 r.patch('/messages/:id',async(req,res)=>{
+  if(!validId(req.params.id))return res.status(422).json({success:false,message:'Invalid message ID'});
   const m=await ChatMessage.findOne({_id:req.params.id,userId:req.user._id,deletedAt:null});if(!m)return res.status(404).json({success:false,message:'Message not found'});
   m.content=clean(req.body.content);if(!m.content)return res.status(422).json({success:false,message:'Message cannot be empty'});m.editedAt=new Date();await m.save();
   await emitMessageRoom(req,m,'chat:edited',{id:String(m._id),content:m.content,editedAt:m.editedAt});res.json({success:true,data:m});
 });
-r.delete('/messages/:id',async(req,res)=>{const m=await ChatMessage.findOneAndUpdate({_id:req.params.id,userId:req.user._id},{$set:{deletedAt:new Date(),content:'[deleted]'}},{new:true});if(!m)return res.status(404).json({success:false,message:'Message not found'});await emitMessageRoom(req,m,'chat:deleted',{id:String(m._id)});res.json({success:true,data:m})});
-r.post('/messages/:id/reactions',async(req,res)=>{const emoji=String(req.body.emoji||'').slice(0,12);if(!emoji)return res.status(422).json({success:false,message:'Emoji required'});const msg=await ChatMessage.findById(req.params.id);if(!msg)return res.status(404).json({success:false,message:'Message not found'});const room=await ChatRoom.findById(msg.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Message room forbidden'});const q={messageId:req.params.id,userId:req.user._id,emoji};const existing=await ChatReaction.findOne(q);let removed=false;if(existing){await existing.deleteOne();removed=true}else await ChatReaction.create(q);const reactions=await ChatReaction.find({messageId:req.params.id}).lean();await emitMessageRoom(req,msg,'chat:reaction',{messageId:req.params.id,reactions:reactions.map(x=>({emoji:x.emoji,userId:String(x.userId)}))});res.status(removed?200:201).json({success:true,data:{removed,emoji,reactions}})});
-r.post('/messages/:id/report',async(req,res)=>{const msg=await ChatMessage.findById(req.params.id);if(!msg)return res.status(404).json({success:false,message:'Message not found'});const room=await ChatRoom.findById(msg.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Message room forbidden'});const existing=await ChatReport.findOne({messageId:req.params.id,reporterId:req.user._id,status:'PENDING'});if(existing)return res.json({success:true,data:existing});res.status(201).json({success:true,data:await ChatReport.create({messageId:req.params.id,reporterId:req.user._id,reason:clean(req.body.reason||'Safety concern').slice(0,500)})})});
+r.delete('/messages/:id',async(req,res)=>{if(!validId(req.params.id))return res.status(422).json({success:false,message:'Invalid message ID'});const m=await ChatMessage.findOneAndUpdate({_id:req.params.id,userId:req.user._id,deletedAt:null},{$set:{deletedAt:new Date(),content:'[deleted]'}},{new:true});if(!m)return res.status(404).json({success:false,message:'Message not found'});await emitMessageRoom(req,m,'chat:deleted',{id:String(m._id)});res.json({success:true,data:m})});
+r.post('/messages/:id/reactions',async(req,res)=>{if(!validId(req.params.id))return res.status(422).json({success:false,message:'Invalid message ID'});const emoji=String(req.body.emoji||'').slice(0,12);if(!emoji)return res.status(422).json({success:false,message:'Emoji required'});const msg=await ChatMessage.findOne({_id:req.params.id,deletedAt:null});if(!msg)return res.status(404).json({success:false,message:'Message not found'});const room=await ChatRoom.findById(msg.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Message room forbidden'});const q={messageId:req.params.id,userId:req.user._id,emoji};const existing=await ChatReaction.findOne(q);let removed=false;if(existing){await existing.deleteOne();removed=true}else await ChatReaction.create(q);const reactions=await ChatReaction.find({messageId:req.params.id}).lean();await emitMessageRoom(req,msg,'chat:reaction',{messageId:req.params.id,reactions:reactions.map(x=>({emoji:x.emoji,userId:String(x.userId)}))});res.status(removed?200:201).json({success:true,data:{removed,emoji,reactions}})});
+r.post('/messages/:id/report',async(req,res)=>{if(!validId(req.params.id))return res.status(422).json({success:false,message:'Invalid message ID'});const msg=await ChatMessage.findOne({_id:req.params.id,deletedAt:null});if(!msg)return res.status(404).json({success:false,message:'Message not found'});const room=await ChatRoom.findById(msg.roomId);if(!await canAccess(req,room))return res.status(403).json({success:false,message:'Message room forbidden'});const existing=await ChatReport.findOne({messageId:req.params.id,reporterId:req.user._id,status:'PENDING'});if(existing)return res.json({success:true,data:existing});res.status(201).json({success:true,data:await ChatReport.create({messageId:req.params.id,reporterId:req.user._id,reason:clean(req.body.reason||'Safety concern').slice(0,500)})})});
 r.get('/blocks',async(req,res)=>res.json({success:true,data:await Blocked.find({userId:req.user._id}).populate('blockedUserId','name avatarUrl')}));
-r.post('/blocks/:userId',async(req,res)=>{if(String(req.params.userId)===String(req.user._id))return res.status(422).json({success:false,message:'Cannot block yourself'});res.status(201).json({success:true,data:await Blocked.findOneAndUpdate({userId:req.user._id,blockedUserId:req.params.userId},{$setOnInsert:{}},{upsert:true,new:true})})});
-r.delete('/blocks/:userId',async(req,res)=>{await Blocked.deleteOne({userId:req.user._id,blockedUserId:req.params.userId});res.json({success:true,data:{blocked:false}})});
+r.post('/blocks/:userId',async(req,res)=>{if(!validId(req.params.userId))return res.status(422).json({success:false,message:'Invalid user ID'});if(String(req.params.userId)===String(req.user._id))return res.status(422).json({success:false,message:'Cannot block yourself'});if(!await User.exists({_id:req.params.userId}))return res.status(404).json({success:false,message:'User not found'});res.status(201).json({success:true,data:await Blocked.findOneAndUpdate({userId:req.user._id,blockedUserId:req.params.userId},{$setOnInsert:{}},{upsert:true,new:true})})});
+r.delete('/blocks/:userId',async(req,res)=>{if(!validId(req.params.userId))return res.status(422).json({success:false,message:'Invalid user ID'});await Blocked.deleteOne({userId:req.user._id,blockedUserId:req.params.userId});res.json({success:true,data:{blocked:false}})});
 module.exports=r;
