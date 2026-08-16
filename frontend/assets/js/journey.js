@@ -11,7 +11,7 @@ const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
 const journeyControlIds=['start-camera','stop-camera','detection-toggle','start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','connect-webrtc','accept-reroute','decline-reroute'];
 function setJourneyControls(enabled){journeyControlIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!enabled});const share=document.getElementById('open-mobile-share');if(share){share.setAttribute('aria-disabled',String(!enabled));share.style.pointerEvents=enabled?'':'none';share.style.opacity=enabled?'':'0.55'}}
-function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${message}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
+function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${esc(message)}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
 
 async function init(){
   if(!document.getElementById('journey-map'))return;
@@ -129,7 +129,7 @@ function connectSocket(){
   socket.emit('journey:join',{journeyId:jid()},ack=>{if(!ack?.ok)toast('Journey socket authorization failed','error')});
   socket.emit('webrtc:join',{journeyId:jid()});
   socket.on('webrtc:signal',handleWebRtcSignal);
-  socket.on('route:updated',({route:r})=>{routeDoc=r;route=r.coordinates||[];drawRoute();toast('Route updated across connected devices')});
+  socket.on('route:updated',({route:r})=>{if(!r)return;routeDoc=r;route=r.coordinates||[];drawRoute();toast('Route updated across connected devices')});
   socket.on('hazard:alerts',alerts=>alerts?.forEach(a=>toast(`${a.risk||'HAZARD'}: ${a.type} ${a.distanceAhead} m ahead`,'warning')));
 }
 
@@ -139,7 +139,7 @@ async function connectWebRtcReceiver(){
   try{
     if(webrtcPc)webrtcPc.close();
     webrtcPc=new window.RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    webrtcPc.ontrack=e=>{stream=e.streams[0];const v=document.getElementById('camera-video');v.srcObject=stream;v.play();document.getElementById('camera-state').textContent='Mobile WebRTC ON';startInferenceLoop()};
+    webrtcPc.ontrack=e=>{stream=e.streams[0];const v=document.getElementById('camera-video');v.srcObject=stream;v.play?.().catch?.(()=>{});document.getElementById('camera-state').textContent='Mobile WebRTC ON';startInferenceLoop()};
     webrtcPc.onicecandidate=e=>{if(e.candidate&&webrtcPeerId)socket.emit('webrtc:signal',{journeyId:jid(),targetId:webrtcPeerId,signal:{type:'candidate',candidate:e.candidate}})};
     webrtcPc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(webrtcPc.connectionState))document.getElementById('camera-state').textContent='Mobile WebRTC disconnected'};
     socket.emit('webrtc:receiver-ready',{journeyId:jid()});toast('Waiting for your mobile camera peer…');
@@ -245,15 +245,20 @@ async function resumeJourney(){
 }
 
 async function pauseJourney(){
-  stopGps();stopSimulation();releaseWakeLock();if(!jid())return;
-  try{journey=await api(`/journeys/${jid()}/pause`,{method:'POST'});document.getElementById('journey-status').textContent='PAUSED';toast('Journey paused')}catch(e){toast(e.message,'error')}
+  if(!jid())return;
+  try{
+    journey=await api(`/journeys/${jid()}/pause`,{method:'POST'});
+    stopGps();stopSimulation();await releaseWakeLock();
+    document.getElementById('journey-status').textContent='PAUSED';toast('Journey paused');
+  }catch(e){toast(e.message,'error')}
 }
 
 async function completeJourney({automaticSimulation=false,automaticArrival=false}={}){
-  if(!jid())return;stopGps();stopSimulation();releaseWakeLock();
+  if(!jid())return;
   if(!automaticSimulation&&!automaticArrival&&!confirm('Complete this journey and update Cognitive Route Memory / EMA?'))return;
   try{
     journey=await api(`/journeys/${jid()}/complete`,{method:'POST',body:JSON.stringify({success:true,userFeedback:.8})});
+    stopGps();stopSimulation();stopAdaptiveReevaluation();await releaseWakeLock();
     document.getElementById('journey-status').textContent='COMPLETED';speak('Destination reached. Journey completed.');
     toast(automaticSimulation?'SIMULATION MODE: destination reached; CRM and EMA updated':automaticArrival?'Destination reached; journey completed and route memory updated':'Journey completed; CRM and EMA updated','success');
     sessionStorage.setItem('lastCompletedJourneyId',jid());
