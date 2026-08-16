@@ -6,6 +6,7 @@ const ADMIN_PAGES=['admin.html','admin-users.html','admin-devices.html','admin-h
 const SHELL_PAGES=new Set(['dashboard.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html',...ADMIN_PAGES]);
 const assert=(value,message)=>{if(!value)throw new Error(message)};
 const reply=(route,data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify({success:status<400,data})});
+const ghaError=message=>console.error(`::error title=V22 browser E2E::${String(message).replace(/\r?\n/g,'%0A')}`);
 
 function apiMock(path,page){
   const admin=ADMIN_PAGES.includes(page);
@@ -37,6 +38,14 @@ async function browserPage(browser,page,viewport={width:1440,height:900}){
   });
   await p.goto(`${BASE}/${page}`,{waitUntil:'domcontentloaded',timeout:60000});
   await p.waitForFunction(()=>document.body.classList.contains('navora-app')||document.body.classList.contains('navora-admin'),null,{timeout:15000});
+  // V22 is injected by the all-page profile loader after the legacy V20 layer.
+  // Wait for the stylesheet to be parsed and visibly authoritative before taking
+  // physical scroll measurements, especially on cockpit pages with no page-shell.
+  await p.waitForFunction(()=>{
+    const link=document.querySelector('link[data-navora-right-pane-v22]');
+    const nav=document.querySelector('body > .navora-nav');
+    return Boolean(link?.sheet&&nav&&getComputedStyle(nav).position==='fixed');
+  },null,{timeout:15000});
   if(SHELL_PAGES.has(page))await p.waitForFunction(()=>Boolean(window.NavoraScrollSurfaceV22),null,{timeout:15000});
   return{context,p,errors};
 }
@@ -117,14 +126,14 @@ async function mobileDrawer(browser){
 async function main(){
   const browser=await chromium.launch({headless:true});const failures=[];
   for(const page of [...APP_PAGES,...ADMIN_PAGES]){
-    try{await checkNavFixed(browser,page);console.log('PASS fixed-nav',page)}catch(error){failures.push(error.message);console.error('FAIL fixed-nav',page,'—',error.message)}
+    try{await checkNavFixed(browser,page);console.log('PASS fixed-nav',page)}catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL fixed-nav',page,'—',error.message)}
   }
   for(const page of SHELL_PAGES){
-    try{await checkRightPaneScroll(browser,page);console.log('PASS right-pane-scroll',page)}catch(error){failures.push(error.message);console.error('FAIL right-pane-scroll',page,'—',error.message)}
+    try{await checkRightPaneScroll(browser,page);console.log('PASS right-pane-scroll',page)}catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL right-pane-scroll',page,'—',error.message)}
   }
-  try{await mobileDrawer(browser);console.log('PASS mobile fixed drawer')}catch(error){failures.push(error.message);console.error('FAIL mobile fixed drawer —',error.message)}
+  try{await mobileDrawer(browser);console.log('PASS mobile fixed drawer')}catch(error){failures.push(error.message);ghaError(error.message);console.error('FAIL mobile fixed drawer —',error.message)}
   await browser.close();
   if(failures.length){console.error('\nNAVORA V22 FIXED-SHELL BROWSER E2E: FAIL');failures.forEach(f=>console.error(' -',f));process.exit(1)}
   console.log('\nNAVORA V22 FIXED-SHELL BROWSER E2E: PASS');
 }
-main().catch(error=>{console.error(error);process.exit(1)});
+main().catch(error=>{ghaError(error.message||error);console.error(error);process.exit(1)});
