@@ -3,6 +3,10 @@ from pathlib import Path
 import argparse,csv,hashlib,json,math,sys
 from collections import Counter
 
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'ai-service'))
+from app.model_validation import DATA_GATE_MINIMUMS
+
 FEATURES=['objectPrior','confidence','proximity','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','lowVisibility','weatherRisk','roadOrReports']
 RISK_LABELS=['LOW','MEDIUM','HIGH','CRITICAL']
 DETECTOR_CLASSES=['person','bicycle','motorcycle','car','bus','truck']
@@ -83,14 +87,28 @@ def main():
     ap.add_argument('--det-eval',type=Path,required=True)
     ap.add_argument('--snn-train',type=Path,required=True)
     ap.add_argument('--snn-eval',type=Path,required=True)
-    ap.add_argument('--min-det-train',type=int,default=400)
-    ap.add_argument('--min-det-eval',type=int,default=200)
-    ap.add_argument('--min-snn-train',type=int,default=400)
-    ap.add_argument('--min-snn-eval',type=int,default=200)
-    ap.add_argument('--min-det-eval-class-instances',type=int,default=5)
-    ap.add_argument('--min-snn-eval-class-samples',type=int,default=10)
+    ap.add_argument('--min-det-train',type=int,default=DATA_GATE_MINIMUMS['minDetectorTrainImages'])
+    ap.add_argument('--min-det-eval',type=int,default=DATA_GATE_MINIMUMS['minDetectorEvalImages'])
+    ap.add_argument('--min-snn-train',type=int,default=DATA_GATE_MINIMUMS['minSnnTrainRows'])
+    ap.add_argument('--min-snn-eval',type=int,default=DATA_GATE_MINIMUMS['minSnnEvalRows'])
+    ap.add_argument('--min-det-eval-class-instances',type=int,default=DATA_GATE_MINIMUMS['minDetectorEvalInstancesPerTrainedClass'])
+    ap.add_argument('--min-snn-eval-class-samples',type=int,default=DATA_GATE_MINIMUMS['minSnnEvalSamplesPerClass'])
     ap.add_argument('--out',type=Path,default=Path('ai-service/trained_models/data-gate-report.json'))
     a=ap.parse_args()
+
+    configured={
+        'minDetectorTrainImages':a.min_det_train,
+        'minDetectorEvalImages':a.min_det_eval,
+        'minSnnTrainRows':a.min_snn_train,
+        'minSnnEvalRows':a.min_snn_eval,
+        'minDetectorEvalInstancesPerTrainedClass':a.min_det_eval_class_instances,
+        'minSnnEvalSamplesPerClass':a.min_snn_eval_class_samples,
+    }
+    policy_problems=[
+        f'configured threshold {key}={configured[key]} is below policy floor {floor}'
+        for key,floor in DATA_GATE_MINIMUMS.items()
+        if configured[key] < floor
+    ]
 
     try:
         dtr,dtr_cls,dtr_images=read_manifest(a.det_train)
@@ -102,7 +120,7 @@ def main():
         print('-',e)
         return 2
 
-    problems=[]
+    problems=list(policy_problems)
     det_overlap=set(dtr_images)&set(dev_images)
     snn_overlap=set(map(risk_signature,str_rows))&set(map(risk_signature,sev_rows))
     det_dup_train=len(dtr_images)-len(set(dtr_images))
@@ -127,14 +145,9 @@ def main():
 
     report={
         'passed':not problems,
-        'thresholds':{
-            'minDetectorTrainImages':a.min_det_train,
-            'minDetectorEvalImages':a.min_det_eval,
-            'minSnnTrainRows':a.min_snn_train,
-            'minSnnEvalRows':a.min_snn_eval,
-            'minDetectorEvalInstancesPerTrainedClass':a.min_det_eval_class_instances,
-            'minSnnEvalSamplesPerClass':a.min_snn_eval_class_samples
-        },
+        'policyCompliant':not policy_problems,
+        'thresholds':configured,
+        'policyFloors':DATA_GATE_MINIMUMS,
         'detector':{
             'trainImages':len(dtr),'evalImages':len(dev),
             'trainClassInstances':dict(dtr_cls),'evalClassInstances':dict(dev_cls),
