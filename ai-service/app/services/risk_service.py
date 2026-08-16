@@ -35,11 +35,13 @@ class RiskEngine:
         self.mode='development/heuristic-fallback'
         self.validated=False
         self.model=None
+        self.load_error=None
+        validation_claim=False
         if settings.metadata_path.exists():
             try:
                 m=json.loads(settings.metadata_path.read_text())
                 self.version=m.get('riskModelVersion',self.version)
-                self.validated=bool(m.get('riskValidated',m.get('validated',False)))
+                validation_claim=bool(m.get('riskValidated',m.get('validated',False)))
             except Exception:
                 pass
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
@@ -49,9 +51,14 @@ class RiskEngine:
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
                 self.model.eval()
-                self.mode='snn-trained-weights'
-            except Exception:
+                self.validated=validation_claim
+                self.mode='snn-trained-weights' if self.validated else 'snn-trained-weights-unvalidated'
+            except Exception as e:
                 self.model=None
+                self.validated=False
+                self.load_error=f'{type(e).__name__}: {e}'
+        if self.model is None:
+            self.validated=False
 
     def vector(self,f):
         canonical=canonical_object_class(f.objectClass)
@@ -111,11 +118,18 @@ class RiskEngine:
         if self.model is None:
             score,level,confidence,explanation=self.heuristic(f)
         else:
-            score,level,confidence,explanation=self.snn_predict(f)
+            try:
+                score,level,confidence,explanation=self.snn_predict(f)
+            except Exception as e:
+                self.load_error=f'runtime {type(e).__name__}: {e}'
+                self.model=None
+                self.validated=False
+                self.mode='development/heuristic-fallback-runtime'
+                score,level,confidence,explanation=self.heuristic(f)
         return {
             'score':score,'level':level,'confidence':confidence,
             'modelVersion':self.version,'mode':self.mode,
-            'validated':self.validated,'explanation':explanation
+            'validated':self.validated and self.model is not None,'explanation':explanation
         }
 
 engine=RiskEngine()
