@@ -10,7 +10,7 @@ except Exception:
 DEFAULT_TARGETS=['person','bicycle','motorcycle','car','bus','truck','animal','barrier','traffic cone','construction','stopped vehicle','road blockage','pothole','road damage']
 class Detector:
     def __init__(self):
-        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None;self.validation_issues=[]
+        self.model=None;self.mode='development/heuristic-fallback';self.version='detector-dev-1';self.validated=False;self.targets=list(DEFAULT_TARGETS);self.load_error=None;self.validation_issues=[];self.unvalidated_weights_present=False
         if settings.metadata_path.exists():
             try:
                 m=json.loads(settings.metadata_path.read_text());self.version=m.get('detectorModelVersion',self.version);self.targets=m.get('detectorClasses') or self.targets
@@ -21,18 +21,26 @@ class Detector:
             try:
                 if torchvision is None:
                     raise RuntimeError('torchvision is unavailable; scripted Faster R-CNN ops cannot be registered')
-                self.model=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval();self.validated=bool(validation.get('passed'));self.mode='torchscript-trained-weights' if self.validated else 'torchscript-trained-weights-unvalidated'
+                candidate=torch.jit.load(str(settings.detector_weights),map_location=settings.device).eval()
+                if bool(validation.get('passed')):
+                    self.model=candidate;self.validated=True;self.mode='torchscript-trained-weights-validated'
+                else:
+                    # Preserve the file only as research evidence. Normal detection must remain on
+                    # the deterministic development fallback until the exact model is validated.
+                    self.model=None;self.validated=False;self.unvalidated_weights_present=True;self.mode='development/heuristic-fallback-unvalidated-weights'
             except Exception as e:
-                self.model=None;self.validated=False
-                self.load_error=f'{type(e).__name__}: {e}'
+                self.model=None;self.validated=False;self.load_error=f'{type(e).__name__}: {e}';self.mode='development/heuristic-fallback-load-error'
         if self.model is None:self.validated=False
         self.hog=cv2.HOGDescriptor();self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
     def detect(self,image):
-        if self.model is not None:
+        # Defense in depth: normal API inference can use trained weights only after validation.
+        if self.model is not None and self.validated:
             try:return self._torchscript(image)
             except Exception as e:
                 self.load_error=f'runtime {type(e).__name__}: {e}';self.mode='development/heuristic-fallback-runtime';self.model=None;self.validated=False
                 self.validation_issues=list(dict.fromkeys(self.validation_issues+['detector runtime inference failed']))
+        return self._fallback_detect(image)
+    def _fallback_detect(self,image):
         out=[];h,w=image.shape[:2]
         boxes,weights=self.hog.detectMultiScale(image,winStride=(8,8),padding=(8,8),scale=1.05)
         for (x,y,bw,bh),conf in zip(boxes,weights):out.append({'objectClass':'person','confidence':float(min(1,conf)),'boundingBox':[x/w,y/h,bw/w,bh/h],'approximateDistance':float(max(1,45*(1-bh/h))),'metadata':{'detector':'opencv-hog','validated':False}})
