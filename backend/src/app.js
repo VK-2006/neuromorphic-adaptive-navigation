@@ -97,7 +97,7 @@ function createApp(){
   app.use('/api/v1/simulation',require('./routes/simulationRoutes'));
   const publicDir=path.resolve(__dirname,'../../frontend/public'),assetsDir=path.resolve(__dirname,'../../frontend/assets'),frontDir=path.resolve(__dirname,'../../frontend');
   app.use('/assets',express.static(assetsDir,{maxAge:0,etag:true}));
-  app.get('/manifest.json',(req,res)=>res.sendFile(path.join(frontDir,'manifest.json'));
+  app.get('/manifest.json',(req,res)=>res.sendFile(path.join(frontDir,'manifest.json')));
   app.get('/service-worker.js',(req,res)=>{
     res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
     res.sendFile(path.join(frontDir,'service-worker.js'));
