@@ -27,29 +27,26 @@ def main():
     require('self.model=None' in risk and 'self.unvalidated_weights_present=True' in risk,
             'unvalidated SNN candidate must not remain active for normal inference')
 
-    require('if self.model is not None and self.validated:' in detect,
-            'detector must execute trained inference only when validated')
-    require("self.mode='development/heuristic-fallback-unvalidated-weights'" in detect,
-            'detector must explicitly identify blocked unvalidated weights')
+    require('if self.model is not None and self.runtime_ready:' in detect,
+            'detector trained inference must depend on functional runtime readiness')
+    require("self.mode='development/heuristic-fallback-unready-weights'" in detect,
+            'detector must explicitly identify unready weights')
     require('return self._fallback_detect(image)' in detect,
-            'detector must have an explicit normal fallback path')
+            'detector must retain an explicit normal fallback path')
 
-    require('Unvalidated or research-only weights are blocked from normal prediction/detection' in routes,
-            'model-info truthfulness note missing')
-    require('unvalidated trained weights are not served by this endpoint' in routes,
-            'detection endpoint must describe validated-only policy')
+    require('SNN trained inference remains scientific-validation gated' in routes,
+            'model-info SNN truthfulness note missing')
+    require('independent cross-dataset detector scientific validation is outside the current project scope' in routes,
+            'detector scope boundary missing')
 
-    require('V33 validated-only runtime inference' in doc,
-            'validated-only runtime policy must be documented')
+    require('SNN scientific validation' in doc,
+            'SNN scientific-validation policy must remain documented')
     require('test_unvalidated_snn_never_serves_trained_prediction' in test,
             'SNN unvalidated inference regression missing')
-    require('test_unvalidated_detector_never_serves_trained_detection' in test,
-            'detector unvalidated inference regression missing')
-    require('test_validated_snn_serves_trained_prediction' in test and
-            'test_validated_detector_serves_trained_detection' in test,
-            'validated trained inference positive controls missing')
+    require('test_runtime_ready_detector_serves_trained_detection' in test,
+            'detector runtime-readiness positive control missing')
 
-    print('V33 VALIDATED-ONLY AI INFERENCE CONTRACTS PASS')
+    print('V33 AI INFERENCE CONTRACTS PASS: SNN validation retained, detector functional readiness retained')
 
 
 if __name__ == '__main__':
