@@ -6,6 +6,7 @@ const cors=require('cors');
 const cookieParser=require('cookie-parser');
 const morgan=require('morgan');
 const env=require('./config/env');
+const {evaluateProductionReadiness,publicReadiness}=require('./services/productionReadinessService');
 const {apiLimiter}=require('./middleware/rateLimits');
 const {notFound,errorHandler}=require('./middleware/error');
 
@@ -56,6 +57,14 @@ const cspDirectives={
   upgradeInsecureRequests:null
 };
 
+function readinessSnapshot(){
+  return evaluateProductionReadiness({
+    config:env,
+    rawEnv:process.env,
+    databaseReady:mongoose.connection.readyState===1
+  });
+}
+
 function createApp(){
   const app=express();
   app.set('trust proxy',1);
@@ -74,7 +83,34 @@ function createApp(){
   app.use(cookieParser());
   if(env.nodeEnv!=='test')app.use(morgan('combined'));
   app.use('/api/v1',apiLimiter,require('./middleware/activityLogger'));
-  app.get('/health',(req,res)=>res.json({status:'ok',service:'navora-backend',mode:env.simulationMode?'simulation-capable':'live',database:mongoose.connection.readyState===1?'connected':'degraded',commit:process.env.RENDER_GIT_COMMIT||null}));
+
+  // /health is a liveness endpoint: it stays 200 while the Node process is alive.
+  // /ready is the deployment/readiness gate and returns 503 when DB or critical
+  // production configuration is unavailable. No secret values are exposed.
+  app.get('/health',(req,res)=>{
+    const readiness=readinessSnapshot();
+    res.json({
+      status:'ok',
+      service:'navora-backend',
+      mode:env.simulationMode?'simulation-capable':'live',
+      database:mongoose.connection.readyState===1?'connected':'degraded',
+      ready:readiness.ready,
+      commit:process.env.RENDER_GIT_COMMIT||null
+    });
+  });
+  app.get('/ready',(req,res)=>{
+    const readiness=readinessSnapshot();
+    const body={
+      status:readiness.ready?'ready':'not_ready',
+      service:'navora-backend',
+      mode:env.simulationMode?'simulation-capable':'live',
+      database:mongoose.connection.readyState===1?'connected':'degraded',
+      commit:process.env.RENDER_GIT_COMMIT||null,
+      ...publicReadiness(readiness)
+    };
+    res.status(readiness.ready?200:503).json(body);
+  });
+
   app.use('/api/v1/auth',require('./routes/authRoutes'));
   app.use('/api/v1/geocoding',require('./routes/geocodingRoutes'));
   app.use('/api/v1/routes',require('./routes/routeRoutes'));
