@@ -6,12 +6,28 @@ let map,userMarker,routeLine,coveredLine,remainingLine,socket,headingLine=null;
 let route=[],routeDoc=null,journey=null,progress=0,lastSpoken='',pendingReroute=null,rerouteBusy=false,voiceEnabled=false,lastPosition=null;
 let wakeLock=null,trackingInFlight=false,pendingTracking=null,trackingTimer=null,lastTrackingSentAt=0,lastTrackingPosition=null;
 let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=false;
+let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true,detectionMode:'LOCAL'};
 const jid=()=>sessionStorage.getItem('journeyId');
 const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
 const journeyControlIds=['start-camera','stop-camera','detection-toggle','start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','connect-webrtc','accept-reroute','decline-reroute'];
 function setJourneyControls(enabled){journeyControlIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!enabled});const share=document.getElementById('open-mobile-share');if(share){share.setAttribute('aria-disabled',String(!enabled));share.style.pointerEvents=enabled?'':'none';share.style.opacity=enabled?'':'0.55'}}
 function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${esc(message)}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
+function safeStoredPreferences(){try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return p&&typeof p==='object'&&!Array.isArray(p)?p:{}}catch{return{}}}
+function storePreferences(patch={}){try{localStorage.setItem('navora:preferences',JSON.stringify({...safeStoredPreferences(),...patch}))}catch{}}
+async function loadNavigationPreferences(){
+  navigationPreferences={...navigationPreferences,...safeStoredPreferences()};
+  try{const u=await api('/users/me');if(u?.preferences){navigationPreferences={...navigationPreferences,...u.preferences};storePreferences(u.preferences)}}catch{}
+  navigationPreferences.units=String(navigationPreferences.units||'METRIC').toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC';
+  navigationPreferences.voiceLanguage=String(navigationPreferences.voiceLanguage||'en-IN');
+  navigationPreferences.highAccuracyGps=navigationPreferences.highAccuracyGps!==false;
+  const language=document.getElementById('voice-language');if(language&&[...language.options].some(o=>o.value===navigationPreferences.voiceLanguage))language.value=navigationPreferences.voiceLanguage;
+  const speed=document.getElementById('current-speed');if(speed)speed.textContent=fmtSpeed(0);
+}
+function metricUnits(){return navigationPreferences.units!=='IMPERIAL'}
+function fmtDistance(meters,precision=2){const m=Math.max(0,Number(meters)||0);return metricUnits()?`${(m/1000).toFixed(precision)} km`:`${(m/1609.344).toFixed(precision)} mi`}
+function fmtShortDistance(meters){const m=Math.max(0,Number(meters)||0);if(metricUnits())return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`;const feet=m*3.28084;return feet>=5280?`${(feet/5280).toFixed(1)} mi`:`${Math.round(feet)} ft`}
+function fmtSpeed(metersPerSecond){const s=Math.max(0,Number(metersPerSecond)||0);return metricUnits()?`${(s*3.6).toFixed(1)} km/h`:`${(s*2.236936).toFixed(1)} mph`}
 
 async function init(){
   if(!document.getElementById('journey-map'))return;
@@ -21,6 +37,7 @@ async function init(){
   }
   bind();
   setupFieldEnvironment();
+  await loadNavigationPreferences();
   await enumerateCameras();
   loadVoices();
   window.speechSynthesis?.addEventListener?.('voiceschanged',loadVoices);
@@ -130,7 +147,7 @@ function connectSocket(){
   socket.emit('webrtc:join',{journeyId:jid()});
   socket.on('webrtc:signal',handleWebRtcSignal);
   socket.on('route:updated',({route:r})=>{if(!r)return;routeDoc=r;route=r.coordinates||[];drawRoute();toast('Route updated across connected devices')});
-  socket.on('hazard:alerts',alerts=>alerts?.forEach(a=>toast(`${a.risk||'HAZARD'}: ${a.type} ${a.distanceAhead} m ahead`,'warning')));
+  socket.on('hazard:alerts',alerts=>alerts?.forEach(a=>toast(`${a.risk||'HAZARD'}: ${a.type} ${fmtShortDistance(a.distanceAhead)} ahead`,'warning')));
 }
 
 async function connectWebRtcReceiver(){
@@ -269,9 +286,10 @@ function startGps(){
   if(gpsWatch!==null)return;
   if(!window.isSecureContext)return toast('Live GPS requires HTTPS on a field device.','error');
   if(!navigator.geolocation)return toast('Geolocation not supported','error');
+  const highAccuracy=navigationPreferences.highAccuracyGps!==false;
   setFieldChip('gps-state','GPS STARTING');
-  gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{setFieldChip('gps-state','GPS ERROR');toast(`GPS: ${e.message}`,'error')},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
-  toast('High-accuracy live GPS tracking started');
+  gpsWatch=navigator.geolocation.watchPosition(onPosition,e=>{setFieldChip('gps-state','GPS ERROR');toast(`GPS: ${e.message}`,'error')},{enableHighAccuracy:highAccuracy,maximumAge:highAccuracy?0:5000,timeout:15000});
+  toast(highAccuracy?'High-accuracy live GPS tracking started':'Battery-aware live GPS tracking started');
 }
 
 function stopGps(){if(gpsWatch!==null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;setFieldChip('gps-state','GPS PAUSED')}
@@ -279,7 +297,7 @@ function stopGps(){if(gpsWatch!==null)navigator.geolocation.clearWatch(gpsWatch)
 function onPosition(p){
   const c=p.coords;
   lastPosition={lat:c.latitude,lng:c.longitude,accuracy:c.accuracy,heading:c.heading,speed:c.speed,altitude:c.altitude,timestamp:p.timestamp};
-  setFieldChip('gps-state',`GPS ±${Math.round(c.accuracy||0)}m`);
+  setFieldChip('gps-state',`GPS ±${fmtShortDistance(c.accuracy||0)}`);
   if((c.accuracy||0)>60&&!gpsWarningShown){gpsWarningShown=true;toast('GPS accuracy is weak. Route matching will wait for more reliable fixes where possible.','warning')}
   if((c.accuracy||0)<=35)gpsWarningShown=false;
   updateMap(lastPosition);queueTracking(lastPosition);
@@ -330,13 +348,13 @@ function updateMap(p){
 
 function applyProgress(r){
   progress=r.progress||0;
-  if(lastPosition?.speed!=null)document.getElementById('current-speed').textContent=`${Math.max(0,lastPosition.speed*3.6).toFixed(1)} km/h`;
-  if(r.nextManeuver)document.getElementById('next-maneuver').textContent=`${r.nextManeuver.maneuver?.instruction||r.nextManeuver.maneuver?.type||'Continue'} · ${r.nextManeuver.distance} m`;
-  if(r.alerts?.length)r.alerts.forEach(a=>{toast(`${a.risk||'HAZARD'}: ${a.type} ${a.distanceAhead} m ahead`,'warning');if(['HIGH','CRITICAL'].includes(a.risk))speak(`${a.risk.toLowerCase()} risk ${a.type} ahead.`)});
+  if(lastPosition?.speed!=null)document.getElementById('current-speed').textContent=fmtSpeed(lastPosition.speed);
+  if(r.nextManeuver)document.getElementById('next-maneuver').textContent=`${r.nextManeuver.maneuver?.instruction||r.nextManeuver.maneuver?.type||'Continue'} · ${fmtShortDistance(r.nextManeuver.distance)}`;
+  if(r.alerts?.length)r.alerts.forEach(a=>{toast(`${a.risk||'HAZARD'}: ${a.type} ${fmtShortDistance(a.distanceAhead)} ahead`,'warning');if(['HIGH','CRITICAL'].includes(a.risk))speak(`${a.risk.toLowerCase()} risk ${a.type} ahead.`)});
   document.getElementById('progress-bar').style.width=`${Math.max(0,Math.min(100,progress))}%`;
   document.getElementById('progress-text').textContent=`${Math.round(progress)}%`;
-  document.getElementById('distance-covered').textContent=`${((r.distanceCovered||0)/1000).toFixed(2)} km`;
-  document.getElementById('distance-remaining').textContent=`${((r.distanceRemaining||0)/1000).toFixed(2)} km`;
+  document.getElementById('distance-covered').textContent=fmtDistance(r.distanceCovered||0);
+  document.getElementById('distance-remaining').textContent=fmtDistance(r.distanceRemaining||0);
   document.getElementById('eta').textContent=`${Math.max(0,Math.round((r.etaSeconds||0)/60))} min`;
   document.getElementById('arrival-time').textContent=new Date(Date.now()+Math.max(0,r.etaSeconds||0)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   document.getElementById('journey-traffic').textContent=r.traffic?.severity||routeDoc?.trafficSeverity||'UNKNOWN';
@@ -381,7 +399,7 @@ async function acceptReroute(){
 function toggleVoice(){voiceEnabled=!voiceEnabled;localStorage.setItem('navora:voice-enabled',String(voiceEnabled));updateVoiceButton();if(voiceEnabled)speak('Voice navigation enabled.')}
 function updateVoiceButton(){const b=document.getElementById('voice-toggle');if(b)b.textContent=`Voice ${voiceEnabled?'ON':'OFF'}`}
 function loadVoices(){const sel=document.getElementById('voice-select');if(!sel||!('speechSynthesis'in window))return;const voices=speechSynthesis.getVoices();const cur=sel.value;sel.innerHTML='<option value="">Default system voice</option>'+voices.map((v,i)=>`<option value="${i}">${esc(v.name)} · ${esc(v.lang)}</option>`).join('');sel.value=cur}
-function speak(text){if(!voiceEnabled||!text||text===lastSpoken||!('speechSynthesis'in window))return;lastSpoken=text;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=document.getElementById('voice-language')?.value||'en-IN';u.volume=Number(document.getElementById('voice-volume')?.value||1);const idx=document.getElementById('voice-select')?.value;if(idx!=='')u.voice=speechSynthesis.getVoices()[Number(idx)]||null;speechSynthesis.speak(u)}
+function speak(text){if(!voiceEnabled||!text||text===lastSpoken||!('speechSynthesis'in window))return;lastSpoken=text;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=document.getElementById('voice-language')?.value||navigationPreferences.voiceLanguage||'en-IN';u.volume=Number(document.getElementById('voice-volume')?.value||1);const idx=document.getElementById('voice-select')?.value;if(idx!=='')u.voice=speechSynthesis.getVoices()[Number(idx)]||null;speechSynthesis.speak(u)}
 
 async function requestWakeLock(){
   if(journey?.mode!=='LIVE'||journey?.status!=='ACTIVE')return;
@@ -414,7 +432,7 @@ function stopAdaptiveReevaluation(){if(adaptiveTimer)clearInterval(adaptiveTimer
 
 function setNetworkState(){setFieldChip('network-state',navigator.onLine?'ONLINE':'OFFLINE')}
 function setFieldChip(id,text){const el=document.getElementById(id);if(el)el.textContent=text}
-function fmtKm(v){return `${((v||0)/1000).toFixed(1)} km`}
+function fmtKm(v){return fmtDistance(v,1)}
 function fmtMin(v){return `${Math.round((v||0)/60)} min`}
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
