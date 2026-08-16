@@ -1,210 +1,403 @@
-/* NAVORA v17 - Premium light theme + universal profile shell
-   Light identity: Ivory + Charcoal + Warm Plum + Muted Gold + restrained Rose.
-   Dark theme is intentionally not recolored here. */
+/* NAVORA V19 — fixed bottom account dock + high-contrast premium light identity
+   Light identity: Porcelain + Ink + Royal Plum + Champagne Gold + Emerald.
+   Dark identity remains owned by the existing dark-theme layers. */
 
 :root:not([data-theme]),
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --nav-bg: #F7F3EA;
-  --nav-surface: #FFFDFC;
-  --nav-surface-2: #F3ECE4;
-  --nav-text: #272127;
-  --nav-muted: #746A73;
-  --nav-line: #DED2D7;
-  --nav-line-strong: #CDBBC3;
-  --nav-primary: #6E3B6E;
-  --nav-primary-hover: #572D57;
-  --nav-primary-soft: rgba(110,59,110,.10);
-  --nav-success: #2F7D65;
-  --nav-warning: #A8751D;
-  --nav-danger: #B84F5E;
-  --nav-sidebar: #F3E8DE;
-  --nav-sidebar-2: #EADDD2;
-  --nav-sidebar-text: #342A33;
-  --nav-sidebar-muted: #776B75;
-  --nav-shadow: 0 18px 48px rgba(69,49,61,.11);
+  --nav-bg: #F3EFE8;
+  --nav-surface: #FFFEFB;
+  --nav-surface-2: #F8F1E7;
+  --nav-text: #17131B;
+  --nav-muted: #6E6671;
+  --nav-line: #DED3C4;
+  --nav-line-strong: #C8B79F;
+  --nav-primary: #6D1FB1;
+  --nav-primary-hover: #53158E;
+  --nav-primary-soft: rgba(109,31,177,.10);
+  --nav-success: #007D68;
+  --nav-warning: #B87511;
+  --nav-danger: #B42342;
+  --nav-sidebar: #24172F;
+  --nav-sidebar-2: #321B43;
+  --nav-sidebar-text: #FFF9F1;
+  --nav-sidebar-muted: #C9BBD0;
+  --nav-shadow: 0 22px 56px rgba(57,38,63,.14), 0 3px 10px rgba(86,55,25,.05);
 
-  --bg-primary: #F7F3EA;
-  --bg-secondary: #EFE8DD;
-  --surface-primary: #FFFDFC;
-  --surface-secondary: #F7F0E9;
+  --bg-primary: #F3EFE8;
+  --bg-secondary: #EDE5D9;
+  --surface-primary: #FFFEFB;
+  --surface-secondary: #F8F1E7;
   --surface-elevated: #FFFFFF;
-  --text-primary: #272127;
-  --text-secondary: #625861;
-  --text-muted: #80747D;
-  --border-primary: #DED2D7;
-  --border-secondary: #CDBBC3;
-  --border-subtle: rgba(110,59,110,.14);
-  --primary: #6E3B6E;
-  --primary-hover: #572D57;
-  --primary-active: #482448;
-  --primary-soft: rgba(110,59,110,.10);
-  --accent: #B58A32;
-  --accent-hover: #927022;
-  --accent-soft: rgba(181,138,50,.12);
-  --plum-main: #6E3B6E;
-  --plum-soft: #8E5C8E;
-  --gold-main: #B58A32;
-  --gold-soft: #D5B86A;
-  --rose-accent: #B86B77;
-  --rose-soft: #D8A0A8;
+  --text-primary: #17131B;
+  --text-secondary: #514A55;
+  --text-muted: #776E79;
+  --border-primary: #DED3C4;
+  --border-secondary: #C8B79F;
+  --border-subtle: rgba(109,31,177,.14);
 
-  --pg-purple: #6E3B6E;
-  --pg-purple-deep: #542B54;
-  --pg-purple-soft: rgba(110,59,110,.12);
-  --pg-gold: #B58A32;
-  --pg-gold-deep: #8A671F;
-  --pg-gold-soft: rgba(181,138,50,.13);
-  --pg-glow-purple: rgba(110,59,110,.10);
-  --pg-glow-gold: rgba(181,138,50,.10);
-  --pg-ring-opacity: .66;
+  --primary: #6D1FB1;
+  --primary-hover: #53158E;
+  --primary-active: #42106F;
+  --primary-soft: rgba(109,31,177,.10);
+  --accent: #C6962D;
+  --accent-hover: #9D741D;
+  --accent-soft: rgba(198,150,45,.13);
+  --plum-main: #6D1FB1;
+  --plum-soft: #9252C3;
+  --gold-main: #C6962D;
+  --gold-soft: #E2C36E;
+  --rose-accent: #B34867;
+  --rose-soft: #D996AA;
+
+  --pg-purple: #6D1FB1;
+  --pg-purple-deep: #47106F;
+  --pg-purple-soft: rgba(109,31,177,.12);
+  --pg-gold: #C6962D;
+  --pg-gold-deep: #936918;
+  --pg-gold-soft: rgba(198,150,45,.14);
+  --pg-glow-purple: rgba(109,31,177,.13);
+  --pg-glow-gold: rgba(198,150,45,.12);
+  --pg-ring-opacity: .78;
 }
 
 :root:not([data-theme]) body,
 :root[data-theme="light"] body {
-  background: var(--nav-bg);
+  background:
+    radial-gradient(circle at 92% 2%,rgba(198,150,45,.10),transparent 27rem),
+    radial-gradient(circle at 16% 14%,rgba(109,31,177,.07),transparent 30rem),
+    linear-gradient(180deg,#F8F4ED 0%,var(--nav-bg) 58%,#EFE9DF 100%);
   color: var(--nav-text);
 }
 
-:root:not([data-theme]) :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section),
-:root[data-theme="light"] :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section) {
-  background-color: var(--nav-surface);
+/* ---------- Premium surfaces ---------- */
+:root:not([data-theme]) :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section,.px-stat,.px-mini),
+:root[data-theme="light"] :is(.card,.auth-card,.stat-card,.metric-card,.dashboard-card,.route-card,.data-row,.table-wrap,.modal-content,.settings-section,.px-stat,.px-mini) {
+  background: linear-gradient(155deg,#FFFFFF 0%,#FFFCF7 100%);
   color: var(--nav-text);
-  border-color: var(--nav-line);
+  border-color: color-mix(in srgb,var(--nav-line) 82%,var(--gold-main));
+  box-shadow: 0 12px 32px rgba(54,37,61,.065), 0 1px 0 rgba(255,255,255,.9) inset;
+}
+
+:root:not([data-theme]) :is(.card,.route-card,.data-row,.px-stat,.px-mini):hover,
+:root[data-theme="light"] :is(.card,.route-card,.data-row,.px-stat,.px-mini):hover {
+  border-color: color-mix(in srgb,var(--nav-primary) 36%,var(--gold-main));
+  box-shadow: 0 17px 42px rgba(71,38,84,.10), 0 0 0 1px rgba(198,150,45,.05) inset;
 }
 
 :root:not([data-theme]) :is(input,select,textarea,.input,.select,.textarea),
 :root[data-theme="light"] :is(input,select,textarea,.input,.select,.textarea) {
-  background-color: #FFFDFC;
+  background: rgba(255,254,251,.94);
   color: var(--nav-text);
   border-color: var(--nav-line-strong);
+  box-shadow: 0 1px 0 rgba(255,255,255,.85) inset;
 }
 
 :root:not([data-theme]) :is(input,textarea)::placeholder,
 :root[data-theme="light"] :is(input,textarea)::placeholder {
-  color: #948790;
+  color: #8B818D;
   opacity: 1;
 }
 
 :root:not([data-theme]) :is(input,select,textarea,.input,.select,.textarea):focus,
 :root[data-theme="light"] :is(input,select,textarea,.input,.select,.textarea):focus {
   border-color: var(--nav-primary);
-  box-shadow: 0 0 0 3px rgba(110,59,110,.11);
+  box-shadow: 0 0 0 4px rgba(109,31,177,.10), 0 8px 22px rgba(77,40,92,.06);
 }
 
+/* ---------- Buttons ---------- */
 :root:not([data-theme]) .btn-navora:not(.btn-danger):not(.danger),
 :root[data-theme="light"] .btn-navora:not(.btn-danger):not(.danger) {
-  border-color: color-mix(in srgb,var(--nav-primary) 58%,var(--nav-line));
+  border-color: color-mix(in srgb,var(--nav-primary) 62%,var(--gold-main));
 }
 
 :root:not([data-theme]) .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger),
 :root[data-theme="light"] .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger) {
-  background: linear-gradient(135deg,#6E3B6E,#7E4B78);
-  color: #FFFDFC;
+  background: linear-gradient(135deg,#5D159D 0%,#7D2FBB 52%,#9A5FC4 100%);
+  color: #FFFDF9;
+  border-color: color-mix(in srgb,#6D1FB1 72%,#C6962D);
+  box-shadow: 0 10px 25px rgba(86,28,125,.20), 0 1px 0 rgba(255,255,255,.20) inset;
 }
 
 :root:not([data-theme]) .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger):hover,
 :root[data-theme="light"] .btn-navora:not(.btn-ghost):not(.btn-danger):not(.danger):hover {
-  background: linear-gradient(135deg,#572D57,#6E3B6E);
+  background: linear-gradient(135deg,#4A0E82 0%,#681DA4 58%,#8250AB 100%);
+  box-shadow: 0 14px 30px rgba(73,21,111,.25), 0 0 0 1px rgba(198,150,45,.20) inset;
 }
 
 :root:not([data-theme]) .btn-ghost,
 :root[data-theme="light"] .btn-ghost {
-  background: rgba(255,253,252,.56);
+  background: rgba(255,254,251,.78);
+  color: #4D185E;
+  border-color: color-mix(in srgb,var(--nav-line-strong) 80%,var(--gold-main));
+  box-shadow: 0 5px 15px rgba(55,37,59,.055);
+}
+
+:root:not([data-theme]) .btn-ghost:hover,
+:root[data-theme="light"] .btn-ghost:hover {
   color: var(--nav-primary);
-  border-color: var(--nav-line);
+  background: #FFF9EF;
 }
 
 :root:not([data-theme]) :is(.chip,.badge,.status-pill),
 :root[data-theme="light"] :is(.chip,.badge,.status-pill) {
-  border-color: rgba(110,59,110,.17);
+  background: linear-gradient(135deg,rgba(255,255,255,.88),rgba(248,241,231,.88));
+  color: #5B4D5E;
+  border-color: color-mix(in srgb,var(--nav-line) 72%,var(--gold-main));
 }
 
+:root:not([data-theme]) :is(.chip,.badge,.status-pill).live,
+:root[data-theme="light"] :is(.chip,.badge,.status-pill).live {
+  color: var(--nav-success);
+  border-color: rgba(0,125,104,.28);
+}
+
+/* ---------- Brand / typography ---------- */
 :root:not([data-theme]) .brand-mark,
 :root[data-theme="light"] .brand-mark {
-  background: linear-gradient(135deg,#6E3B6E 0%,#B58A32 100%) !important;
-  box-shadow: 0 5px 18px rgba(110,59,110,.18);
+  background: linear-gradient(135deg,#5B118F 0%,#7B2CB6 48%,#C6962D 100%) !important;
+  box-shadow: 0 8px 22px rgba(94,31,126,.27), 0 0 0 1px rgba(255,255,255,.16) inset;
 }
 
 :root:not([data-theme]) .gradient-text,
 :root[data-theme="light"] .gradient-text {
-  color: #6E3B6E !important;
-  background: linear-gradient(110deg,#6E3B6E 0%,#8E5C8E 48%,#B58A32 100%) !important;
+  color: #5B118F !important;
+  background: linear-gradient(105deg,#47106F 0%,#7A29B3 42%,#A8659E 68%,#B9811E 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
+}
+
+:root:not([data-theme]) .eyebrow,
+:root[data-theme="light"] .eyebrow {
+  color: #6D1FB1;
+}
+
+/* ---------- V19 authoritative app/admin sidebar contract ----------
+   The sidebar itself is viewport-fixed. The account is the third grid row,
+   so it remains fixed at the visual bottom while only navigation scrolls. */
+:root:not([data-theme]) body.navora-app > .navora-nav,
+:root:not([data-theme]) body.navora-admin > .navora-nav,
+:root[data-theme="light"] body.navora-app > .navora-nav,
+:root[data-theme="light"] body.navora-admin > .navora-nav,
+body.navora-app > .navora-nav,
+body.navora-admin > .navora-nav {
+  position: fixed !important;
+  inset: 0 auto 0 0 !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0,1fr) max-content !important;
+  align-content: stretch !important;
+  align-items: stretch !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  padding-bottom: max(10px,env(safe-area-inset-bottom)) !important;
 }
 
 :root:not([data-theme]) body.navora-app > .navora-nav,
 :root:not([data-theme]) body.navora-admin > .navora-nav,
 :root[data-theme="light"] body.navora-app > .navora-nav,
 :root[data-theme="light"] body.navora-admin > .navora-nav {
-  background: linear-gradient(180deg,var(--nav-sidebar),var(--nav-sidebar-2));
+  background:
+    radial-gradient(circle at 18% 100%,rgba(198,150,45,.15),transparent 38%),
+    radial-gradient(circle at 90% 0%,rgba(139,69,184,.23),transparent 42%),
+    linear-gradient(180deg,var(--nav-sidebar) 0%,var(--nav-sidebar-2) 100%);
   color: var(--nav-sidebar-text);
-  border-right-color: rgba(110,59,110,.14);
+  border-right: 1px solid rgba(226,195,110,.22);
+  box-shadow: 18px 0 50px rgba(37,23,47,.10);
+}
+
+body.navora-app > .navora-nav > .brand,
+body.navora-admin > .navora-nav > .brand {
+  grid-row: 1 !important;
+  flex: none !important;
+}
+
+body.navora-app > .navora-nav > .nav-links,
+body.navora-admin > .navora-nav > .nav-links {
+  grid-row: 2 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-bottom: 12px !important;
 }
 
 :root:not([data-theme]) body.navora-app .nav-links a,
 :root:not([data-theme]) body.navora-admin .nav-links a,
 :root[data-theme="light"] body.navora-app .nav-links a,
 :root[data-theme="light"] body.navora-admin .nav-links a {
-  color: var(--nav-sidebar-text);
+  color: var(--nav-sidebar-muted);
+  border: 1px solid transparent;
+}
+
+:root:not([data-theme]) body.navora-app .nav-links a:hover,
+:root:not([data-theme]) body.navora-admin .nav-links a:hover,
+:root[data-theme="light"] body.navora-app .nav-links a:hover,
+:root[data-theme="light"] body.navora-admin .nav-links a:hover {
+  color: #FFF8ED;
+  background: rgba(255,255,255,.065);
+  border-color: rgba(226,195,110,.10);
 }
 
 :root:not([data-theme]) body.navora-app .nav-links a.active,
 :root:not([data-theme]) body.navora-admin .nav-links a.active,
 :root[data-theme="light"] body.navora-app .nav-links a.active,
 :root[data-theme="light"] body.navora-admin .nav-links a.active {
-  color: #542B54;
-  background: rgba(110,59,110,.10);
-  box-shadow: inset 3px 0 0 #B58A32;
+  color: #FFFDF8;
+  background: linear-gradient(90deg,rgba(198,150,45,.19),rgba(132,58,176,.22));
+  border-color: rgba(226,195,110,.22);
+  box-shadow: inset 3px 0 0 #E2C36E, 0 9px 22px rgba(16,8,24,.10);
 }
 
-:root:not([data-theme]) body.navora-app .nav-account,
-:root:not([data-theme]) body.navora-admin .nav-account,
-:root[data-theme="light"] body.navora-app .nav-account,
-:root[data-theme="light"] body.navora-admin .nav-account {
-  background: color-mix(in srgb,#FFFDFC 78%,#F3E8DE);
-  border-color: rgba(110,59,110,.16);
+body.navora-app > .navora-nav > .nav-account,
+body.navora-admin > .navora-nav > .nav-account,
+body.navora-app > .navora-nav > .nav-account-fixed,
+body.navora-admin > .navora-nav > .nav-account-fixed,
+body.navora-app > .navora-nav > .navora-profile-fixed-v17,
+body.navora-admin > .navora-nav > .navora-profile-fixed-v17 {
+  grid-row: 3 !important;
+  align-self: end !important;
+  position: sticky !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 0 !important;
+  inset-block-start: auto !important;
+  inset-block-end: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  flex: none !important;
+  z-index: 1250 !important;
+  padding: 12px 8px 2px !important;
+  border-top: 1px solid rgba(226,195,110,.23) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  filter: none !important;
+  background:
+    linear-gradient(180deg,rgba(36,23,47,.93),rgba(25,15,34,.985)) !important;
+  box-shadow: 0 -18px 34px rgba(14,7,20,.20), 0 -1px 0 rgba(255,255,255,.025) inset !important;
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
 }
 
-:root:not([data-theme]) .nav-avatar,
-:root[data-theme="light"] .nav-avatar {
-  background: linear-gradient(135deg,#6E3B6E,#B58A32);
-  color: #FFFDFC;
-  box-shadow: 0 6px 18px rgba(110,59,110,.16);
+body.navora-app > .navora-nav > .nav-account .nav-user-summary,
+body.navora-admin > .navora-nav > .nav-account .nav-user-summary {
+  min-width: 0;
+  padding: 4px 5px 7px;
 }
 
+body.navora-app > .navora-nav > .nav-account .nav-user-copy strong,
+body.navora-admin > .navora-nav > .nav-account .nav-user-copy strong {
+  color: #FFF9F1;
+}
+
+body.navora-app > .navora-nav > .nav-account .nav-user-copy small,
+body.navora-admin > .navora-nav > .nav-account .nav-user-copy small {
+  color: #C9BBD0;
+}
+
+body.navora-app > .navora-nav > .nav-account .nav-avatar,
+body.navora-admin > .navora-nav > .nav-account .nav-avatar {
+  background: linear-gradient(135deg,#7B2CB6,#C6962D) !important;
+  color: #FFFDF9 !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,.22), 0 0 0 1px rgba(255,255,255,.12) inset;
+}
+
+body.navora-app > .navora-nav > .nav-account .toolbar,
+body.navora-admin > .navora-nav > .nav-account .toolbar {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 8px !important;
+  margin-top: 2px !important;
+}
+
+body.navora-app > .navora-nav > .nav-account .btn-navora,
+body.navora-admin > .navora-nav > .nav-account .btn-navora,
+body.navora-app > .navora-nav > .nav-account > .icon-btn,
+body.navora-admin > .navora-nav > .nav-account > .icon-btn {
+  min-height: 40px !important;
+  color: #FFF9F1 !important;
+  background: rgba(255,255,255,.065) !important;
+  border-color: rgba(226,195,110,.22) !important;
+  box-shadow: none !important;
+}
+
+body.navora-app > .navora-nav > .nav-account .btn-navora:hover,
+body.navora-admin > .navora-nav > .nav-account .btn-navora:hover,
+body.navora-app > .navora-nav > .nav-account > .icon-btn:hover,
+body.navora-admin > .navora-nav > .nav-account > .icon-btn:hover {
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg,rgba(123,44,182,.30),rgba(198,150,45,.16)) !important;
+  border-color: rgba(226,195,110,.42) !important;
+}
+
+body.navora-app > .navora-nav > .nav-account > .icon-btn,
+body.navora-admin > .navora-nav > .nav-account > .icon-btn {
+  width: 100% !important;
+  margin-top: 8px !important;
+}
+
+/* ---------- Other light-theme product surfaces ---------- */
 :root:not([data-theme]) #map,
-:root[data-theme="light"] #map {
-  background: #E9E0D6;
+:root[data-theme="light"] #map,
+:root:not([data-theme]) #journey-map,
+:root[data-theme="light"] #journey-map {
+  background: #E8E0D3;
 }
 
 :root:not([data-theme]) .leaflet-control,
 :root[data-theme="light"] .leaflet-control {
-  color: #272127;
+  color: #211923;
 }
 
-/* Public/auth pages get the dashboard-style account language.
-   App/admin keep their existing tested .nav-account in the sidebar. */
+:root:not([data-theme]) .route-panel,
+:root[data-theme="light"] .route-panel {
+  background: linear-gradient(180deg,#FFFDF9,#F8F1E7);
+}
+
+:root:not([data-theme]) th,
+:root[data-theme="light"] th {
+  background: linear-gradient(180deg,#F8F1E7,#F2E9DD);
+  color: #594F5B;
+}
+
+:root:not([data-theme]) .live-planning-note,
+:root:not([data-theme]) .field-safety-note,
+:root[data-theme="light"] .live-planning-note,
+:root[data-theme="light"] .field-safety-note {
+  background: linear-gradient(135deg,rgba(109,31,177,.075),rgba(198,150,45,.085));
+  border-color: color-mix(in srgb,var(--nav-primary) 23%,var(--gold-main));
+}
+
+/* ---------- Public/auth profile: always fixed to viewport bottom-left ---------- */
 body.navora-public > .navora-profile-global-v17,
 body.navora-auth > .navora-profile-global-v17 {
   position: fixed !important;
-  left: 16px !important;
-  bottom: 16px !important;
+  left: max(16px,env(safe-area-inset-left)) !important;
+  bottom: max(16px,env(safe-area-inset-bottom)) !important;
   top: auto !important;
   right: auto !important;
-  width: min(252px,calc(100vw - 32px));
+  width: min(264px,calc(100vw - 32px));
   margin: 0 !important;
-  padding: 12px;
+  padding: 13px;
   z-index: 1650;
-  border: 1px solid var(--nav-line);
-  border-radius: 14px;
-  background: color-mix(in srgb,var(--nav-surface) 94%,transparent);
-  box-shadow: 0 16px 38px rgba(53,38,48,.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb,var(--nav-line) 68%,var(--gold-main));
+  border-radius: 18px;
+  background: rgba(255,254,251,.93);
+  box-shadow: 0 22px 55px rgba(53,35,61,.17), 0 0 0 1px rgba(255,255,255,.72) inset;
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
   transform: none !important;
   filter: none !important;
   overflow: hidden;
@@ -212,25 +405,31 @@ body.navora-auth > .navora-profile-global-v17 {
 
 .navora-profile-global-v17 .nav-user-summary {
   display: grid;
-  grid-template-columns: 38px minmax(0,1fr);
+  grid-template-columns: 40px minmax(0,1fr);
   gap: 10px;
   align-items: center;
 }
+
 .navora-profile-global-v17 .nav-avatar {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: 50%;
+  background: linear-gradient(135deg,#6D1FB1,#C6962D);
+  color: #FFFDF9;
+  box-shadow: 0 7px 18px rgba(109,31,177,.21);
   font-size: .78rem;
   font-weight: 900;
   letter-spacing: .04em;
 }
+
 .navora-profile-global-v17 .nav-user-copy {
   min-width: 0;
   display: grid;
   line-height: 1.18;
 }
+
 .navora-profile-global-v17 .nav-user-copy strong {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,6 +437,7 @@ body.navora-auth > .navora-profile-global-v17 {
   color: var(--nav-text);
   font-size: .88rem;
 }
+
 .navora-profile-global-v17 .nav-user-copy small {
   margin-top: 3px;
   overflow: hidden;
@@ -246,19 +446,21 @@ body.navora-auth > .navora-profile-global-v17 {
   color: var(--nav-muted);
   font-size: .71rem;
 }
+
 .navora-profile-global-v17 .toolbar {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 7px;
   margin-top: 10px;
 }
+
 .navora-profile-global-v17 .btn-navora {
-  min-height: 34px;
+  min-height: 36px;
   padding: 7px 8px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  border-radius: 9px;
+  border-radius: 10px;
   font-size: .75rem;
   font-weight: 800;
 }
@@ -270,25 +472,57 @@ body.navora-auth > .navora-profile-global-v17 {
   box-shadow: 0 18px 42px rgba(0,0,0,.28);
 }
 
+/* Mobile sidebar remains a drawer, with account still pinned to drawer bottom. */
+@media (max-width: 820px) {
+  body.navora-app > .navora-nav,
+  body.navora-admin > .navora-nav {
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+  body.navora-app > .navora-nav > .nav-account,
+  body.navora-admin > .navora-nav > .nav-account {
+    bottom: 0 !important;
+  }
+}
+
 @media (max-width: 640px) {
   body.navora-public > .navora-profile-global-v17,
   body.navora-auth > .navora-profile-global-v17 {
-    left: 10px !important;
-    bottom: 10px !important;
-    width: min(218px,calc(100vw - 20px));
+    left: max(10px,env(safe-area-inset-left)) !important;
+    bottom: max(10px,env(safe-area-inset-bottom)) !important;
+    width: min(224px,calc(100vw - 20px));
     padding: 10px;
-    border-radius: 12px;
+    border-radius: 14px;
   }
   .navora-profile-global-v17 .nav-user-summary {
-    grid-template-columns: 34px minmax(0,1fr);
+    grid-template-columns: 35px minmax(0,1fr);
     gap: 8px;
   }
   .navora-profile-global-v17 .nav-avatar {
-    width: 34px;
-    height: 34px;
+    width: 35px;
+    height: 35px;
   }
   .navora-profile-global-v17 .toolbar {
     margin-top: 8px;
+  }
+}
+
+@media (max-height: 620px) and (min-width: 821px) {
+  body.navora-app > .navora-nav > .nav-account,
+  body.navora-admin > .navora-nav > .nav-account {
+    padding-top: 8px !important;
+  }
+  body.navora-app > .navora-nav > .nav-account .nav-user-summary,
+  body.navora-admin > .navora-nav > .nav-account .nav-user-summary {
+    padding-bottom: 4px;
+  }
+  body.navora-app > .navora-nav > .nav-account .btn-navora,
+  body.navora-admin > .navora-nav > .nav-account .btn-navora,
+  body.navora-app > .navora-nav > .nav-account > .icon-btn,
+  body.navora-admin > .navora-nav > .nav-account > .icon-btn {
+    min-height: 34px !important;
   }
 }
 
