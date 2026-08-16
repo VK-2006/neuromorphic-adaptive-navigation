@@ -1,4 +1,5 @@
-const CACHE='navora-right-pane-v22-0-0';
+const CACHE='navora-security-pwa-v23-0-0';
+const V22_CACHE_LINEAGE='navora-right-pane-v22-0-0';
 const V21_CACHE_LINEAGE='navora-fixed-sidebar-v21-0-0';
 const V20_CACHE_LINEAGE='navora-left-navbar-v20-0-0';
 const V19_CACHE_LINEAGE='navora-sidebar-light-v19-0-0';
