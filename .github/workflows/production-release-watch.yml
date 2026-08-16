@@ -1,0 +1,84 @@
+name: Navora Production Release Watch
+
+on:
+  workflow_run:
+    workflows: [Navora CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact Git commit to verify; blank uses the dispatched GitHub SHA
+        required: false
+        default: ''
+        type: string
+      require_integrations:
+        description: Also require optional Google/Brevo/TomTom/passkey integrations
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: navora-production-release-watch
+  cancel-in-progress: true
+
+jobs:
+  verify-production:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BACKEND_URL: https://navora-backend-clzp.onrender.com
+      AI_URL: https://navora-ai-ttsr.onrender.com
+    steps:
+      - name: Checkout exact release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve exact release SHA
+        id: release
+        env:
+          INPUT_EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          EXPECTED="$INPUT_EXPECTED_COMMIT"
+          if [ -z "$EXPECTED" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+              EXPECTED="$WORKFLOW_RUN_SHA"
+            else
+              EXPECTED="$GITHUB_SHA"
+            fi
+          fi
+          if ! [[ "$EXPECTED" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "Invalid expected release SHA: $EXPECTED"
+            exit 1
+          fi
+          echo "sha=$EXPECTED" >> "$GITHUB_OUTPUT"
+          echo "Expected release SHA: $EXPECTED"
+      - name: Wait for both Render services to deploy the exact release
+        run: |
+          python scripts/wait_for_render_release.py \
+            --backend "$BACKEND_URL" \
+            --ai "$AI_URL" \
+            --expected-commit "${{ steps.release.outputs.sha }}" \
+            --wait-seconds 1200 \
+            --poll-seconds 20
+      - name: Verify deployed production behavior
+        env:
+          REQUIRE_INTEGRATIONS: ${{ inputs.require_integrations }}
+        run: |
+          STRICT=""
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$REQUIRE_INTEGRATIONS" = "true" ]; then
+            STRICT="--require-integrations"
+          fi
+          python scripts/production_smoke.py \
+            --backend "$BACKEND_URL" \
+            --ai "$AI_URL" \
+            --expected-commit "${{ steps.release.outputs.sha }}" \
+            $STRICT

@@ -50,7 +50,7 @@ OSRM routing and policy-safe Nominatim manual geocoding can operate without API 
 
 ## Production smoke verification
 
-After both Render services deploy the same Git commit, run:
+After both Render services deploy the same Git commit, run the core release smoke:
 
 ```powershell
 python .\scripts\production_smoke.py `
@@ -59,7 +59,19 @@ python .\scripts\production_smoke.py `
   --expected-commit (git rev-parse HEAD)
 ```
 
-V34 smoke verifies:
+Core mode treats optional Google/Brevo/TomTom/passkey integrations as warnings while still failing on critical readiness, exact release SHA mismatch, routing/geocoding failure, Socket.IO failure, AI service failure, or the V33 validated-only inference policy.
+
+For a full-integration release gate, add `--require-integrations`:
+
+```powershell
+python .\scripts\production_smoke.py `
+  --backend https://YOUR-BACKEND.onrender.com `
+  --ai https://YOUR-AI.onrender.com `
+  --expected-commit (git rev-parse HEAD) `
+  --require-integrations
+```
+
+V35 smoke verifies:
 
 - backend liveness and `/ready`
 - MongoDB production connection and live mode
@@ -73,6 +85,14 @@ V34 smoke verifies:
 - V33 rule that an unvalidated trained model cannot serve normal trained inference
 
 Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone GPS/camera/Bluetooth/WebRTC remain separate evidence gates and must not be fabricated.
+
+## V35 automatic release watch
+
+`.github/workflows/production-release-watch.yml` runs automatically after a successful `Navora CI` run on `main`. It uses `github.event.workflow_run.head_sha` rather than the `workflow_run` event's default `GITHUB_SHA`, waits for **both** Render `/health` endpoints to expose that exact release commit, and then runs the production smoke against the deployed services.
+
+The automatic watcher uses core release mode so an optional integration does not incorrectly mark a healthy code deployment as failed. The manual `Navora Production Smoke` workflow defaults to strict integration mode for final demo/release sign-off. Both workflows require exact backend and AI commit parity.
+
+The propagation watcher waits up to 20 minutes because Render builds/cold starts can lag behind GitHub CI. If either service never reaches the expected SHA, the workflow fails with the last observed non-secret HTTP/service status and commit value.
 
 ## Nominatim policy-safe geocoding
 

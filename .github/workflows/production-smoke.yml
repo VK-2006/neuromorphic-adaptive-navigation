@@ -18,6 +18,11 @@ on:
         required: false
         default: ''
         type: string
+      require_integrations:
+        description: Fail if optional integrations (Google, Brevo, TomTom, passkeys) are not production-ready
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -36,13 +41,19 @@ jobs:
           BACKEND_URL: ${{ inputs.backend_url }}
           AI_URL: ${{ inputs.ai_url }}
           INPUT_EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          REQUIRE_INTEGRATIONS: ${{ inputs.require_integrations }}
         run: |
           EXPECTED="$INPUT_EXPECTED_COMMIT"
           if [ -z "$EXPECTED" ]; then
             EXPECTED="$GITHUB_SHA"
           fi
+          STRICT=""
+          if [ "$REQUIRE_INTEGRATIONS" = "true" ]; then
+            STRICT="--require-integrations"
+          fi
           echo "Expected release SHA: $EXPECTED"
           python scripts/production_smoke.py \
             --backend "$BACKEND_URL" \
             --ai "$AI_URL" \
-            --expected-commit "$EXPECTED"
+            --expected-commit "$EXPECTED" \
+            $STRICT
