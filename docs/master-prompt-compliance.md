@@ -12,8 +12,9 @@ The repository is checked against the locked Navora master prompt rather than a 
 - Bootstrap 5, GSAP, AOS and Lottie are actually integrated while the custom Navora design system remains the visual authority.
 - Hazard deduplication uses type + geographic proximity + time window + journey + detection similarity.
 - QA scripts are repository-relative and have no hardcoded `/mnt/data` or BeautifulSoup dependency.
-- Detector and SNN validation are independent; one model cannot accidentally validate the other.
-- Training scripts never mark a model validated. Held-out evaluation scripts own validation decisions.
+- The detector remains a functional BDD100K/RDD2022 perception module with runtime artifact/readiness checks, taxonomy, API, confidence filtering and fallback/error handling.
+- Independent cross-dataset detector scientific validation is outside the current project scope and is not a completion gate.
+- SNN scientific validation remains fully in scope; its held-out evidence, research-only lock and consumed 2025 holdout record are unchanged.
 - Historical update/backup files and generated QA screenshots are excluded from final source and ignored going forward.
 - `prepush_audit.py` checks Git-tracked secrets, ignored runtime env files, backup/generated artifacts and package-lock consistency.
 - GitHub Actions CI runs source contracts, backend Jest/audit, Mongo-backed runtime E2E and lightweight AI fallback/API tests after push.
@@ -28,7 +29,8 @@ The repository is checked against the locked Navora master prompt rather than a 
 - Exact private GPS is not globally broadcast.
 - Single-state GPS/camera/Socket/Three.js lifecycle avoids duplicate watchers/streams/listeners/RAF loops.
 - Familiarity is not equated with safety.
-- Unvalidated detector/SNN output is research-only when live safety validation is required.
+- Detector output is presented as functional perception, never as independently validated or safety-certified perception.
+- Unvalidated SNN output remains research-only when live safety validation is required.
 
 ## Verification commands
 
@@ -50,4 +52,4 @@ Pre-push Git audit:
 python scripts/prepush_audit.py
 ```
 
-The remaining non-code gates are real production credentials, real held-out model evaluation and physical browser/device permission testing. They are intentionally not replaced with fabricated PASS claims.
+The remaining non-code gates include real production credentials, SNN scientific-validation status and physical browser/device permission testing. A new external detector-validation dataset is not required for current NAVORA completion.
