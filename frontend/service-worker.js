@@ -1,4 +1,4 @@
-const CACHE='navora-fullstack-v18-0-1';
+const CACHE='navora-sidebar-light-v19-0-0';
 const LEGACY_CACHE_MARKER='navora-v7-functional-product-1'; // retained only so older audit tooling recognizes the migrated lineage.
 const SHELL=["/", "/index.html", "/register.html", "/verify-email.html", "/login.html", "/forgot-password.html", "/verify-otp.html", "/reset-password.html", "/dashboard.html", "/map.html", "/journey.html", "/world-chat.html", "/devices.html", "/memory.html", "/journey-replay.html", "/history.html", "/notifications.html", "/profile.html", "/settings.html", "/camera-share.html", "/shared-journey.html", "/offline.html", "/admin.html", "/admin-users.html", "/admin-devices.html", "/admin-hazards.html", "/admin-chat.html", "/admin-health.html", "/admin-audit.html", "/manifest.json", "/assets/css/main.css",
   "/assets/css/obsidian.css",
