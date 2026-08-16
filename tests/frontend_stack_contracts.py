@@ -12,12 +12,15 @@ class P(HTMLParser):
 pages=sorted(PUB.glob('*.html'));assert len(pages)==28
 for p in pages:
     x=P();x.feed(p.read_text(encoding='utf-8'))
-    assert BOOT_CSS in x.hrefs,f'{p.name}: Bootstrap CSS missing'
-    assert BOOT_JS in x.srcs,f'{p.name}: Bootstrap JS missing'
+    if p.name!='offline.html':
+        assert BOOT_CSS in x.hrefs,f'{p.name}: Bootstrap CSS missing'
+        assert BOOT_JS in x.srcs,f'{p.name}: Bootstrap JS missing'
+    else:
+        assert not any(u.startswith('http://') or u.startswith('https://') for u in x.hrefs+x.srcs), 'offline.html: external runtime asset defeats offline shell'
     assert '/assets/css/main.css' in x.hrefs and '/assets/css/navora-v7.css' in x.hrefs,f'{p.name}: V7 CSS stack missing'
     assert '/assets/js/app-shell.js' in x.srcs,f'{p.name}: app shell missing'
     assert '/assets/css/worldclass.css' not in x.hrefs and '/assets/js/worldclass-ui.js' not in x.srcs,f'{p.name}: retired showcase UI still loaded'
 for s in ['--nav-sidebar','.map-layout','.journey-layout','.chat-layout','.auth-shell',':focus-visible','prefers-reduced-motion']:assert s in CSS,s
 for s in ['protectedPages','adminPages','navora:returnTo','navora:auth-required','buildAppNav','serviceWorker.register']:assert s in SHELL,s
 assert 'navora-v7-functional-product-1' in SW and '/assets/css/navora-v7.css' in SW
-print('FRONTEND_STACK_CONTRACTS PASS: V7 functional 28-page product shell, protected workflow navigation, Bootstrap foundation and cache-safe PWA')
+print('FRONTEND_STACK_CONTRACTS PASS: 27 online pages keep Bootstrap, offline shell is CDN-independent, V7 product shell/protected navigation/cache contracts present')
