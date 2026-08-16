@@ -81,6 +81,7 @@ def coherent_bundle(tmp_path: Path):
         'validated': True,
         'detectorClasses': detector_classes,
         'trainingSources': training_sources,
+        'trainingManifestSha256': 'det-train-sha',
     }
 
     write_json(gate_path, gate)
@@ -208,6 +209,16 @@ def test_detector_training_source_mismatch_revokes_validation(tmp_path):
     status = model_validation_status('detector', p['detector'], p['metadata'])
     assert status['passed'] is False
     assert 'detector metadata training sources do not match the V29 data gate' in status['reasons']
+
+
+def test_detector_training_manifest_mismatch_revokes_validation(tmp_path):
+    p = coherent_bundle(tmp_path)
+    meta = json.loads(p['metadata'].read_text(encoding='utf-8'))
+    meta['trainingManifestSha256'] = 'different-training-data'
+    write_json(p['metadata'], meta)
+    status = model_validation_status('detector', p['detector'], p['metadata'])
+    assert status['passed'] is False
+    assert 'detector metadata training manifest fingerprint does not match the V29 data gate' in status['reasons']
 
 
 def test_unknown_model_kind_is_rejected(tmp_path):
