@@ -80,9 +80,30 @@ function mobile(){
   document.querySelector('.navora-nav')?.addEventListener('click',event=>{if(window.matchMedia?.('(max-width:820px)').matches&&event.target.closest?.('a'))setOpen(false)});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.body.classList.contains('nav-open'))setOpen(false)});
 }
-async function user(){try{return await api('/users/me')}catch{return null}}
-async function start(){const u=await user(),needs=protectedPages.has(page)||adminPages.has(page);if(needs&&!u){sessionStorage.setItem('navora:returnTo',page+location.search+location.hash);location.replace(`login.html?returnTo=${encodeURIComponent(page+location.search+location.hash)}`);return}if(adminPages.has(page)&&u?.role!=='ADMIN'){toast('Administrator access is required.','warning');location.replace('dashboard.html');return}if((page==='login.html'||page==='register.html')&&u){location.replace('dashboard.html');return}if(authPages.has(page)){document.body.classList.add('navora-auth');buildAuthNav()}else if(adminPages.has(page)){document.body.classList.add('navora-admin');buildAppNav(u,true)}else if(protectedPages.has(page)){document.body.classList.add('navora-app');buildAppNav(u)}else{document.body.classList.add('navora-public');buildPublicNav(u)}document.body.classList.remove('navora-booting');mobile()}
-window.addEventListener('navora:auth-required',()=>{if(!protectedPages.has(page)&&!adminPages.has(page))return;sessionStorage.setItem('navora:returnTo',page+location.search+location.hash);location.replace(`login.html?returnTo=${encodeURIComponent(page+location.search+location.hash)}`)});
+function returnTo(){return page+location.search+location.hash}
+function saveReturnTo(){sessionStorage.setItem('navora:returnTo',returnTo())}
+async function userSession(){try{return{user:await api('/users/me'),error:null}}catch(error){return{user:null,error}}}
+function recoverFromServiceFailure(error){
+  saveReturnTo();
+  const reason=Number(error?.status||0)===0?'network':'service';
+  location.replace(`offline.html?reason=${reason}`);
+}
+async function start(){
+  const session=await userSession(),u=session.user,needs=protectedPages.has(page)||adminPages.has(page);
+  if(needs&&!u){
+    if(session.error&&Number(session.error.status)!==401){recoverFromServiceFailure(session.error);return}
+    saveReturnTo();location.replace(`login.html?returnTo=${encodeURIComponent(returnTo())}`);return;
+  }
+  if(needs&&u)sessionStorage.removeItem('navora:returnTo');
+  if(adminPages.has(page)&&u?.role!=='ADMIN'){toast('Administrator access is required.','warning');location.replace('dashboard.html');return}
+  if((page==='login.html'||page==='register.html')&&u){location.replace('dashboard.html');return}
+  if(authPages.has(page)){document.body.classList.add('navora-auth');buildAuthNav()}
+  else if(adminPages.has(page)){document.body.classList.add('navora-admin');buildAppNav(u,true)}
+  else if(protectedPages.has(page)){document.body.classList.add('navora-app');buildAppNav(u)}
+  else{document.body.classList.add('navora-public');buildPublicNav(u)}
+  document.body.classList.remove('navora-booting');mobile();
+}
+window.addEventListener('navora:auth-required',()=>{if(!protectedPages.has(page)&&!adminPages.has(page))return;saveReturnTo();location.replace(`login.html?returnTo=${encodeURIComponent(returnTo())}`)});
 start().then(()=>{if(deferredInstallPrompt)showInstallAction()}).catch(e=>{document.body.classList.remove('navora-booting');toast(e.message,'error')});
 if('serviceWorker'in navigator)window.addEventListener('load',async()=>{try{const r=await navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'});await r.update().catch(()=>{})}catch{}});
 window.Navora={...(window.Navora||{}),toast};
