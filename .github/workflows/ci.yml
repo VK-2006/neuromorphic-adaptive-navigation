@@ -68,6 +68,57 @@ jobs:
       - name: Git hygiene audit
         run: python scripts/prepush_audit.py
 
+  browser-e2e:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend and Playwright
+        working-directory: backend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start Navora test server
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          MONGODB_URI: mongodb://127.0.0.1:27017/navora_ci_browser
+          FRONTEND_URL: http://127.0.0.1:5000
+          SOCKET_CORS_ORIGIN: http://127.0.0.1:5000
+        run: |
+          node backend/src/server.js > /tmp/navora-browser-server.log 2>&1 &
+          echo $! > /tmp/navora-browser-server.pid
+          for i in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:5000/health > /dev/null; then
+              echo "Navora browser server ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/navora-browser-server.log
+          exit 1
+      - name: 28-page Chromium runtime sweep
+        run: node scripts/browser_v8_full_sweep.js http://127.0.0.1:5000
+      - name: V22 fixed-navigation physical scroll E2E
+        run: node scripts/browser_v22_fixed_shell_e2e.js http://127.0.0.1:5000
+      - name: Browser server log on failure
+        if: failure()
+        run: cat /tmp/navora-browser-server.log || true
+
   ai-fallback-contract:
     runs-on: ubuntu-latest
     steps:
