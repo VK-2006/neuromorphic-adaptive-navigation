@@ -1,4 +1,4 @@
-/* NAVORA v17 - universal bottom-left profile shell */
+/* NAVORA v19 - universal profile shell + fixed sidebar-bottom account dock */
 (() => {
   "use strict";
 
@@ -71,6 +71,7 @@
     card.className = `nav-account ${PROFILE_CLASS}`;
     card.setAttribute("aria-label", "Profile");
     card.dataset.navoraProfileV17 = "true";
+    card.dataset.profileDockVersion = "19";
 
     const summary = document.createElement("div");
     summary.className = "nav-user-summary";
@@ -120,12 +121,6 @@
     const actions = card.querySelector("[data-profile-actions]");
     if (!avatar || !name || !meta || !actions) return;
 
-    /*
-      bodyObserver watches subtree child-list mutations so it can detect the
-      application sidebar account inserted by app-shell.js. Rebuilding the
-      same profile actions on every observer callback creates a self-triggered
-      observer/render loop. Fingerprinting makes rendering idempotent.
-    */
     card.dataset.profileFingerprint = fingerprint;
     actions.replaceChildren();
 
@@ -158,7 +153,8 @@
       );
       if (account) {
         account.classList.add("navora-profile-fixed-v17");
-        account.dataset.profileFixed = "left-bottom";
+        account.dataset.profileFixed = "sidebar-bottom-fixed";
+        account.dataset.profileDockVersion = "19";
       }
       return;
     }
@@ -189,7 +185,7 @@
     if (!meta) return;
     meta.setAttribute(
       "content",
-      document.documentElement.dataset.theme === "dark" ? "#0B0712" : "#F7F3EA"
+      document.documentElement.dataset.theme === "dark" ? "#0B0712" : "#F3EFE8"
     );
   }
 
@@ -206,10 +202,6 @@
       attributeFilter: ["data-theme"]
     });
 
-    /*
-      Keep profile updates narrow. The old whole-body subtree observer reacted
-      to unrelated motion/UI DOM mutations and could starve Chromium.
-    */
     const modeObserver = new MutationObserver(queueEnsure);
     modeObserver.observe(document.body, {
       attributes: true,
@@ -236,7 +228,7 @@
   }
 
   window.NavoraV17Profile = {
-    version: "17.0.2",
+    version: "19.0.0",
     ensure: queueEnsure
   };
 })();
