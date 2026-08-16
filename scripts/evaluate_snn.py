@@ -5,6 +5,9 @@ Navora's policy floors. V30 also requires every risk class to meet a minimum F1 
 HIGH/CRITICAL recall to meet a stronger floor so aggregate accuracy cannot hide dangerous
 high-risk misses. `--mark-validation` additionally requires a passing data gate whose held-out
 SNN CSV SHA-256 matches the exact file evaluated here.
+
+V32 permanently blocks any scientifically consumed external final set from being evaluated
+again, preventing threshold/model selection feedback after a one-time final benchmark.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -13,6 +16,7 @@ import torch
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'ai-service'))
 from app.models.snn import RiskSNN
 from app.model_validation import DATA_GATE_MINIMUMS,SNN_EVAL_MINIMUMS,sha256_file
+from app.research_lock import assert_not_consumed_snn_final
 FEATURES=['objectPrior','confidence','proximity','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','lowVisibility','weatherRisk','roadOrReports']
 LABELS=['LOW','MEDIUM','HIGH','CRITICAL'];L2I={x:i for i,x in enumerate(LABELS)}
 
@@ -76,12 +80,14 @@ def update_metadata(metadata_path,passed,report_path):
     metadata_path.write_text(json.dumps(m,indent=2),encoding='utf-8')
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--csv',type=Path,required=True,help='Held-out normalized evaluation CSV')
+    ap=argparse.ArgumentParser();ap.add_argument('--csv',type=Path,required=True,help='Fresh held-out normalized evaluation CSV')
     ap.add_argument('--weights',type=Path,default=ROOT/'ai-service/trained_models/risk_snn.pt')
     ap.add_argument('--metadata',type=Path,default=ROOT/'ai-service/trained_models/metadata.json')
     ap.add_argument('--min-samples',type=int,default=SNN_EVAL_MINIMUMS['minSamples']);ap.add_argument('--min-accuracy',type=float,default=SNN_EVAL_MINIMUMS['minAccuracy']);ap.add_argument('--min-macro-f1',type=float,default=SNN_EVAL_MINIMUMS['minMacroF1']);ap.add_argument('--min-per-class-f1',type=float,default=SNN_EVAL_MINIMUMS['minPerClassF1']);ap.add_argument('--min-high-risk-recall',type=float,default=SNN_EVAL_MINIMUMS['minHighRiskRecall'])
     ap.add_argument('--seed',type=int,default=2026);ap.add_argument('--mark-validation',action='store_true',help='Write riskValidated only when metric + data-gate + class policy is satisfied')
     a=ap.parse_args();configured={'minSamples':a.min_samples,'minAccuracy':a.min_accuracy,'minMacroF1':a.min_macro_f1,'minPerClassF1':a.min_per_class_f1,'minHighRiskRecall':a.min_high_risk_recall}
+    try:assert_not_consumed_snn_final(a.csv,'re-evaluation, threshold tuning, or model selection')
+    except ValueError as exc:raise SystemExit(f'RESEARCH LOCK: {exc}') from exc
     policy_problems=[f'configured threshold {k}={configured[k]} is below policy floor {v}' for k,v in SNN_EVAL_MINIMUMS.items() if configured[k]<v]
     x,y=load_csv(a.csv)
     if not a.weights.exists():raise SystemExit(f'Missing weights: {a.weights}')

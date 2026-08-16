@@ -59,6 +59,8 @@ jobs:
           python tests/v29_rdd_detector_training_contracts.py
           python tests/v30_class_aware_validation_contracts.py
           python tests/v31_windows_model_pipeline_contracts.py
+          python tests/v32_phase5_research_lock_contracts.py
+          python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py scripts/train_snn.py scripts/evaluate_snn.py
           node --check backend/src/app.js
           node --check frontend/assets/js/api.js
           node --check frontend/assets/js/app-shell.js
