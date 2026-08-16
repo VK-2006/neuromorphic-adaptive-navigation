@@ -46,19 +46,24 @@ During an active journey:
 
 ## Datasets and models
 
-- **BDD100K:** intended primary road-scene/object-detection source.
-- **RDD2022:** intended road-damage source (potholes/cracks/damage).
-- **Cityscapes:** optional semantic-segmentation source.
+- **BDD100K:** primary road-scene/object-detection development source.
+- **RDD2022:** road-damage development source for potholes/cracks/damage.
 - **OpenStreetMap:** geographic/road-network data, **not** an ML training dataset.
 - `datasets/demo-data/snn-risk-raw.csv`: synthetic/demo-only fixture with all master-prompt SNN risk fields.
 - `datasets/derived-risk-data/risk-training.csv`: normalized SNN training fixture.
 - `datasets/demo-data/crm-journeys.json`: synthetic/demo-only CRM journey fixture.
 
-Large public datasets and trained weights are intentionally not redistributed. `scripts/prepare_detection_data.py`, `scripts/train_detector.py` and `scripts/train_snn.py` provide preparation/training; `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` enforce held-out validation gates. Training never marks a model validated.
+Large public datasets and trained weights are intentionally not redistributed by Git. `scripts/prepare_detection_data.py` and `scripts/train_detector.py` retain the BDD100K/RDD2022 detector workflow, and `scripts/evaluate_detector.py` remains available for normal development/debugging. `scripts/train_snn.py` and `scripts/evaluate_snn.py` retain the SNN scientific-validation workflow.
 
-### SNN truthfulness rule
+### Detector and SNN truthfulness rule
 
-`ai-service/app/models/snn.py` contains the real snnTorch LIF architecture and the risk engine contains temporal/spike/membrane processing. Detector and SNN validation are independent (`detectorValidated` and `riskValidated`); global safety validation is true only when both held-out evaluation gates pass. Missing/unvalidated weights remain explicitly research/development output.
+The object-detection module is retained as a functional perception component developed using the project's BDD100K detector workflow. Independent cross-dataset detector scientific validation is outside the current project scope and may be considered future work. Runtime detector loading still checks artifact/readiness state and uses the detector taxonomy, confidence filtering, inference error handling and fallbacks.
+
+SNN scientific validation remains separate and unchanged. The consumed 2025 SNN holdout evidence and research-only model lock remain authoritative and are not modified by this detector-scope simplification.
+
+The supported perception/routing flow remains:
+
+`Camera → Object Detector → objectClass + confidence → NAVORA runtime risk features → SNN / risk processing → ACO + Cognitive Route Memory → safest-route recommendation`
 
 ## Authentication and security
 
@@ -145,14 +150,13 @@ The user's Git working repository already preserves `backend/package-lock.json`;
 
 ## Limitations / validation boundary
 
-No fabricated BDD100K/RDD2022 or SNN validation is claimed. Browser camera/GPS/Screen Wake Lock/Bluetooth/WebRTC/passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
+No fabricated detector benchmark or SNN validation is claimed. The detector is a functional BDD100K/RDD2022 perception module; independent cross-dataset detector scientific validation is future work and is not a current completion gate. Browser camera/GPS/Screen Wake Lock/Bluetooth/WebRTC/passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
 
-The source contains training/evaluation/runtime-validation tooling so those gates can be completed without redesigning the application.
+SNN scientific-validation tooling and evidence remain in scope without modification.
 
 ## Pre-push / deployment status
 
 All identified source/compliance cleanup is consolidated into the final pre-push build. The user performs the Git commit/push after `final_verify.py --runtime` and `prepush_audit.py` pass. Render/Atlas/production secrets remain a separate later step.
-
 
 ## Production smoke verification
 
@@ -165,8 +169,7 @@ python .\scripts\production_smoke.py `
   --expected-commit (git rev-parse HEAD)
 ```
 
-The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates.
-
+The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, SNN held-out scientific validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates. Detector scientific validation is not a current completion gate.
 
 ### Production geocoding policy
 
