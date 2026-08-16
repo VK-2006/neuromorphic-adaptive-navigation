@@ -31,6 +31,7 @@ from torchvision.transforms.functional import to_tensor
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'ai-service'))
 from app.detector_taxonomy import ordered_classes, validate_source_class
+from app.model_validation import sha256_file
 
 
 class ManifestDataset(Dataset):
@@ -112,7 +113,6 @@ def _transfer_coco_predictor(model, weights, classes):
     mapping = []
     fresh = []
     with torch.no_grad():
-        # Background is shared and can be transferred directly.
         new_predictor.cls_score.weight[0].copy_(old_predictor.cls_score.weight[0])
         new_predictor.cls_score.bias[0].copy_(old_predictor.cls_score.bias[0])
         new_predictor.bbox_pred.weight[0:4].copy_(old_predictor.bbox_pred.weight[0:4])
@@ -211,8 +211,11 @@ def main():
 
     if args.device == 'cuda' and not torch.cuda.is_available():
         raise SystemExit('CUDA requested but torch.cuda.is_available() is False')
+    if args.max_samples and not args.smoke:
+        raise SystemExit('--max-samples is smoke/development-only; validated-capable training must consume the complete gated training manifest')
 
-    ds = ManifestDataset(args.manifest, args.max_samples)
+    manifest_path = Path(args.manifest)
+    ds = ManifestDataset(manifest_path, args.max_samples)
     dl = DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -366,7 +369,8 @@ def main():
         'freshHeadClasses': fresh,
         'headOnlyTraining': bool(args.head_only),
         'internalResize': {'minSize': 384, 'maxSize': 640},
-        'trainingManifest': str(Path(args.manifest)),
+        'trainingManifest': str(manifest_path),
+        'trainingManifestSha256': sha256_file(manifest_path),
         'dataProvenance': {
             'BDD100K': bdd_provenance if 'BDD100K' in sources else None,
             'RDD2022': (
@@ -386,6 +390,7 @@ def main():
     meta_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
 
     print('saved', out / 'detector.pt')
+    print('training manifest SHA-256 =', meta['trainingManifestSha256'])
     print('detectorValidated = FALSE')
     print('official BDD100K benchmark claim = FALSE')
     print('official RDD2022 benchmark claim = FALSE')
