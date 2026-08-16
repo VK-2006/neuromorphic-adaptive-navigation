@@ -5,7 +5,7 @@ def base(url): return url.rstrip("/")
 
 def call(method,url,payload=None,timeout=90,retries=4):
     data=None
-    headers={"Accept":"application/json, text/plain, */*","User-Agent":"Navora-Production-Smoke/1.1"}
+    headers={"Accept":"application/json, text/plain, */*","User-Agent":"Navora-Production-Smoke/1.2"}
     if payload is not None:
         data=json.dumps(payload).encode("utf-8")
         headers["Content-Type"]="application/json"
@@ -42,16 +42,26 @@ def main():
     def fail(name,detail): errors.append(f"{name}: {detail}"); print(f"FAIL  {name} — {detail}")
     def warn(name,detail): warnings.append(f"{name}: {detail}"); print(f"WARN  {name} — {detail}")
 
-    print("="*76); print("NAVORA PRODUCTION SMOKE"); print("="*76)
+    print("="*76); print("NAVORA PRODUCTION SMOKE V34"); print("="*76)
 
     try:
         status,_,h=call("GET",backend+"/health")
-        ok("Backend health") if status==200 and isinstance(h,dict) and h.get("status")=="ok" else fail("Backend health",repr(h))
+        ok("Backend liveness") if status==200 and isinstance(h,dict) and h.get("status")=="ok" else fail("Backend liveness",repr(h))
         ok("MongoDB production") if isinstance(h,dict) and h.get("database")=="connected" else fail("MongoDB production",repr(h))
         ok("Backend live mode") if isinstance(h,dict) and h.get("mode")=="live" else fail("Backend live mode",repr(h))
         deployed=h.get("commit") if isinstance(h,dict) else None
-        ok("Exact Render commit",deployed[:12]) if deployed==args.expected_commit else fail("Exact Render commit",f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}")
-    except Exception as exc: fail("Backend health",str(exc))
+        ok("Exact backend Render commit",deployed[:12]) if deployed==args.expected_commit else fail("Exact backend Render commit",f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}")
+    except Exception as exc: fail("Backend liveness",str(exc))
+
+    try:
+        status,_,ready=call("GET",backend+"/ready",timeout=45,retries=2)
+        if status==200 and isinstance(ready,dict) and ready.get("status")=="ready" and ready.get("criticalReady") is True:
+            ok("Backend deployment readiness")
+            missing=ready.get("missingIntegrations") or []
+            if missing: warn("Optional production integrations",", ".join(map(str,missing)))
+        else:
+            fail("Backend deployment readiness",repr(ready))
+    except Exception as exc: fail("Backend deployment readiness",str(exc))
 
     for path,name,needle in [
         ("/","Frontend landing","Navora"),("/login.html","Login page","Navora"),
@@ -117,7 +127,12 @@ def main():
 
     try:
         _,_,h=call("GET",ai+"/health",timeout=90,retries=5)
-        ok("AI health") if isinstance(h,dict) and h.get("status")=="ok" else fail("AI health",repr(h))
+        if isinstance(h,dict) and h.get("status")=="ok":
+            ok("AI health")
+            deployed=h.get("commit")
+            ok("Exact AI Render commit",deployed[:12]) if deployed==args.expected_commit else fail("Exact AI Render commit",f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}")
+        else:
+            fail("AI health",repr(h))
     except Exception as exc: fail("AI health",str(exc))
 
     info=None
@@ -131,11 +146,15 @@ def main():
         _,_,risk=call("POST",ai+"/api/v1/risk/predict",risk_payload,timeout=90,retries=4)
         score=risk.get("score") if isinstance(risk,dict) else None
         ok("AI risk inference",f"score={score:.4f}, level={risk.get('level')}") if isinstance(score,(int,float)) and 0<=score<=1 and isinstance(risk.get("level"),str) else fail("AI risk inference",repr(risk))
+        if isinstance(risk,dict) and risk.get("validated") is False and 'trained-weights' in str(risk.get("mode") or ''):
+            fail("V33 validated-only inference policy",repr({"mode":risk.get("mode"),"validated":risk.get("validated")}))
+        else:
+            ok("V33 validated-only inference policy")
     except Exception as exc: fail("AI risk inference",str(exc))
 
     if isinstance(info,dict):
         dv=(info.get("detector") or {}).get("validated") is True; rv=(info.get("riskModel") or {}).get("validated") is True
-        ok("Validated AI gate") if dv and rv else warn("Validated AI gate","trained + held-out-validated detector/SNN weights are not present; research fallback remains correctly non-safety-eligible")
+        ok("Validated AI gate") if dv and rv else warn("Validated AI gate","trained + held-out-validated detector/SNN weights are not present; fallback/research mode remains correctly non-safety-eligible")
 
     print(); print("="*76)
     if errors:
@@ -147,7 +166,7 @@ def main():
         return 1
     print("NAVORA PRODUCTION SMOKE: PASS")
     if warnings:
-        print("External validation gates:")
+        print("External validation / optional-integration notes:")
         for w in warnings: print(" -",w)
     print("Physical phone GPS/camera/Bluetooth/WebRTC and held-out ML validation are not fabricated by this test.")
     return 0
