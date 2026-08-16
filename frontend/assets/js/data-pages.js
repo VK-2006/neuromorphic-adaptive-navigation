@@ -8,6 +8,7 @@ const when=v=>{const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLo
 const km=v=>Number.isFinite(Number(v))?`${(Number(v)/1000).toFixed(1)} km`:'—';
 const pct=v=>Number.isFinite(Number(v))?`${Math.round(Number(v)*100)}%`:'—';
 const safety=j=>j?.averageRisk!=null?`${Math.round(100*(1-Number(j.averageRisk)))}%`:'—';
+const replayable=j=>['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.status||'').toUpperCase());
 const labelOf=p=>p?.label||p?.name||(Number.isFinite(Number(p?.lat))?`${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`:'—');
 
 let detailMap=null,detailLayers=[];
@@ -118,7 +119,7 @@ async function history(){
       <td>${num(j?.hazardCount)}</td>
       <td>${num(j?.reroutes)}</td>
       <td><span class="chip">${esc(String(j?.status||'—').toUpperCase())}</span></td>
-      <td><button class="btn-navora btn-ghost" type="button" data-journey-detail="${esc(j?._id)}">View details</button></td>
+      <td><div class="history-actions"><button class="btn-navora btn-ghost" type="button" data-journey-detail="${esc(j?._id)}">View details</button>${replayable(j)?`<a class="btn-navora btn-ghost" data-replay="${esc(j?._id)}" href="journey-replay.html?journey=${encodeURIComponent(j?._id||'')}">Replay</a>`:''}</div></td>
     </tr>`).join(''):'<tr><td colspan="9">No journeys yet. Plan and complete a route to build history.</td></tr>';
     h.querySelectorAll('[data-journey-detail]').forEach(b=>b.addEventListener('click',()=>openJourneyDetail(b.dataset.journeyDetail)));
     const requested=new URLSearchParams(location.search).get('journey');if(requested)openJourneyDetail(requested);

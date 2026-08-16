@@ -99,13 +99,34 @@
     return card;
   }
 
+  function profileFingerprint(user) {
+    if (!user) return "guest";
+    return [
+      "user",
+      String(user._id || user.id || ""),
+      String(user.name || ""),
+      String(user.email || ""),
+      String(user.role || "")
+    ].join(":");
+  }
+
   function renderCard(card, user) {
+    const fingerprint = profileFingerprint(user);
+    if (card.dataset.profileFingerprint === fingerprint) return;
+
     const avatar = card.querySelector("[data-profile-avatar]");
     const name = card.querySelector("[data-profile-name]");
     const meta = card.querySelector("[data-profile-meta]");
     const actions = card.querySelector("[data-profile-actions]");
     if (!avatar || !name || !meta || !actions) return;
 
+    /*
+      bodyObserver watches subtree child-list mutations so it can detect the
+      application sidebar account inserted by app-shell.js. Rebuilding the
+      same profile actions on every observer callback creates a self-triggered
+      observer/render loop. Fingerprinting makes rendering idempotent.
+    */
+    card.dataset.profileFingerprint = fingerprint;
     actions.replaceChildren();
 
     if (user) {
@@ -185,17 +206,26 @@
       attributeFilter: ["data-theme"]
     });
 
-    const bodyObserver = new MutationObserver(queueEnsure);
-    bodyObserver.observe(document.body, {
+    /*
+      Keep profile updates narrow. The old whole-body subtree observer reacted
+      to unrelated motion/UI DOM mutations and could starve Chromium.
+    */
+    const modeObserver = new MutationObserver(queueEnsure);
+    modeObserver.observe(document.body, {
       attributes: true,
-      attributeFilter: ["class"],
-      childList: true,
-      subtree: true
+      attributeFilter: ["class"]
+    });
+
+    const navRoot = document.querySelector(".navora-nav");
+    const navObserver = navRoot ? new MutationObserver(queueEnsure) : null;
+    navObserver?.observe(navRoot, {
+      childList: true
     });
 
     window.addEventListener("pagehide", () => {
       rootObserver.disconnect();
-      bodyObserver.disconnect();
+      modeObserver.disconnect();
+      navObserver?.disconnect();
     }, { once: true });
   }
 
@@ -206,7 +236,7 @@
   }
 
   window.NavoraV17Profile = {
-    version: "17.0.0",
+    version: "17.0.2",
     ensure: queueEnsure
   };
 })();

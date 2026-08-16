@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+# NAVORA_V9_SEMANTIC_CONTRACTS: validate behavior without whitespace or release-name coupling.
 ROOT=Path(__file__).resolve().parents[1]
 def read(p):return (ROOT/p).read_text(encoding='utf-8')
 def need(p,*xs):
@@ -15,9 +17,17 @@ need('frontend/assets/js/map.js',"navora:preferences",'setStartEnabled(false)','
 need('frontend/public/journey.html','local-detection-bridge.js','Frames stay in browser','metadata only sent')
 bridge=read('frontend/assets/js/local-detection-bridge.js')
 assert "DETECT_PATH='/api/v1/hazards/detect'" in bridge and "ANALYZE_PATH='/api/v1/hazards/analyze'" in bridge
-assert 'requestBody.image' not in bridge and 'frameTransmitted:false' in bridge
+forbidden_local_payloads=('requestBody.image','requestBody.frame','requestBody.video','requestBody.blob')
+assert not any(x in bridge for x in forbidden_local_payloads), 'browser-local bridge must not forward raw frame fields'
+assert re.search(r'\bframeTransmitted\s*:\s*false\b',bridge), 'browser-local bridge must mark frames as not transmitted'
 need('backend/src/routes/hazardRoutes.js',"r.post('/analyze'")
-need('backend/src/controllers/hazardMetadataController.js','frameTransmitted:false','detectorValidated=false','verifiedNearby')
+controller=read('backend/src/controllers/hazardMetadataController.js')
+assert re.search(r'\b(?:const|let|var)\s+detectorValidated\s*=\s*false\b',controller), 'browser-local detector must be explicitly unvalidated'
+assert re.search(r'\bframeTransmitted\s*:\s*false\b',controller), 'controller must preserve no-frame-transmission privacy metadata'
+assert re.search(r"\bdetectorLocation\s*:\s*['\"]browser['\"]",controller), 'controller must identify browser-local detection'
+assert re.search(r"\bnetworkPayload\s*:\s*['\"]metadata-only['\"]",controller), 'controller must declare metadata-only network payloads'
+assert 'verifiedNearby' in controller, 'controller must hydrate nearby verified reports'
+assert 'req.body.image' not in controller and 'req.body.frame' not in controller, 'metadata controller must not consume raw image/frame fields'
 need('frontend/assets/js/chat.js','typingTimers','removeMessage(m.id)','m.editedAt')
 need('frontend/assets/js/replay.js','buildTimeline','interpolatePoint','currentTime()')
 need('frontend/assets/js/data-pages.js','replayable','removeAttribute(\'data-read\')')
@@ -37,6 +47,11 @@ need('frontend/assets/js/research-telemetry.js','NavoraResearchTelemetry')
 need('scripts/browser_v9_local_runner.js','browser_v9_functional_e2e.js','server.listen(0','Local V9 harness API fallback')
 need('frontend/assets/js/three-research.js','telemetry()','navora:research-telemetry')
 sw=read('frontend/service-worker.js')
-assert "const CACHE='navora-v9-functional-e2e-1'" in sw and all('/'+p in sw for p in [
-'index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','camera-share.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'])
+cache=re.search(r"\bconst\s+CACHE\s*=\s*(['\"])([^'\"]+)\1\s*;",sw)
+assert cache and cache.group(2).strip(), 'service worker must define a non-empty cache version'
+shell_pages=[
+'index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','camera-share.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']
+missing_shell_pages=[p for p in shell_pages if '/'+p not in sw]
+assert len(shell_pages)==28, f'PWA shell contract expected 28 pages, found {len(shell_pages)}'
+assert not missing_shell_pages, f'service worker shell missing {missing_shell_pages}'
 print('V9_CONTRACTS PASS: Google signup, auth recovery, preferences, metadata-only local perception, chat/replay/settings/admin/device/share/PWA hardening are present')

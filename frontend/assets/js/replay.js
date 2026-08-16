@@ -18,7 +18,8 @@ async function init(){
   try{
     const rows=arr(await api('/journeys')),sel=$('replay-journey');
     if(sel)rows.filter(replayable).forEach(j=>{const o=document.createElement('option');o.value=j._id;o.textContent=`${j.createdAt?new Date(j.createdAt).toLocaleString():'—'} · ${j.mode||'—'} · ${j.status||'—'}`;sel.appendChild(o)});
-    const preferred=sessionStorage.getItem('lastCompletedJourneyId');
+    const requested=new URLSearchParams(location.search).get('journey');
+    const preferred=requested||sessionStorage.getItem('lastCompletedJourneyId');
     if(preferred&&rows.some(j=>String(j?._id)===String(preferred)&&replayable(j))&&sel){sel.value=preferred;await load(preferred)}
   }catch(e){toast(e.message,'error')}
   bind();

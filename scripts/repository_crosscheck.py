@@ -26,9 +26,9 @@ for x in ['backend/.env.example','ai-service/.env.example','docker-compose.yml',
 patterns=[
     re.compile(r'AIza[0-9A-Za-z_-]{20,}'),
     re.compile(r'(?i)mongodb\+srv://[^\s:@]+:[^\s@]+@'),
-    re.compile(r'(?im)^\s*BREVO_API_KEY\s*=\s*\S+'),
-    re.compile(r'(?im)^\s*GOOGLE_CLIENT_SECRET\s*=\s*\S+'),
-    re.compile(r'(?im)^\s*JWT_(?:ACCESS|REFRESH)_SECRET\s*=\s*\S+'),
+    re.compile(r'(?im)^[ \t]*BREVO_API_KEY[ \t]*=[ \t]*\S+'),
+    re.compile(r'(?im)^[ \t]*GOOGLE_CLIENT_SECRET[ \t]*=[ \t]*\S+'),
+    re.compile(r'(?im)^[ \t]*JWT_(?:ACCESS|REFRESH)_SECRET[ \t]*=[ \t]*\S+'),
 ]
 for p in ROOT.rglob('*'):
     if not p.is_file() or p.suffix.lower() in {'.zip','.png','.jpg','.jpeg','.webp','.pt','.pyc','.pyo'} or p.name=='.env.example':continue

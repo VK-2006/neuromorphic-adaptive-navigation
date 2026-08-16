@@ -139,6 +139,7 @@ document.querySelector('[data-passkey-login]')?.addEventListener('click',passkey
 async function initGoogle(){
   const host=document.getElementById('google-signin'),status=document.getElementById('google-status');
   if(!host)return;
+  const mode=host.dataset.googleMode==='signup'?'signup':'signin';
   try{
     const cfg=await api('/auth/config');
     if(!cfg.google?.enabled||!cfg.google.clientId){
@@ -168,7 +169,7 @@ async function initGoogle(){
           }
         });
         host.innerHTML='';
-        gis.renderButton(host,{theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',size:'large',shape:'pill',text:'continue_with',width:320});
+        gis.renderButton(host,{theme:document.documentElement.dataset.theme==='dark'?'filled_black':'outline',size:'large',shape:'pill',text:mode==='signup'?'signup_with':'continue_with',width:320});
         if(status)status.textContent='Google ID tokens are verified by the Navora backend before an application session is created.';
       }catch(e){
         host.innerHTML='<button class="btn-navora btn-ghost" type="button" disabled>Continue with Google</button>';
