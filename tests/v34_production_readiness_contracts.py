@@ -15,6 +15,7 @@ env=text('backend/.env.production.example')
 smoke=text('scripts/production_smoke.py')
 doc=text('docs/render-deployment.md')
 ci=text('.github/workflows/ci.yml')
+prod_ci=text('.github/workflows/production-smoke.yml')
 
 for token in [
     'evaluateProductionReadiness','criticalReady','fullIntegrationReady',
@@ -51,10 +52,16 @@ need('CI runs V34 contract','python tests/v34_production_readiness_contracts.py'
 need('CI syntax-checks readiness service','node --check backend/src/services/productionReadinessService.js' in ci)
 need('CI compiles production smoke','python -m py_compile scripts/production_smoke.py' in ci)
 
+need('manual production smoke workflow','workflow_dispatch:' in prod_ci and 'production-smoke:' in prod_ci)
+need('manual smoke defaults backend','https://navora-backend-clzp.onrender.com' in prod_ci)
+need('manual smoke defaults AI','https://navora-ai-ttsr.onrender.com' in prod_ci)
+need('manual smoke exact SHA fallback','EXPECTED="$GITHUB_SHA"' in prod_ci)
+need('manual smoke invokes verifier','python scripts/production_smoke.py' in prod_ci)
+
 if fail:
     print('V34 PRODUCTION READINESS CONTRACTS: FAIL')
     for item in fail: print(' -',item)
     raise SystemExit(1)
 
 print('V34 PRODUCTION READINESS CONTRACTS: PASS')
-print('Readiness/liveness split, non-secret diagnostics, complete production template, exact backend+AI release smoke, and CI coverage are present.')
+print('Readiness/liveness split, non-secret diagnostics, complete production template, exact backend+AI release smoke, manual Render verification workflow, and CI coverage are present.')
