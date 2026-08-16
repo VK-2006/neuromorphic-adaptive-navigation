@@ -26,7 +26,9 @@ assert "link.href='/assets/css/media-frames-v18.css'" in theme
 assert "link.dataset.navoraMediaV18='true'" in theme
 
 sw=read(Path('frontend/service-worker.js'))
-assert 'navora-fullstack-v18-0-1' in sw
+# V18 owns the media asset contract, not the release cache version. Newer UI
+# releases must be free to bump CACHE so installed clients receive fresh CSS.
+assert "const CACHE='navora-" in sw
 assert '/assets/css/media-frames-v18.css' in sw
 assert "offlineFallback:true" in sw
 
