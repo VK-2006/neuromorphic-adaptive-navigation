@@ -30,21 +30,21 @@ def main():
     ]:
         compile(source,name,'exec')
 
-    require('DATA_GATE_MINIMUMS' in helper,'V28 data-gate policy floors missing')
-    require('DETECTOR_EVAL_MINIMUMS' in helper,'V28 detector policy floors missing')
-    require('SNN_EVAL_MINIMUMS' in helper,'V28 SNN policy floors missing')
-    require("evidence.get('schemaVersion') != 2" in helper,'runtime must reject pre-V28 evidence')
+    require('DATA_GATE_MINIMUMS' in helper,'V28+ data-gate policy floors missing')
+    require('DETECTOR_EVAL_MINIMUMS' in helper,'V28+ detector policy floors missing')
+    require('SNN_EVAL_MINIMUMS' in helper,'V28+ SNN policy floors missing')
+    require("evidence.get('schemaVersion') != 3" in helper,'runtime must reject pre-V30 validation evidence')
     require('trained weight SHA-256 does not match validation evidence' in helper,'runtime weight hash binding missing')
     require('detectorEvaluationSha256' in helper and 'snnEvaluationSha256' in helper,'runtime report-hash binding missing')
     require('metadataSha256' in helper and 'dataGateSha256' in helper,'runtime metadata/data-gate hash binding missing')
 
-    require("model_validation_status('detector'" in detector,'detector does not use V28 validation guard')
-    require("model_validation_status('risk'" in risk,'SNN does not use V28 validation guard')
-    require("self.validated=bool(validation.get('passed'))" in detector,'detector validation is not derived from V28 guard')
-    require("self.validated=bool(validation.get('passed'))" in risk,'SNN validation is not derived from V28 guard')
+    require("model_validation_status('detector'" in detector,'detector does not use validation guard')
+    require("model_validation_status('risk'" in risk,'SNN does not use validation guard')
+    require("self.validated=bool(validation.get('passed'))" in detector,'detector validation is not derived from validation guard')
+    require("self.validated=bool(validation.get('passed'))" in risk,'SNN validation is not derived from validation guard')
     require('validationIssues' in routes,'model/info must expose validation blockers')
 
-    require('DATA_GATE_MINIMUMS' in gate and 'policyCompliant' in gate,'data gate must enforce V28 policy floors')
+    require('DATA_GATE_MINIMUMS' in gate and 'policyCompliant' in gate,'data gate must enforce policy floors')
     require('DETECTOR_EVAL_MINIMUMS' in det_eval and 'validationEligible' in det_eval,'detector evaluator validation policy missing')
     require('manifestSha256' in det_eval and 'evalSha256' in det_eval,'detector held-out SHA binding missing')
     require('perClass' in det_eval and 'macroF1' in det_eval,'detector class-wise diagnostics missing')
@@ -52,13 +52,13 @@ def main():
     require('datasetSha256' in snn_eval and 'evalSha256' in snn_eval,'SNN held-out SHA binding missing')
     require('balancedAccuracy' in snn_eval and 'negativeLogLikelihood' in snn_eval,'SNN stronger diagnostics missing')
 
-    require("'schemaVersion':2" in evidence,'V28 validation evidence schema missing')
+    require("'schemaVersion':3" in evidence,'current validation evidence schema missing')
     require('detector evaluation report is not bound to the exact held-out manifest' in evidence,'detector report/dataset evidence binding missing')
     require('SNN evaluation report is not bound to the exact held-out CSV' in evidence,'SNN report/dataset evidence binding missing')
     require('detectorEvaluationSha256' in evidence and 'metadataSha256' in evidence,'evidence report hashes missing')
-    require("model_validation_status('detector'" in readiness and "model_validation_status('risk'" in readiness,'readiness must reuse live V28 guard')
+    require("model_validation_status('detector'" in readiness and "model_validation_status('risk'" in readiness,'readiness must reuse live validation guard')
 
-    print('V28 MODEL VALIDATION CONTRACTS PASS')
+    print('V28+ MODEL VALIDATION CONTRACTS PASS')
 
 
 if __name__=='__main__':
