@@ -95,7 +95,6 @@ need('docker compose',exists('docker-compose.yml'))
 need('backend Dockerfile',exists('backend/Dockerfile'))
 need('AI Dockerfile',exists('ai-service/Dockerfile'))
 
-
 # Exact hazard-dedup and frontend-stack compliance added during final hardening.
 hsim=text('backend/src/services/hazardSimilarity.js')
 for key in ['detectionSimilarity','boxSimilarity','DETECTION_SIMILARITY_THRESHOLD']:
@@ -118,11 +117,16 @@ need('portable QA paths','/mnt/data' not in qa and 'BeautifulSoup' not in qa and
 for tool in ['scripts/final_verify.py','scripts/prepush_audit.py','scripts/apply_final_release.ps1','scripts/runtime_e2e.js','scripts/model_readiness.py','scripts/evaluate_detector.py','scripts/evaluate_snn.py','.github/workflows/ci.yml']:
     need(f'final-tooling:{tool}',exists(tool))
 
-# Validation metadata must distinguish detector and SNN status so one cannot validate the other accidentally.
+# Validation metadata must distinguish detector and SNN status, while live runtime must
+# derive validation from the V28 evidence guard rather than trusting either flag directly.
 meta=text('ai-service/trained_models/metadata.example.json')
 need('separate detector/risk validation flags','detectorValidated' in meta and 'riskValidated' in meta)
-need('risk validation flag runtime',"riskValidated" in text('ai-service/app/services/risk_service.py'))
-need('detector validation flag runtime',"detectorValidated" in text('ai-service/app/services/detection_service.py'))
+validation_helper=text('ai-service/app/model_validation.py')
+risk_runtime=text('ai-service/app/services/risk_service.py')
+detector_runtime=text('ai-service/app/services/detection_service.py')
+need('V28 validation helper',"def model_validation_status" in validation_helper and "schemaVersion" in validation_helper and "SHA-256" in validation_helper)
+need('risk evidence-bound validation runtime',"model_validation_status('risk'" in risk_runtime and "self.validated=bool(validation.get('passed'))" in risk_runtime)
+need('detector evidence-bound validation runtime',"model_validation_status('detector'" in detector_runtime and "self.validated=bool(validation.get('passed'))" in detector_runtime)
 
 # Secrets: examples may name variables, but no non-empty values for secret/key fields.
 envexample=text('backend/.env.example')
