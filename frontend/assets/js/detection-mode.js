@@ -7,12 +7,31 @@
   const DETECT_PATH='/api/v1/hazards/detect';
   const CLOUD_PATH='/api/v1/roboflow/analyze';
   const STATUS_PATH='/api/v1/roboflow/status';
+  const STATUS_PREF_PATH='/api/v1/users/me';
   const CLOUD_MIN_INTERVAL_MS=2500;
 
   let cloudConfigured=false;
   let lastCloudAt=0;
   let lastCloudEnvelope=null;
+  let preferredMode='local';
 
+  function storedPreferences(){
+    try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return p&&typeof p==='object'&&!Array.isArray(p)?p:{}}
+    catch{return {}}
+  }
+  function mergeStoredPreferences(patch={}){
+    try{localStorage.setItem('navora:preferences',JSON.stringify({...storedPreferences(),...patch}))}catch{}
+  }
+  async function resolvePreferredMode(){
+    let p=storedPreferences();
+    try{
+      const r=await delegatedFetch(STATUS_PREF_PATH,{credentials:'include',headers:{accept:'application/json'},cache:'no-store'});
+      const payload=await r.json().catch(()=>null),data=payload?.data??payload??{};
+      if(r.ok&&data?.preferences){p={...p,...data.preferences};mergeStoredPreferences(data.preferences)}
+    }catch{}
+    preferredMode=String(p?.detectionMode||'LOCAL').toUpperCase()==='CLOUD'?'cloud':'local';
+    return preferredMode;
+  }
   function mode(){
     return document.getElementById('detection-mode')?.value==='cloud'?'cloud':'local';
   }
@@ -144,6 +163,7 @@
   async function loadCloudStatus(){
     const select=document.getElementById('detection-mode');
     const cloudOption=select?.querySelector('option[value="cloud"]');
+    const desired=await resolvePreferredMode();
     try{
       const r=await delegatedFetch(STATUS_PATH,{credentials:'include',headers:{accept:'application/json'}});
       const payload=await r.json().catch(()=>null);
@@ -151,7 +171,12 @@
       cloudConfigured=r.ok&&data.configured===true;
       if(cloudOption)cloudOption.disabled=!cloudConfigured;
       if(cloudConfigured){
-        setStatus('Roboflow available · cloud mode is opt-in','ready');
+        if(select)select.value=desired==='cloud'?'cloud':'local';
+        if(desired==='cloud'){
+          const consent=document.getElementById('cloud-detection-consent');if(consent)consent.checked=false;
+          forceDetectionOff();
+          setStatus('Cloud default selected · explicit consent is still required before detection','warning');
+        }else setStatus('Roboflow available · Private Local remains the account default','ready');
       }else{
         if(select)select.value='local';
         setStatus('Roboflow unavailable · Private Local mode only','warning');
@@ -171,7 +196,7 @@
     const toggle=document.getElementById('detection-toggle');
 
     if(select){
-      select.value='local';
+      select.value=String(storedPreferences()?.detectionMode||'LOCAL').toUpperCase()==='CLOUD'?'cloud':'local';
       select.addEventListener('change',()=>{
         lastCloudEnvelope=null;
         lastCloudAt=0;
@@ -221,7 +246,7 @@
   }
 
   window.NavoraDetectionMode={
-    defaultMode:'local',
+    defaultMode:()=>preferredMode,
     cloudPath:CLOUD_PATH,
     cloudMinIntervalMs:CLOUD_MIN_INTERVAL_MS,
     cloudConfigured:()=>cloudConfigured

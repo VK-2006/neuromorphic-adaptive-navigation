@@ -2,13 +2,17 @@ import{api,toast}from'./api.js';
 
 const mapEl=document.getElementById('map');
 let map,routeLayers=[],hazardLayers=[],selected=null,selectedRoute=null,currentRoutes=[],sourceMarker,destMarker;
-let searchTimers={},geocodingCaps={typeahead:false,effective:'nominatim'};
+let searchTimers={},geocodingCaps={typeahead:false,effective:'nominatim'},unitMode='METRIC',highAccuracyGps=true;
 const fallbackSource=[17.385,78.4867],fallbackDest=[17.4375,78.4483];
 
 const arr=v=>Array.isArray(v)?v:[];
 const clamp01=v=>Math.max(0,Math.min(1,Number(v)||0));
 function safeStoredArray(key){try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch{return[]}}
 function safeStoredObject(key){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v&&typeof v==='object'&&!Array.isArray(v)?v:null}catch{return null}}
+function storePreferences(patch={}){try{const current=safeStoredObject('navora:preferences')||{};localStorage.setItem('navora:preferences',JSON.stringify({...current,...patch}))}catch{}}
+function metricUnits(){return unitMode!=='IMPERIAL'}
+function fmtDistance(meters,precision=1){const m=Math.max(0,Number(meters)||0);return metricUnits()?`${(m/1000).toFixed(precision)} km`:`${(m/1609.344).toFixed(precision)} mi`}
+function fmtShortDistance(meters){const m=Math.max(0,Number(meters)||0);if(metricUnits())return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`;const feet=m*3.28084;return feet>=5280?`${(feet/5280).toFixed(1)} mi`:`${Math.round(feet)} ft`}
 
 function showMapUnavailable(){
   if(mapEl)mapEl.innerHTML='<div class="navora-state-panel"><h3>Map unavailable</h3><p class="muted">Leaflet could not load. Reconnect and reload before planning a live route.</p></div>';
@@ -17,12 +21,13 @@ function showMapUnavailable(){
 }
 
 async function loadSavedPreferences(){
-  let p=safeStoredObject('navora:preferences');
+  let p=safeStoredObject('navora:preferences')||{};
   try{
     const u=await api('/users/me');
-    if(u?.preferences){p=u.preferences;try{localStorage.setItem('navora:preferences',JSON.stringify(p))}catch{}}
+    if(u?.preferences){p={...p,...u.preferences};storePreferences(u.preferences)}
   }catch{}
-  if(!p)return;
+  unitMode=String(p.units||'METRIC').toUpperCase()==='IMPERIAL'?'IMPERIAL':'METRIC';
+  highAccuracyGps=p.highAccuracyGps!==false;
   for(const [k,key] of [['safety','safety'],['traffic','traffic'],['familiarity','familiarity']]){
     const el=document.getElementById(`${k}-pref`),out=document.getElementById(`${k}-value`);
     const n=Number(p[key]);if(el&&Number.isFinite(n)){el.value=String(Math.round(clamp01(n)*100));if(out)out.textContent=`${el.value}%`}
@@ -108,8 +113,8 @@ function useLocation(){
   navigator.geolocation.getCurrentPosition(async p=>{
     if(!sourceMarker||!map)return;
     const c=[p.coords.latitude,p.coords.longitude];sourceMarker.setLatLng(c);map.setView(c,16);await syncField('source',sourceMarker.getLatLng());
-    toast(`Live GPS source set · ±${Math.round(p.coords.accuracy||0)} m`,'success');
-  },e=>toast(`Location unavailable: ${e.message}`,'error'),{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+    toast(`Live GPS source set · ±${fmtShortDistance(p.coords.accuracy||0)}`,'success');
+  },e=>toast(`Location unavailable: ${e.message}`,'error'),{enableHighAccuracy:highAccuracyGps,maximumAge:3000,timeout:15000});
 }
 function parseInput(id){
   const el=document.getElementById(id);if(!el)throw new Error(`${id} field unavailable`);
@@ -131,7 +136,7 @@ async function loadRoutes(e){
       traffic:Number(document.getElementById('traffic-pref')?.value||60)/100,
       familiarity:Number(document.getElementById('familiarity-pref')?.value||50)/100
     };
-    try{localStorage.setItem('navora:preferences',JSON.stringify(preferences))}catch{}
+    storePreferences(preferences);
     const body={source:parseInput('source'),destination:parseInput('destination'),preferences,simulation:Boolean(document.getElementById('simulation')?.checked)};
     const data=await api('/routes/compare',{method:'POST',body:JSON.stringify(body)});
     render(arr(data?.routes),data?.recommendedRouteId,data?.mode);
@@ -191,7 +196,7 @@ function render(routes,recommendedId,mode){
     line.on('click',()=>select(r.id));
     const card=document.createElement('div');card.className='route-card'+(r.id===recommendedId?' selected':'');card.dataset.id=r.id;
     const tags=arr(r.routeTypes).map(t=>`<span class="chip">${esc(t)}</span>`).join('');
-    card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px"><strong>${esc(r.label)}</strong><span>${Math.round(Number(r.safetyScore)||0)}% safe</span></div><div class="muted">${((Number(r.distance)||0)/1000).toFixed(1)} km · ${Math.round((Number(r.trafficDuration)||0)/60)} min · ${esc(r.trafficSeverity||'UNKNOWN')}</div><div class="route-badges">${tags}<span class="chip">ACO ${Number(r.acoScore||0).toFixed(2)}</span><span class="chip">Familiar ${Math.round((r.familiarity||0)*100)}%</span><span class="chip">${esc((mode||r.mode||'unknown').toUpperCase())}</span></div>`;
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px"><strong>${esc(r.label)}</strong><span>${Math.round(Number(r.safetyScore)||0)}% safe</span></div><div class="muted">${fmtDistance(r.distance)} · ${Math.round((Number(r.trafficDuration)||0)/60)} min · ${esc(r.trafficSeverity||'UNKNOWN')}</div><div class="route-badges">${tags}<span class="chip">ACO ${Number(r.acoScore||0).toFixed(2)}</span><span class="chip">Familiar ${Math.round((r.familiarity||0)*100)}%</span><span class="chip">${esc((mode||r.mode||'unknown').toUpperCase())}</span></div>`;
     card.onclick=()=>select(r.id);list.appendChild(card);
   });
   const all=routes.flatMap(validCoords);if(all.length>1)map.fitBounds(window.L.latLngBounds(all.map(p=>[p.lat,p.lng])),{padding:[40,40]});
@@ -217,7 +222,7 @@ function renderWhy(rec){
 function renderSteps(route){
   const host=document.getElementById('turn-by-turn');if(!host||!route)return;
   const steps=arr(route.steps).slice(0,8);
-  host.innerHTML=steps.length?`<h4>Turn-by-turn</h4>${steps.map((s,i)=>`<div class="route-card"><strong>${i+1}. ${esc(s.maneuver?.instruction||[s.maneuver?.type,s.maneuver?.modifier].filter(Boolean).join(' ')||'Continue')}</strong><div class="muted">${esc(s.name||s.maneuver?.name||'')} · ${Math.round(s.distance||0)} m</div></div>`).join('')}`:'<p class="muted">Turn instructions are unavailable from this provider for this route.</p>';
+  host.innerHTML=steps.length?`<h4>Turn-by-turn</h4>${steps.map((s,i)=>`<div class="route-card"><strong>${i+1}. ${esc(s.maneuver?.instruction||[s.maneuver?.type,s.maneuver?.modifier].filter(Boolean).join(' ')||'Continue')}</strong><div class="muted">${esc(s.name||s.maneuver?.name||'')} · ${fmtShortDistance(s.distance||0)}</div></div>`).join('')}`:'<p class="muted">Turn instructions are unavailable from this provider for this route.</p>';
 }
 
 async function beginJourney(){

@@ -40,8 +40,11 @@ for token in [
 ]:
     assert token in assets.urls, f'offline local asset missing: {token}'
 
+# V23 established the hardened offline/cache boundary. Later releases are allowed
+# to rotate the active cache name, but must retain V23 lineage and all V23 assets.
+assert "navora-security-pwa-v23-0-0" in SW, 'V23 hardened cache lineage was lost'
+assert "const CACHE='navora-security-pwa-v23-0-0'" in SW or "V23_CACHE_LINEAGE='navora-security-pwa-v23-0-0'" in SW, 'V23 cache must remain active or explicitly retained as lineage'
 for token in [
-    "const CACHE='navora-security-pwa-v23-0-0'",
     "V22_CACHE_LINEAGE='navora-right-pane-v22-0-0'",
     '"/offline.html"',
     '"/assets/css/right-pane-shell-v22.css"',
@@ -52,4 +55,4 @@ for token in [
 assert "u.origin!==self.location.origin" in SW, 'service worker must not claim/cache cross-origin CDN requests'
 assert "u.pathname.startsWith('/api/')" in SW, 'service worker must not cache live API truth'
 
-print('V23_SECURITY_PWA_CONTRACTS PASS: CSP enabled with required providers, offline shell is same-origin only, and cache/live-data boundaries are explicit')
+print('V23_SECURITY_PWA_CONTRACTS PASS: CSP enabled with required providers, offline shell is same-origin only, and hardened cache/live-data boundaries remain in the release lineage')
