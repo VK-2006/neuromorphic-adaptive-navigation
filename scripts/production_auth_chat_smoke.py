@@ -14,6 +14,6 @@ def main():
     try:
         c=d(get(b+'/api/v1/chat/status'));check('World Chat REST path',c.get('available') is True and c.get('restFallback') is True,str(c));check('World Chat Socket.IO path',c.get('realtime') is True,str(c))
     except Exception as x:check('World Chat status',False,str(x))
-    print('\\nNAVORA AUTH + CHAT PRODUCTION CHECK: '+('FAIL' if bad else 'PASS'))
+    print('\nNAVORA AUTH + CHAT PRODUCTION CHECK: '+('FAIL' if bad else 'PASS'))
     return 1 if bad else 0
 if __name__=='__main__':raise SystemExit(main())

@@ -29,10 +29,12 @@
   function chrome(){
     const nav=$('.navora-nav');
     if(!nav) return;
-    if(!nav.querySelector('.obs-nav-status') && !['login','register','forgot-password','verify-email','verify-otp','reset-password','shared-journey'].includes(page)){
+    if(!nav.dataset.obsBadge && !nav.querySelector('.obs-nav-status') && !['login','register','forgot-password','verify-email','verify-otp','reset-password','shared-journey'].includes(page)){
+      nav.dataset.obsBadge='1';
       const badge=make('span','obs-nav-status',{text:'Adaptive network'});
       const theme=nav.querySelector('[data-theme-toggle]');
-      nav.insertBefore(badge,theme||null);
+      if(theme && theme.parentNode === nav) nav.insertBefore(badge, theme);
+      else nav.appendChild(badge);
     }
     const brand=$('.brand',nav);
     if(brand && !brand.getAttribute('aria-label')) brand.setAttribute('aria-label','Navora home');
