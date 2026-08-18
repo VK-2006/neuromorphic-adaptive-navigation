@@ -39,58 +39,60 @@ FEATURES = [
 
 # Class-conditioned feature means — designed to be realistic and separable.
 # Each tuple is (mean, std) for the corresponding feature.
+# Means are spaced ~0.25 apart between classes; std tightened to 0.05–0.08
+# to keep inter-class overlap minimal while retaining realistic within-class spread.
 CLASS_PROFILES: dict[str, list[tuple[float, float]]] = {
     'LOW': [
-        (0.15, 0.08),  # objectPrior
-        (0.80, 0.10),  # confidence
-        (0.12, 0.08),  # proximity (far away)
-        (0.10, 0.07),  # relativeSpeed (slow)
-        (0.20, 0.10),  # userSpeed
-        (0.20, 0.10),  # objectPersistence
-        (0.15, 0.08),  # trafficDensity
-        (0.10, 0.06),  # hazardFrequency
-        (0.10, 0.07),  # lowVisibility
-        (0.08, 0.05),  # weatherRisk
-        (0.10, 0.07),  # roadOrReports
+        (0.07, 0.05),  # objectPrior
+        (0.72, 0.07),  # confidence
+        (0.07, 0.05),  # proximity (far away)
+        (0.05, 0.04),  # relativeSpeed (slow)
+        (0.10, 0.06),  # userSpeed
+        (0.08, 0.05),  # objectPersistence
+        (0.07, 0.05),  # trafficDensity
+        (0.05, 0.04),  # hazardFrequency
+        (0.05, 0.04),  # lowVisibility
+        (0.04, 0.03),  # weatherRisk
+        (0.05, 0.04),  # roadOrReports
     ],
     'MEDIUM': [
-        (0.40, 0.12),  # objectPrior
-        (0.82, 0.10),  # confidence
-        (0.40, 0.12),  # proximity
-        (0.30, 0.10),  # relativeSpeed
-        (0.40, 0.12),  # userSpeed
-        (0.50, 0.12),  # objectPersistence
-        (0.40, 0.12),  # trafficDensity
-        (0.25, 0.10),  # hazardFrequency
-        (0.25, 0.10),  # lowVisibility
-        (0.18, 0.08),  # weatherRisk
-        (0.30, 0.12),  # roadOrReports
+        (0.35, 0.07),  # objectPrior
+        (0.80, 0.06),  # confidence
+        (0.33, 0.07),  # proximity
+        (0.26, 0.06),  # relativeSpeed
+        (0.32, 0.07),  # userSpeed
+        (0.30, 0.07),  # objectPersistence
+        (0.30, 0.07),  # trafficDensity
+        (0.24, 0.06),  # hazardFrequency
+        (0.22, 0.06),  # lowVisibility
+        (0.18, 0.05),  # weatherRisk
+        (0.25, 0.07),  # roadOrReports
     ],
     'HIGH': [
-        (0.70, 0.10),  # objectPrior
-        (0.88, 0.08),  # confidence
-        (0.70, 0.12),  # proximity (closer)
-        (0.55, 0.12),  # relativeSpeed
-        (0.60, 0.12),  # userSpeed
-        (0.78, 0.10),  # objectPersistence
-        (0.65, 0.12),  # trafficDensity
-        (0.55, 0.12),  # hazardFrequency
-        (0.45, 0.12),  # lowVisibility
-        (0.38, 0.10),  # weatherRisk
-        (0.65, 0.12),  # roadOrReports
+        (0.65, 0.06),  # objectPrior
+        (0.88, 0.05),  # confidence
+        (0.63, 0.06),  # proximity (closer, but NOT critical)
+        (0.55, 0.06),  # relativeSpeed
+        (0.58, 0.06),  # userSpeed
+        (0.68, 0.06),  # objectPersistence
+        (0.63, 0.06),  # trafficDensity
+        (0.56, 0.06),  # hazardFrequency
+        (0.48, 0.06),  # lowVisibility
+        (0.42, 0.05),  # weatherRisk
+        (0.62, 0.06),  # roadOrReports
     ],
     'CRITICAL': [
-        (0.90, 0.06),  # objectPrior
-        (0.95, 0.04),  # confidence
-        (0.90, 0.07),  # proximity (very close)
-        (0.78, 0.10),  # relativeSpeed (fast)
-        (0.80, 0.10),  # userSpeed
-        (0.92, 0.06),  # objectPersistence
-        (0.85, 0.08),  # trafficDensity
-        (0.75, 0.10),  # hazardFrequency
-        (0.65, 0.12),  # lowVisibility
-        (0.58, 0.12),  # weatherRisk
-        (0.85, 0.08),  # roadOrReports
+        (0.92, 0.04),  # objectPrior
+        (0.96, 0.03),  # confidence
+        (0.92, 0.04),  # proximity (very close — tight distribution)
+        (0.82, 0.05),  # relativeSpeed (fast)
+        (0.84, 0.05),  # userSpeed
+        (0.94, 0.04),  # objectPersistence
+        (0.88, 0.05),  # trafficDensity
+        (0.80, 0.05),  # hazardFrequency
+        (0.72, 0.06),  # lowVisibility
+        (0.65, 0.06),  # weatherRisk
+        (0.88, 0.05),  # roadOrReports
     ],
 }
 

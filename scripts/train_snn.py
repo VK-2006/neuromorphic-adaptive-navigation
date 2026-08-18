@@ -32,13 +32,40 @@ def update_metadata(version):
     p.write_text(json.dumps(m,indent=2),encoding='utf-8')
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--csv',type=Path,default=ROOT/'datasets/derived-risk-data/risk-training.csv');ap.add_argument('--epochs',type=int,default=50);ap.add_argument('--lr',type=float,default=1e-3);ap.add_argument('--seed',type=int,default=1337);ap.add_argument('--version',default='risk-snn-trained-v1');a=ap.parse_args()
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--csv',type=Path,default=ROOT/'datasets/derived-risk-data/risk-training.csv')
+    ap.add_argument('--epochs',type=int,default=200)
+    ap.add_argument('--lr',type=float,default=8e-4)
+    ap.add_argument('--seed',type=int,default=1337)
+    ap.add_argument('--version',default='risk-snn-trained-v2')
+    a=ap.parse_args()
     try:assert_not_consumed_snn_final(a.csv,'training or tuning')
     except ValueError as exc:raise SystemExit(f'RESEARCH LOCK: {exc}') from exc
-    torch.manual_seed(a.seed);x,y=load(a.csv);model=RiskSNN(input_size=len(FEATURES));opt=torch.optim.Adam(model.parameters(),lr=a.lr);loss_fn=nn.CrossEntropyLoss()
+
+    torch.manual_seed(a.seed)
+    x,y=load(a.csv)
+    model=RiskSNN(input_size=len(FEATURES))
+    opt=torch.optim.Adam(model.parameters(),lr=a.lr,weight_decay=1e-4)
+    # Cosine annealing: warm start → cool to lr/20 over full run
+    scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(opt,T_max=a.epochs,eta_min=a.lr/20)
+    # Moderate upweighting of boundary-adjacent classes.
+    # LOW tends to absorb into MEDIUM; HIGH borders CRITICAL.
+    # Avoid extreme weights that cause one class to dominate the gradient.
+    class_weights=torch.tensor([1.5,1.5,1.8,1.2],dtype=torch.float32)
+    loss_fn=nn.CrossEntropyLoss(weight=class_weights)
+
     for epoch in range(a.epochs):
-        seq=torch.stack([(torch.rand_like(x)<x.clamp(0,1)).float() for _ in range(20)]);_,mem=model(seq);loss=loss_fn(mem[-1],y);opt.zero_grad();loss.backward();opt.step()
-        if epoch%10==0 or epoch==a.epochs-1:print(f'epoch {epoch+1}/{a.epochs} loss={float(loss):.5f}')
-    out=ROOT/'ai-service/trained_models';out.mkdir(parents=True,exist_ok=True);torch.save(model.state_dict(),out/'risk_snn.pt');update_metadata(a.version)
-    print('saved',out/'risk_snn.pt');print('validation remains FALSE; evaluate on a fresh held-out real dataset before live safety use')
+        seq=torch.stack([(torch.rand_like(x)<x.clamp(0,1)).float() for _ in range(20)])
+        _,mem=model(seq)
+        loss=loss_fn(mem[-1],y)
+        opt.zero_grad();loss.backward();opt.step();scheduler.step()
+        if epoch%20==0 or epoch==a.epochs-1:
+            print(f'epoch {epoch+1}/{a.epochs} loss={loss.detach().item():.5f} lr={scheduler.get_last_lr()[0]:.6f}')
+
+    out=ROOT/'ai-service/trained_models';out.mkdir(parents=True,exist_ok=True)
+    torch.save(model.state_dict(),out/'risk_snn.pt')
+    update_metadata(a.version)
+    print('saved',out/'risk_snn.pt')
+    print('validation remains FALSE; evaluate on a fresh held-out real dataset before live safety use')
+
 if __name__=='__main__':main()
