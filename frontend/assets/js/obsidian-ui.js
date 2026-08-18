@@ -33,7 +33,8 @@
       nav.dataset.obsBadge='1';
       const badge=make('span','obs-nav-status',{text:'Adaptive network'});
       const theme=nav.querySelector('[data-theme-toggle]');
-      nav.insertBefore(badge,theme||null);
+      if(theme && theme.parentNode === nav) nav.insertBefore(badge, theme);
+      else nav.appendChild(badge);
     }
     const brand=$('.brand',nav);
     if(brand && !brand.getAttribute('aria-label')) brand.setAttribute('aria-label','Navora home');
