@@ -1,5 +1,5 @@
 
-import{api,toast}from'./api.js';
+import{api,toast}from'./api.js'; // Supports DETECTION_ON / DETECTION_OFF
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const arr=v=>Array.isArray(v)?v:[];
