@@ -82,14 +82,17 @@ function mobile(){
 }
 function returnTo(){return page+location.search+location.hash}
 function saveReturnTo(){sessionStorage.setItem('navora:returnTo',returnTo())}
+window.addEventListener('unhandledrejection',e=>{if(String(e?.reason?.message||e?.reason||'').includes('Transition was skipped'))e.preventDefault()});
 function replacePage(target,{skipActiveTransition=false}={}){
   if(skipActiveTransition){
     const transition=document.activeViewTransition;
     if(transition){
       // A protected-page bootstrap redirect can supersede the incoming MPA
-      // transition. Observe `ready` before skipping so Chromium does not expose
+      // transition. Observe ready/finished before skipping so Chromium does not expose
       // the expected transition abort as an unhandled page error.
       transition.ready?.catch(()=>{});
+      transition.updateCallbackDone?.catch(()=>{});
+      transition.finished?.catch(()=>{});
       try{transition.skipTransition?.()}catch{}
     }
   }
