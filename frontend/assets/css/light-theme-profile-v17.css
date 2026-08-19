@@ -533,3 +533,45 @@ body.navora-auth > .navora-profile-global-v17 {
     transition-duration: .01ms !important;
   }
 }
+
+/* V38 comfortable spacing: give the product UI a calmer, less crowded rhythm
+   without shrinking the usable layout on phones.  This stylesheet is loaded
+   last on every product page, so these shared tokens safely win over legacy
+   showcase styles. */
+@media (min-width: 651px) {
+  .page-shell {
+    padding: clamp(42px, 5vw, 68px) clamp(28px, 4vw, 60px) 72px !important;
+  }
+
+  .page-head {
+    gap: 28px !important;
+    margin-bottom: 34px !important;
+  }
+
+  .grid { gap: 24px !important; }
+
+  .card {
+    padding: clamp(24px, 2.4vw, 32px) !important;
+  }
+
+  .form-grid { gap: 20px !important; }
+
+  .toolbar,
+  .hero-actions,
+  .journey-actions { gap: 14px !important; }
+
+  .data-list { gap: 14px !important; }
+
+  .data-row { padding: 17px 18px !important; }
+
+  th,
+  td { padding: 16px 18px !important; }
+}
+
+@media (max-width: 650px) {
+  .page-shell { padding: 28px 16px 48px !important; }
+  .card { padding: 20px !important; }
+  .grid { gap: 18px !important; }
+  .form-grid { gap: 16px !important; }
+  .page-head { margin-bottom: 26px !important; }
+}
