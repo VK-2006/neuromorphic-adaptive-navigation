@@ -49,6 +49,17 @@ python scripts\model_readiness.py
 
 The global safety-eligible flag is true only when both detector and SNN validation gates pass.
 
+## Field validation
+
+The privacy-safe field record is versioned separately from model evidence:
+
+```powershell
+python scripts\validate_field_evidence.py --profile field
+python scripts\validate_field_evidence.py --profile field --require-current
+```
+
+The first command verifies the recorded release; `--require-current` also rejects evidence when field-sensitive source changed after that test. See [`docs/field-validation-governance.md`](field-validation-governance.md) for the exact gate boundary, evidence-handling policy, GitHub issue form, and required branch checks. Field PASS does not imply Google login or held-out detector/SNN validation PASS.
+
 ## Git safety
 
 ```powershell
