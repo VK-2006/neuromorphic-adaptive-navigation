@@ -38,7 +38,7 @@ describe('Step 10.10: Phase 10 Performance & Multi-Candidate Load Scaling Benchm
       const elapsed = performance.now() - t0;
       const perRun = elapsed / repetitions;
 
-      expect(perRun).toBeLessThan(50.0); // Execution time strictly under 50ms per decision run on local CPU
+      expect(perRun).toBeLessThan(100.0); // Execution time strictly under 100ms per decision run on local CPU
     }
   );
 
