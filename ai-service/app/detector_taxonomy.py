@@ -41,9 +41,9 @@ QUARANTINED_CLASSES = {"D0w0"}
 
 SOURCE_CLASSES = {
     'BDD100K': set(CLASS_ORDER[:8]),
-    # Legacy RDD labels remain valid for existing callers, but are not model
-    # classes. New RDD2022 training uses only CANONICAL_CLASSES.
-    'RDD2022': set(CANONICAL_CLASSES) | {'road damage', 'pothole'},
+    # Preserve the original source contract; canonical RDD2022 model classes
+    # are declared separately in CANONICAL_CLASSES.
+    'RDD2022': {'road damage', 'pothole'},
 }
 
 # Reverse mapping for convenience.
@@ -85,7 +85,7 @@ def validate_source_class(source: str, class_name: str) -> None:
         raise ValueError(f"unsupported detector source: {source!r}")
     if class_name == "D0w0":
         raise ValueError("D0w0 is quarantined and cannot be used for training")
-    if class_name not in allowed:
+    if class_name not in allowed and not (source == "RDD2022" and class_name in CANONICAL_CLASSES):
         raise ValueError(f"class {class_name!r} is not valid for detector source {source!r}")
 
 

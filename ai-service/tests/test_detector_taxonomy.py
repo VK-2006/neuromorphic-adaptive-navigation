@@ -40,6 +40,11 @@ def test_rdd2022_accepts_canonical_damage_labels():
         validate_source_class('RDD2022', class_name)
 
 
+def test_rdd2022_source_contract_preserves_legacy_labels():
+    validate_source_class('RDD2022', 'road damage')
+    validate_source_class('RDD2022', 'pothole')
+
+
 def test_rdd2022_rejects_quarantine_label():
     with pytest.raises(ValueError):
         validate_source_class('RDD2022', 'D0w0')

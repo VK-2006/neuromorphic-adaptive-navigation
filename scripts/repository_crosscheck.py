@@ -30,6 +30,16 @@ patterns=[
     re.compile(r'(?im)^[ \t]*GOOGLE_CLIENT_SECRET[ \t]*=[ \t]*\S+'),
     re.compile(r'(?im)^[ \t]*JWT_(?:ACCESS|REFRESH)_SECRET[ \t]*=[ \t]*\S+'),
 ]
+# These values are deliberately synthetic inputs to a backend serialization
+# test. Allow only these exact literals in this exact test file; scan all other
+# content in the file and all other repository files normally.
+fixture_allowlist = {
+    'backend/tests/production-deployment-contracts.test.js': {
+        'mongodb+srv://user:' + 'secretpass@cluster.mongodb.net/navora',
+        'SUPER_SECRET_ACCESS_KEY_1234567890_ABCDEF',
+        'SUPER_SECRET_REFRESH_KEY_1234567890_ABCDEF',
+    },
+}
 for p in ROOT.rglob('*'):
     if not p.is_file() or p.suffix.lower() in {'.zip','.png','.jpg','.jpeg','.webp','.pt','.pyc','.pyo'} or p.name=='.env.example':continue
     if any(part in {'node_modules','.venv','venv','.git','__pycache__','.pytest_cache'} for part in p.parts):continue
@@ -40,6 +50,9 @@ for p in ROOT.rglob('*'):
     if p.name=='.env':continue
     try:t=p.read_text(errors='ignore')
     except Exception:continue
+    rel=str(p.relative_to(ROOT)).replace('\\','/')
+    for fixture in fixture_allowlist.get(rel, set()):
+        t=t.replace(fixture, '<synthetic-test-fixture>')
     for rx in patterns:
         if rx.search(t):errors.append(f'possible secret in {p.relative_to(ROOT)}')
 
