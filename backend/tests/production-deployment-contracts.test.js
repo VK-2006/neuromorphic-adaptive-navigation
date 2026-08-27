@@ -82,7 +82,7 @@ describe('Phase 9: Production Deployment, Environment & Security Invariants', ()
 
   test('Step 9.24: Public Readiness serialization never leaks JWT or database secrets', () => {
     const rawEnv = {
-      MONGODB_URI: 'mongodb+srv://user:secretpass@cluster.mongodb.net/navora',
+      MONGODB_URI: 'mongodb://127.0.0.1:27017/navora_test',
       JWT_ACCESS_SECRET: 'SUPER_SECRET_ACCESS_KEY_1234567890_ABCDEF',
       JWT_REFRESH_SECRET: 'SUPER_SECRET_REFRESH_KEY_1234567890_ABCDEF'
     };
