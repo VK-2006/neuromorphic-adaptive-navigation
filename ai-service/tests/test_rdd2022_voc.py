@@ -9,7 +9,20 @@ sys.path.append(str(repo_root / "ai-service"))
 
 from app.datasets.rdd2022_voc import Rdd2022Dataset, IMG_W, IMG_H, GRID_W, GRID_H, NUM_CLASSES
 
+
+def require_rdd2022_archive():
+    """Skip only when the optional real RDD2022 archive is absent."""
+    env_root = os.getenv("RDD2022_ROOT")
+    candidates = []
+    if env_root:
+        candidates.append(Path(env_root) / "India.zip")
+    candidates.append(repo_root / "datasets" / "navora-realworld" / "raw" / "rdd2022" / "RDD2022" / "India.zip")
+    candidates.append(repo_root / "ai-service" / "datasets" / "navora-realworld" / "raw" / "rdd2022" / "RDD2022" / "India.zip")
+    if not any(path.is_file() for path in candidates):
+        pytest.skip("RDD2022 India.zip is not present in this CI/local environment")
+
 def test_dataset_lengths():
+    require_rdd2022_archive()
     train_ds = Rdd2022Dataset(split="train")
     val_ds = Rdd2022Dataset(split="val")
     test_ds = Rdd2022Dataset(split="test")
@@ -21,6 +34,7 @@ def test_dataset_lengths():
     assert abs(len(val_ds) - int(0.2 * 7706)) <= 1
 
 def test_split_disjointness():
+    require_rdd2022_archive()
     train_ds = Rdd2022Dataset(split="train")
     val_ds = Rdd2022Dataset(split="val")
     test_ds = Rdd2022Dataset(split="test")
@@ -32,6 +46,7 @@ def test_split_disjointness():
     assert val_ids.isdisjoint(test_ids)
 
 def test_data_shapes_and_stats():
+    require_rdd2022_archive()
     ds = Rdd2022Dataset(split="train")
     img, target, raw_ann = ds[0]
     # Image tensor shape [3, H, W]

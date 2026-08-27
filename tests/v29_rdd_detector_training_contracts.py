@@ -3,6 +3,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'ai-service'))
+from app.detector_taxonomy import SOURCE_CLASSES
 from scripts.split_detection_manifest import class_instances, source_images, split_rows
 
 
@@ -91,7 +93,7 @@ def main():
         'traffic cone', 'barrier', 'road damage', 'pothole'
     ]:
         require(repr(class_name) in taxonomy, f'taxonomy missing {class_name}')
-    require("'RDD2022': {'road damage', 'pothole'}" in taxonomy, 'RDD source taxonomy missing')
+    require(SOURCE_CLASSES.get('RDD2022') == {'road damage', 'pothole'}, 'RDD source taxonomy missing')
     require("'BDD100K'" in taxonomy and "'traffic cone'" in taxonomy and "'barrier'" in taxonomy, 'BDD expanded taxonomy missing')
 
     require('ordered_classes' in trainer and 'validate_source_class' in trainer, 'trainer must use shared taxonomy')
