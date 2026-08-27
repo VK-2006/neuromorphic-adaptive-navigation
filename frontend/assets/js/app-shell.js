@@ -88,7 +88,11 @@ function replacePage(target,{skipActiveTransition=false}={}){
     if(transition){
       // A protected-page bootstrap redirect can supersede the incoming MPA
       // transition. Wait for it to settle so navigation does not abort it.
-      Promise.allSettled([transition.finished]).then(()=>location.replace(target));
+      Promise.allSettled([
+        transition.ready,
+        transition.updateCallbackDone,
+        transition.finished,
+      ]).then(()=>location.replace(target));
       return;
     }
   }
