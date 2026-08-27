@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-NAVORA Road Hazard Detector Training Pipeline — Phase 15
+NAVORA Road Hazard Detector Training Pipeline — Phase 15+
 =========================================================
-Trains a MobileNetV3-Small based road-hazard detector on a reproducible
-synthetic road-scene dataset, evaluates on a held-out test set, exports to
-TorchScript, and generates the complete V30 evidence chain required by
-model_validation.py for production activation.
+Trains a MobileNetV3-Small based road-hazard detector on either:
+  1. SYNTHETIC dataset (default): reproducible synthetic road scenes
+  2. RDD2022 dataset: real-world India road damage images (Phase 17)
 
-Dataset:
+Datasets:
   SYNTHETIC-ROAD-SCENE-V1   -- person, car  (programmatic geometric road scenes)
   SYNTHETIC-ROAD-HAZARD-V1  -- road damage, pothole (programmatic texture overlays)
-
-This is entirely synthetic data.  No BDD100K, COCO, or RDD2022 data is used.
-officialBddBenchmarkClaim and officialRddBenchmarkClaim remain false.
+  RDD2022-INDIA             -- D00-D50 damage classes from real-world India roads
 
 Usage:
     cd ai-service
-    python train_detector.py
+    python train_detector.py [--dataset {synthetic|rdd2022}]
+
+    Default: --dataset synthetic (preserves original behavior)
+    Phase 17: --dataset rdd2022  (trains on real RDD2022 India data)
 
 Outputs (trained_models/):
     detector.pt                  -- TorchScript model (row format: [K,6])
-    metadata.json                -- updated version, flags, class / source lists
+    metadata.json                -- version, flags, class / source lists
     data-gate-report.json        -- dataset fingerprints, class coverage
     detector-evaluation.json     -- real held-out eval report
     snn-evaluation.json          -- untouched (re-hashed into evidence)
@@ -29,7 +29,7 @@ Outputs (trained_models/):
 
 from __future__ import annotations
 
-import hashlib, json, os, sys, time, warnings
+import argparse, hashlib, json, os, sys, time, warnings
 from pathlib import Path
 from typing import List
 import numpy as np
@@ -61,6 +61,14 @@ except ImportError:
     sys.exit("scikit-learn not found: pip install scikit-learn")
 
 warnings.filterwarnings("ignore")
+
+# Import RDD2022 dataset loader and taxonomy for Phase 17+ support
+try:
+    from app.datasets.rdd2022_voc import Rdd2022Dataset
+    from app.detector_taxonomy import CANONICAL_CLASSES as RDD2022_CLASSES
+    RDD2022_AVAILABLE = True
+except ImportError:
+    RDD2022_AVAILABLE = False
 
 # ============================================================
 # 1.  CONSTANTS
@@ -431,7 +439,7 @@ class ExportDetector(nn.Module):
 # 6.  LOSS
 # ============================================================
 
-def detection_loss(pred: torch.Tensor, target: torch.Tensor):
+def detection_loss(pred: torch.Tensor, target: torch.Tensor, class_weights: torch.Tensor | None = None):
     """
     pred, target: [B, GH, GW, 5+NC]
     """
@@ -457,13 +465,47 @@ def detection_loss(pred: torch.Tensor, target: torch.Tensor):
     if mask.sum() > 0:
         pred_cls   = pred[:, :, :, 5:][mask]                 # [P, NC]
         target_cls = target[:, :, :, 5:][mask].argmax(dim=1) # [P]
-        l_cls      = F.cross_entropy(pred_cls, target_cls)
+        if class_weights is not None:
+            weights = class_weights[target_cls].to(pred.device)
+            l_cls = F.cross_entropy(pred_cls, target_cls, reduction='none')
+            l_cls = (l_cls * weights).mean()
+        else:
+            l_cls = F.cross_entropy(pred_cls, target_cls)
     else:
         l_cls = torch.zeros(1, device=pred.device).squeeze()
 
     return l_obj + 5.0 * l_box + l_cls, {
         'obj': float(l_obj), 'box': float(l_box), 'cls': float(l_cls)
     }
+
+
+def compute_class_weights_from_dataset(dataset: Dataset, classes: list[str] | None = None) -> list[float]:
+    """Compute bounded square-root inverse-frequency weights.
+
+    Square-root scaling preserves minority-class support without allowing a
+    rare or missing class to dominate the detection loss. The 3x cap and
+    near-mean-one normalization keep the loss scale stable across slices.
+    """
+    class_names = classes or list(CLASSES)
+    counts = {cls: 0 for cls in class_names}
+    sample_count = 0
+    for _, _, ann in dataset:
+        for cls_name, _ in ann:
+            if cls_name in counts:
+                counts[cls_name] += 1
+        sample_count += 1
+    if sample_count == 0:
+        return [1.0 for _ in class_names]
+    total = sum(counts.values())
+    raw_weights = []
+    for cls_name in class_names:
+        freq = counts.get(cls_name, 0)
+        raw_weights.append(np.sqrt(total / max(1, len(class_names) * freq)))
+    weights = np.asarray(raw_weights, dtype=np.float32)
+    weights = np.clip(weights, 1.0 / 3.0, 3.0)
+    weights /= max(float(weights.mean()), 1e-6)
+    weights = np.clip(weights, 1.0 / 3.0, 3.0)
+    return weights.tolist()
 
 # ============================================================
 # 7.  EVALUATION
@@ -513,7 +555,8 @@ def evaluate(model: TrainDetector, loader: DataLoader, conf_th: float = 0.3):
                     for gi, (gt_cls, gt_box) in enumerate(anns):
                         if gt_matched[gi]:
                             continue
-                        if gt_cls != pred_cls:
+                        gt_cls_idx = gt_cls if isinstance(gt_cls, int) else CLASSES.index(gt_cls)
+                        if gt_cls_idx != pred_cls:
                             continue
                         iou_v = _iou(pred_box, gt_box)
                         if iou_v > best_iou:
@@ -528,7 +571,8 @@ def evaluate(model: TrainDetector, loader: DataLoader, conf_th: float = 0.3):
 
                 for gi, (gt_cls, _) in enumerate(anns):
                     if not gt_matched[gi]:
-                        fn[gt_cls] += 1
+                        gt_cls_idx = gt_cls if isinstance(gt_cls, int) else CLASSES.index(gt_cls)
+                        fn[gt_cls_idx] += 1
 
                 n_images += 1
 
@@ -588,7 +632,120 @@ def banner(msg: str) -> None:
 # ============================================================
 
 def main():
-    banner("NAVORA Road Hazard Detector Training Pipeline — Phase 15")
+    global CLASSES, NUM_CLS
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="NAVORA Road Hazard Detector Training")
+    parser.add_argument("--dataset", choices=["synthetic", "rdd2022"], default="synthetic",
+                        help="Dataset to train on: synthetic (default) or rdd2022")
+    parser.add_argument("--epochs", type=int, default=EPOCHS,
+                        help="Training epochs. For RDD2022 dry runs use a small value like 1 or 2.")
+    parser.add_argument("--batch-size", type=int, default=BATCH,
+                        help="Mini-batch size for training.")
+    parser.add_argument("--limit-train-images", type=int, default=None,
+                        help="Optional cap for training images during a dry run or smoke verification.")
+    parser.add_argument("--limit-val-images", type=int, default=None,
+                        help="Optional cap for validation images during a dry run or smoke verification.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Run a short RDD2022 dry-run instead of the full production training schedule.")
+    parser.add_argument("--output-dir", default=str(TRAINED),
+                        help="Directory for RDD2022 smoke checkpoint and metadata artifacts.")
+    args = parser.parse_args()
+
+    # Validate RDD2022 availability if requested
+    if args.dataset == "rdd2022" and not RDD2022_AVAILABLE:
+        sys.exit("[ERROR] RDD2022 support not available. Ensure rdd2022_voc.py and detector_taxonomy.py are present.")
+
+    # Configure dataset-specific parameters
+    if args.dataset == "synthetic":
+        dataset_choice = "synthetic"
+        classes_to_use = CLASSES
+        num_cls_to_use = NUM_CLS
+        banner("NAVORA Road Hazard Detector Training Pipeline — Phase 15 (SYNTHETIC)")
+    elif args.dataset == "rdd2022":
+        dataset_choice = "rdd2022"
+        classes_to_use = RDD2022_CLASSES
+        num_cls_to_use = len(RDD2022_CLASSES)
+        banner("NAVORA Road Hazard Detector Training Pipeline — Phase 17 (RDD2022 REAL-WORLD)")
+
+    print(f"\n[DATASET] Mode: {dataset_choice.upper()}")
+    print(f"[CLASSES] Using {num_cls_to_use} classes: {classes_to_use}\n")
+
+    if dataset_choice == "rdd2022":
+        CLASSES = classes_to_use
+        NUM_CLS = num_cls_to_use
+        train_ds = Rdd2022Dataset(split="train")
+        val_ds = Rdd2022Dataset(split="val")
+        if args.limit_train_images is not None:
+            train_ds = torch.utils.data.Subset(train_ds, list(range(min(args.limit_train_images, len(train_ds)))))
+        if args.limit_val_images is not None:
+            val_ds = torch.utils.data.Subset(val_ds, list(range(min(args.limit_val_images, len(val_ds)))))
+        class_weights = compute_class_weights_from_dataset(train_ds, classes=CLASSES)
+        weights_tensor = torch.tensor(class_weights, dtype=torch.float32)
+        train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate)
+        val_loader = DataLoader(val_ds, batch_size=max(1, min(8, args.batch_size)), shuffle=False, collate_fn=collate)
+        model = TrainDetector()
+        optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=LR)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model.to(device)
+        weights_tensor = weights_tensor.to(device)
+        epochs = max(1, args.epochs if not args.dry_run else min(args.epochs, 2))
+        print(f"[INFO] Training RDD2022 on {len(train_ds)} train images and {len(val_ds)} validation images")
+        print(f"[INFO] Dry-run mode: {args.dry_run} | epochs={epochs} | batch={args.batch_size}")
+        for epoch in range(1, epochs + 1):
+            model.train()
+            running_loss = 0.0
+            for imgs, targets, _ in train_loader:
+                imgs = imgs.to(device)
+                targets = targets.to(device)
+                optimizer.zero_grad()
+                pred = model(imgs)
+                loss, _ = detection_loss(pred, targets, class_weights=weights_tensor)
+                loss.backward()
+                optimizer.step()
+                running_loss += float(loss.item()) * len(imgs)
+            running_loss /= max(1, len(train_ds))
+            print(f"Epoch {epoch}/{epochs}  train_loss={running_loss:.4f}")
+        model.eval()
+        tp, fp, fn, n_images = evaluate(model, val_loader, conf_th=0.30)
+        per_class_m, avg_prec, avg_rec, avg_f1, macro_f1 = compute_metrics(tp, fp, fn)
+        print(f"RDD2022 validation summary: P={avg_prec:.4f} R={avg_rec:.4f} F1={avg_f1:.4f} macroF1={macro_f1:.4f}")
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        checkpoint_path = output_dir / "rdd2022-detector-smoke.pt"
+        metadata_path = output_dir / "rdd2022-detector-smoke.json"
+        dataset_path = train_ds.dataset._zip_path if isinstance(train_ds, torch.utils.data.Subset) else train_ds._zip_path
+        checkpoint = {
+            "model_state_dict": model.state_dict(),
+            "class_names": list(CLASSES),
+            "input_shape": [3, IMG_H, IMG_W],
+            "output_shape": [GRID_H, GRID_W, 5 + NUM_CLS],
+            "training_config": {
+                "dataset": "RDD2022",
+                "epochs": epochs,
+                "batch_size": args.batch_size,
+                "device": str(device),
+                "class_weights": class_weights,
+            },
+        }
+        torch.save(checkpoint, checkpoint_path)
+        metadata = {
+            "modelVersion": "rdd2022-smoke",
+            "dataset": "RDD2022-INDIA",
+            "datasetPath": str(dataset_path),
+            "datasetSha256": sha256_file(dataset_path),
+            "classNames": list(CLASSES),
+            "inputShape": [3, IMG_H, IMG_W],
+            "outputShape": [GRID_H, GRID_W, 5 + NUM_CLS],
+            "checkpoint": str(checkpoint_path),
+            "validationSplitImages": n_images,
+            "metrics": {"precision": avg_prec, "recall": avg_rec, "f1": avg_f1, "macroF1": macro_f1},
+        }
+        metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+        print(f"[PASS] RDD2022 training and validation executed using {len(CLASSES)} classes without test-set leakage.")
+        print(f"[PASS] Checkpoint saved: {checkpoint_path}")
+        print(f"[PASS] Metadata saved: {metadata_path}")
+        return
 
     # ----------------------------------------------------------
     # Step 1: Generate datasets
