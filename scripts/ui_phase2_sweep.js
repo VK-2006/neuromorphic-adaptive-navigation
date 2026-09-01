@@ -166,7 +166,7 @@ async function main(){
     process.exit(1);
   }
   console.log('\nNAVORA UI PHASE 2 BROWSER SWEEP: PASS');
-  console.log('28 pages: light/dark at 1440 and 375 PASS');
+  console.log('27 pages: light/dark at 1440 and 375 PASS');
   console.log('Critical pages: 1200/1024/768/480/320 in light+dark PASS');
 }
 main().catch(e=>{console.error(e.stack||e);process.exit(1)});

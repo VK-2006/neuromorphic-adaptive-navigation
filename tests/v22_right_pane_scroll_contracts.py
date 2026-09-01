@@ -10,7 +10,7 @@ SW = ROOT / 'frontend' / 'service-worker.js'
 V20 = ROOT / 'frontend' / 'assets' / 'css' / 'universal-left-navbar-v20.css'
 
 pages = sorted(PUBLIC.glob('*.html'))
-assert len(pages) == 28, f'expected 28 pages, found {len(pages)}'
+assert len(pages) == 27, f'expected 27 pages, found {len(pages)}'
 for page in pages:
     text = page.read_text(encoding='utf-8')
     assert '/assets/js/profile-all-pages-v17.js' in text, f'{page.name}: all-page profile/bootstrap loader missing'

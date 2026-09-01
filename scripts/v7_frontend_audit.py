@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 ROOT=Path(__file__).resolve().parents[1];PUB=ROOT/'frontend/public'
-pages=sorted(PUB.glob('*.html'));assert len(pages)==28
+pages=sorted(PUB.glob('*.html'));assert len(pages)==27
 for p in pages:
     t=p.read_text(encoding='utf-8')
     assert '/assets/css/navora-v7.css' in t,f'{p.name}: V7 CSS missing'

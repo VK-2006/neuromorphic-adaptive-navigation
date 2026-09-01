@@ -9,7 +9,7 @@ def between(text,start,end):
     a=text.index(start);b=text.index(end,a);return text[a:b]
 
 pages=sorted(PAGES.glob('*.html'))
-assert len(pages)==28,f'expected 28 frontend pages, found {len(pages)}'
+assert len(pages)==27,f'expected 27 frontend pages, found {len(pages)}'
 for page in pages:
     text=page.read_text(encoding='utf-8')
     assert '/assets/js/theme.js' in text,f'{page.name}: theme bootstrap missing'
@@ -84,4 +84,4 @@ assert "self.mode='development/heuristic-fallback-runtime'" in risk
 assert 'if self.model is None:self.validated=False' in detector
 assert "self.mode='development/heuristic-fallback-runtime'" in detector
 
-print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 28-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')
+print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 27-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')
