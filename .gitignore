@@ -33,11 +33,15 @@ qa-screens/*.jpeg
 
 # Trained weights are generated locally and may be large.
 ai-service/trained_models/*.pt
+**/*.pt
+**/*.pth
+**/*.onnx
 !ai-service/trained_models/README.md
 
 # Dataset payloads are not redistributed; keep only documented fixtures/manifests.
 datasets/raw/
 datasets/downloads/
+datasets/navora-realworld/raw/
 
 # Generated local model evidence / release bundles (never commit trained artifacts)
 ai-service/trained_models/metadata.json
@@ -54,3 +58,6 @@ datasets/derived-risk-data/bdd100k-hf-provenance.json
 **/.motion_v9_backup_*/
 .purple_gold_v9_backup_*/
 **/.purple_gold_v9_backup_*/
+# NAVORA real‑world dataset (ignore raw and processed)
+ai-service/datasets/navora-realworld/raw/
+ai-service/datasets/navora-realworld/processed/

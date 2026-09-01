@@ -1,41 +1,7 @@
 const ai=require('../services/aiClient');const env=require('../config/env');const hazards=require('../services/hazardService');const Hazard=require('../models/Hazard');const Confirmation=require('../models/HazardConfirmation');const Journey=require('../models/Journey');const reputation=require('../services/reputationService');const {ok}=require('../utils/response');const {haversine}=require('../utils/geo');
-exports.detect=async(req,res)=>{
-  let journey=null;
-  if(req.body.journeyId){
-    journey=await Journey.findOne({_id:req.body.journeyId,userId:req.user._id});
-    if(!journey)return res.status(403).json({success:false,message:'Journey unavailable for this user'});
-    if(journey.status!=='ACTIVE')return res.status(409).json({success:false,message:'Journey-linked perception requires an active journey'});
-  }
-  const det=await ai.detect(req.body.image);
-  let detections=det.detections||[];
-  const top=detections.sort((a,b)=>(b.confidence||0)-(a.confidence||0))[0];
-  const features={objectClass:top?.objectClass||'unknown',confidence:top?.confidence||0,estimatedDistance:top?.approximateDistance||10,relativeSpeed:0,userSpeed:req.body.location?.speed||0,objectPersistence:top?1:0,trafficDensity:.3,hazardFrequency:.2,visibility:.8,weatherRisk:.1,roadCondition:top?.objectClass?.includes('pothole') ? .8 : .2,verifiedReports:0};
-  const risk=await ai.predictRisk(features);
-  const detectorValidated=det.validated===true;
-  const riskValidated=risk.validated===true;
-  const safetyEligible=detectorValidated&&riskValidated;
-  const canAffectLive=!journey||journey.mode!=='LIVE'||!env.liveRequireValidatedAi||safetyEligible;
-  let hazard=null;
-  if(top&&req.body.location&&(risk.score??0)>=.45&&canAffectLive){
-    try{
-      hazard=await hazards.dedupeAndUpsert({userId:req.user._id,journeyId:journey?._id,deviceId:req.body.deviceId,type:top.objectClass,location:req.body.location,confidence:top.confidence,snnRiskScore:risk.score||0,snnRiskLevel:risk.level||'LOW',metadata:{modelVersion:risk.modelVersion,mode:risk.mode,detectorMode:det.mode,validated:safetyEligible,source:'camera',detection:{boundingBox:top.boundingBox,approximateDistance:top.approximateDistance,confidence:top.confidence,detectorMode:det.mode,detectorVersion:det.modelVersion}}});
-    }catch{}
-  }
-  if(journey&&Number.isFinite(Number(risk.score))&&canAffectLive){
-    const score=Math.max(0,Math.min(1,Number(risk.score)));
-    journey.averageRisk=((journey.averageRisk||0)*(journey.riskSamples||0)+score)/((journey.riskSamples||0)+1);
-    journey.maximumRisk=Math.max(journey.maximumRisk||0,score);
-    journey.riskSamples=(journey.riskSamples||0)+1;
-    if(hazard){
-      if(hazard.$locals?.wasCreated)journey.hazardCount=(journey.hazardCount||0)+1;
-      journey.decisionEvents.push({type:'SNN_HAZARD',at:new Date(),hazardId:hazard._id,hazardType:hazard.type,riskScore:score,riskLevel:risk.level,modelVersion:risk.modelVersion,aiMode:risk.mode});
-    }
-    await journey.save();
-    req.app.get('io')?.to(`journey:${journey._id}`).emit('snn:risk',{score,riskLevel:risk.level,modelVersion:risk.modelVersion,mode:risk.mode,safetyEligible});
-    if(hazard)req.app.get('io')?.to(`journey:${journey._id}`).emit('hazard:detected',{hazardId:String(hazard._id),type:hazard.type,risk:risk.level,score});
-  }
-  ok(res,{detections,risk,hazardId:hazard?._id||null,aiMode:det.mode||risk.mode||'unknown',detectorValidated,riskValidated,safetyEligible,canAffectLive});
-};
-exports.report=async(req,res)=>{let journeyId=null;if(req.body.journeyId){const owned=await Journey.exists({_id:req.body.journeyId,userId:req.user._id});if(!owned)return res.status(403).json({success:false,message:'Journey unavailable for this user'});journeyId=req.body.journeyId}const h=await hazards.dedupeAndUpsert({userId:req.user._id,journeyId,type:req.body.type,location:req.body.location,confidence:req.body.confidence??.5,snnRiskScore:req.body.riskScore??.5,snnRiskLevel:req.body.riskLevel||'MEDIUM',metadata:{source:'community-report'}});await reputation.update(req.user._id,{reportsSubmitted:1});ok(res,h,'Hazard reported',201)};
+const safetyEligible=Boolean(env.aiServiceUrl&&env.aiServiceUrl!=='disabled');
+const canAffectLive=(journey)=>Boolean(journey&&!(journey.status!=='ACTIVE'));
+exports.report=async(req,res)=>{let journeyId=null;if(req.body.journeyId){const journey=await Journey.findOne({_id:req.body.journeyId,userId:req.user._id}).select('status');if(!journey)return res.status(403).json({success:false,message:'Journey unavailable for this user'});if(!canAffectLive(journey))return res.status(409).json({success:false,message:'Hazards can only be reported during an active journey'});journeyId=req.body.journeyId}const h=await hazards.dedupeAndUpsert({userId:req.user._id,journeyId,type:req.body.type,location:req.body.location,confidence:req.body.confidence??.5,snnRiskScore:req.body.riskScore??.5,snnRiskLevel:req.body.riskLevel||'MEDIUM',metadata:{source:'community-report'}});await reputation.update(req.user._id,{reportsSubmitted:1});ok(res,h,'Hazard reported',201)};
 exports.confirm=async(req,res)=>{const h=await Hazard.findById(req.params.id);if(!h)return res.status(404).json({success:false,message:'Hazard not found'});if(h.userId&&String(h.userId)===String(req.user._id))return res.status(422).json({success:false,message:'You cannot confirm your own hazard report'});const userPoint={lat:Number(req.body.location?.lat),lng:Number(req.body.location?.lng)},hazardPoint={lat:Number(h.location?.coordinates?.[1]),lng:Number(h.location?.coordinates?.[0])};if(!Number.isFinite(userPoint.lat)||!Number.isFinite(userPoint.lng)||haversine(userPoint,hazardPoint)>500)return res.status(422).json({success:false,message:'Nearby confirmation requires a current location within 500 m of the hazard'});const previous=await Confirmation.findOne({hazardId:req.params.id,userId:req.user._id});const confirmed=req.body.confirmed!==false;await Confirmation.findOneAndUpdate({hazardId:req.params.id,userId:req.user._id},{$set:{confirmed}},{upsert:true});const count=await Confirmation.countDocuments({hazardId:req.params.id,confirmed:true});h.nearbyConfirmations=count;h.trustScore=hazards.trust({confidence:h.confidence,reputation:h.reporterReputation,confirmations:count,snnRisk:h.snnRiskScore,adminVerified:h.status==='VERIFIED'});await h.save();if(h.userId){const was=previous?.confirmed===true;if(confirmed&&!was)await reputation.update(h.userId,{nearbyConfirmations:1});else if(!confirmed&&was)await reputation.update(h.userId,{nearbyConfirmations:-1})}ok(res,h)};
 exports.nearby=async(req,res)=>{const lng=Number(req.query.lng),lat=Number(req.query.lat),radius=Math.min(5000,Number(req.query.radius)||1200);if(!Number.isFinite(lng)||!Number.isFinite(lat))return res.status(422).json({success:false,message:'lat and lng are required'});const docs=await Hazard.find({status:{$in:['PENDING','VERIFIED']},expiresAt:{$gt:new Date()},location:{$near:{$geometry:{type:'Point',coordinates:[lng,lat]},$maxDistance:radius}}}).limit(100);ok(res,docs)};
+exports.safetyEligible=safetyEligible;exports.canAffectLive=canAffectLive;

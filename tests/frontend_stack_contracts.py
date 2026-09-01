@@ -9,7 +9,7 @@ class P(HTMLParser):
         d=dict(a)
         if t=='link' and d.get('href'):self.hrefs.append(d['href'])
         if t=='script' and d.get('src'):self.srcs.append(d['src'])
-pages=sorted(PUB.glob('*.html'));assert len(pages)==28
+pages=sorted(PUB.glob('*.html'));assert len(pages)==27
 for p in pages:
     x=P();x.feed(p.read_text(encoding='utf-8'))
     if p.name!='offline.html':

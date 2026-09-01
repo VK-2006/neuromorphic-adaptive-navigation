@@ -18,7 +18,7 @@ def between(text: str, start: str, end: str) -> str:
 # release strings, formatting, or cache-name literals.
 
 pages = sorted((ROOT / "frontend" / "public").glob("*.html"))
-assert len(pages) == 28, f"expected 28 frontend pages, found {len(pages)}"
+assert len(pages) == 27, f"expected 27 frontend pages, found {len(pages)}"
 
 auth = read("frontend/assets/js/auth.js")
 assert "function finishAuth(" in auth
@@ -52,7 +52,7 @@ assert "String(j?.status||'').toUpperCase()" in replay
 sw = read("frontend/service-worker.js")
 assert "networkFirst(r,{offlineFallback=false}={})" in sw
 assert "e.request.mode==='navigate'" in sw and "offlineFallback:true" in sw
-assert "/\.(?:js|css|json)$/i.test(u.pathname)" in sw
+assert r"/\.(?:js|css|json)$/i.test(u.pathname)" in sw
 assert "if(offlineFallback)return await c.match('/offline.html')" in sw
 
-print("V17_9_GUARDED_REPAIR_CONTRACTS PASS: 28 pages and repaired auth/journey/map/notifications/replay/PWA semantics are present")
+print("V17_9_GUARDED_REPAIR_CONTRACTS PASS: 27 pages and repaired auth/journey/map/notifications/replay/PWA semantics are present")

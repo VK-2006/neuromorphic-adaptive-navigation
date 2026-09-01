@@ -12,14 +12,13 @@ require('frontend/assets/js/map.js','/geocoding/search','/geocoding/reverse','na
 require('backend/src/services/routingProvider.js','osrm','graphhopper','valhalla','development')
 require('backend/src/services/trafficService.js','FREE_FLOW','LIGHT','MODERATE','HEAVY','SEVERE','UNKNOWN','simulation','tomtom')
 
-# Journey lifecycle/privacy/realtime/reroute/voice/share/WebRTC.
-require('frontend/public/journey.html','Start / Resume','Pause','Complete','Voice','Create secure share link','SOS','Detection OFF','camera-select','reroute-comparison')
+# Journey lifecycle/privacy/realtime/reroute/voice/share.
+require('frontend/public/journey.html','Start / Resume','Pause','Complete','Voice','Create secure share link','SOS','reroute-comparison')
 journey=read('frontend/assets/js/journey.js')
 assert journey.count('watchPosition(')==1, 'only one geolocation watchPosition call is allowed'
-assert 'detectionEnabled=false' in journey or 'dataset.enabled' in journey, 'detection must be explicit opt-in'
-for signal in ['/journeys/','/routes/reroute','speechSynthesis','RTCPeerConnection','webrtc:','share']:
+for signal in ['/journeys/','/routes/reroute','speechSynthesis','share']:
     assert signal in journey, f'journey.js missing {signal}'
-require('frontend/assets/js/camera-share.js','RTCPeerConnection','getUserMedia','webrtc:join')
+assert 'MediaRecorder' not in journey, 'journey.js should not rely on camera recording for the current field stack'
 
 # Chat feature/security contracts.
 chat=read('frontend/assets/js/chat.js')+read('backend/src/routes/chatRoutes.js')+read('backend/src/sockets/index.js')
@@ -53,12 +52,12 @@ require('backend/src/sockets/index.js','journey:join','device:join','route:join'
 require('backend/src/services/aiClient.js','/api/v1/detect','/api/v1/risk/predict','degraded')
 
 
-# Device/Bluetooth/WebRTC and simulation/digital-twin contracts.
+# Device/Bluetooth and simulation/digital-twin contracts.
 device=read('frontend/assets/js/devices.js')+read('frontend/public/devices.html')
-for signal in ['navigator.bluetooth','optionalServices','DETECTION_ON','DETECTION_OFF','sensor']:
+for signal in ['navigator.bluetooth','optionalServices','START_STOP','sensor']:
     assert signal in device, f'device connectivity missing {signal}'
-require('frontend/assets/js/camera-share.js','RTCPeerConnection','getUserMedia','webrtc:join')
-require('backend/src/services/simulationService.js','SCENARIO','predictRisk','dedupeAndUpsert','SIMULATION_DETECTION')
+assert 'DETECTION_ON' not in device and 'DETECTION_OFF' not in device, 'detection control commands were removed from the current device contract'
+require('backend/src/services/simulationService.js','SCENARIO','predictRisk','dedupeAndUpsert')
 require('backend/src/routes/simulationRoutes.js',"post('/step'",'authenticate','simulationStep')
 require('frontend/assets/js/journey.js','/simulation/step','automaticSimulation:true','completeJourney','SIMULATION')
 require('backend/src/models/Journey.js','originalRouteId','originalRouteSnapshot','decisionEvents')
@@ -74,7 +73,7 @@ require('backend/src/sockets/index.js',"target?.rooms?.has(room)")
 require('backend/src/models/Journey.js','distanceOffset')
 require('backend/src/controllers/trackingController.js','routeDistanceCovered','offset+proj.distanceAlong')
 require('frontend/assets/js/journey.js','routeDistanceCovered??r.distanceCovered')
-require('backend/src/controllers/hazardController.js',"Journey.exists({_id:req.body.journeyId,userId:req.user._id})","includes('pothole') ? .8 : .2",'within 500 m','cannot confirm your own hazard')
+require('backend/src/controllers/hazardController.js',"Journey.findOne({_id:req.body.journeyId,userId:req.user._id})",'canAffectLive','Hazards can only be reported during an active journey','You cannot confirm your own hazard report','Nearby confirmation requires a current location within 500 m of the hazard')
 require('backend/src/validators/domainValidators.js',"body('location.accuracy')","body('location.heading')","body('location.speed')")
 require('backend/src/services/webauthnService.js','CHALLENGE_TTL_MS','putChallenge','takeChallenge')
 require('backend/src/services/otpService.js','return rec')

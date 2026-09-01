@@ -12,7 +12,7 @@ def need(name, cond, detail=''):
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8',errors='ignore')
 def exists(rel): return (ROOT/rel).exists()
 
-required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','camera-share.html','shared-journey.html','offline.html']
+required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','shared-journey.html','offline.html']
 for p in required_pages: need(f'page:{p}', exists(f'frontend/public/{p}'))
 required_models=['User','RefreshToken','OtpVerification','PasskeyCredential','TrustedContact','Device','Route','Journey','JourneyLocationPoint','Hazard','HazardConfirmation','RouteMemory','Notification','ChatRoom','ChatMessage','ChatReaction','ChatReport','BlockedUser','UserReputation','AuditLog']
 for m in required_models: need(f'model:{m}', exists(f'backend/src/models/{m}.js'))
@@ -33,7 +33,7 @@ for key in ['/geocoding/search','/geocoding/reverse','L.marker','draggable:true'
     need(f'map:{key}',key in mapjs)
 journey=text('frontend/assets/js/journey.js')
 need('single GPS watcher variable',journey.count('watchPosition(')==1,f'watchPosition calls={journey.count("watchPosition(")}')
-need('camera explicit detection off','data-enabled="false"' in text('frontend/public/journey.html') and "dataset.enabled==='false'" in journey)
+need('current journey runtime', 'data-theme' in text('frontend/public/journey.html') and 'journey.js' in text('frontend/public/journey.html'))
 need('no MediaRecorder', 'MediaRecorder' not in journey)
 for key in ['pause','resume','complete','voice-language','voice-volume','voice-select','reroute','share','sos']:
     need(f'journey-ui:{key}',key.lower() in (journey+text('frontend/public/journey.html')).lower())
@@ -55,7 +55,7 @@ for key in ['snn','dtw','ema','aco','hazard','traffic']:
     need(f'XAI:{key}',key in xai.lower())
 
 ai=text('ai-service/app/main.py')+text('ai-service/app/api/routes.py')
-for endpoint in ['/health','/model/info','/api/v1/detect','/api/v1/risk/predict','/api/v1/risk/batch']:
+for endpoint in ['/health','/model/info','/api/v1/risk/predict','/api/v1/risk/batch']:
     need(f'AI:{endpoint}',endpoint in ai)
 snn=text('ai-service/app/models/snn.py')
 need('snnTorch LIF','snn.Leaky' in snn or 'Leaky' in snn)
@@ -100,7 +100,7 @@ hsim=text('backend/src/services/hazardSimilarity.js')
 for key in ['detectionSimilarity','boxSimilarity','DETECTION_SIMILARITY_THRESHOLD']:
     need(f'hazard-dedup:{key}',key in hsim)
 hazard_controller=text('backend/src/controllers/hazardController.js')
-need('hazard detection evidence','boundingBox' in hazard_controller and 'approximateDistance' in hazard_controller)
+need('hazard dedup reporting contract','dedupeAndUpsert' in hazard_controller and 'snnRiskScore' in hazard_controller)
 
 stack_pages=''.join(text(f'frontend/public/{p}') for p in required_pages)
 for key in ['bootstrap@5.3.3','gsap@3.12.5','aos@2.3.4','lottie-web@5.12.2']:
@@ -123,10 +123,10 @@ meta=text('ai-service/trained_models/metadata.example.json')
 need('separate detector/risk validation flags','detectorValidated' in meta and 'riskValidated' in meta)
 validation_helper=text('ai-service/app/model_validation.py')
 risk_runtime=text('ai-service/app/services/risk_service.py')
-detector_runtime=text('ai-service/app/services/detection_service.py')
+route_contract=text('ai-service/app/api/routes.py')
 need('V28 validation helper',"def model_validation_status" in validation_helper and "schemaVersion" in validation_helper and "SHA-256" in validation_helper)
 need('risk evidence-bound validation runtime',"model_validation_status('risk'" in risk_runtime and "self.validated=bool(validation.get('passed'))" in risk_runtime)
-need('detector evidence-bound validation runtime',"model_validation_status('detector'" in detector_runtime and "self.validated=bool(validation.get('passed'))" in detector_runtime)
+need('risk-only runtime contract',"Object detection subsystem has been removed." in route_contract and "/model/info" in route_contract)
 
 # Secrets: examples may name variables, but no non-empty values for secret/key fields.
 envexample=text('backend/.env.example')

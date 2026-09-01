@@ -57,28 +57,28 @@ jobs:
           python tests/v26_preference_consistency_contracts.py
           python tests/v27_session_recovery_contracts.py
           python tests/v28_model_validation_contracts.py
-          python tests/v29_rdd_detector_training_contracts.py
           python tests/v30_class_aware_validation_contracts.py
-          python tests/v31_windows_model_pipeline_contracts.py
           python tests/v32_phase5_research_lock_contracts.py
           python tests/v33_validated_ai_inference_contracts.py
           python tests/v34_production_readiness_contracts.py
           python tests/v35_production_release_watch_contracts.py
           python tests/v37_completion_gate_contracts.py
-          python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py ai-service/app/services/risk_service.py ai-service/app/services/detection_service.py ai-service/app/api/routes.py scripts/train_snn.py scripts/evaluate_snn.py scripts/production_smoke.py scripts/wait_for_render_release.py
+          python -m py_compile ai-service/app/research_lock.py ai-service/app/model_validation.py ai-service/app/services/risk_service.py ai-service/app/api/routes.py scripts/train_snn.py scripts/evaluate_snn.py scripts/production_smoke.py scripts/wait_for_render_release.py
           node --check backend/src/app.js
           node --check backend/src/services/productionReadinessService.js
           node --check frontend/assets/js/api.js
           node --check frontend/assets/js/app-shell.js
           node --check frontend/assets/js/offline.js
+<<<<<<< HEAD
           node --check frontend/assets/js/v9-functional.js
           node --check frontend/assets/js/theme.js
+=======
+>>>>>>> main
           node --check frontend/assets/js/dashboard.js
           node --check frontend/assets/js/replay.js
           node --check frontend/assets/js/data-pages.js
           node --check frontend/assets/js/map.js
           node --check frontend/assets/js/journey.js
-          node --check frontend/assets/js/detection-mode.js
           node --check frontend/service-worker.js
           node --check frontend/assets/js/scroll-surface-v22.js
           node --check scripts/browser_v27_session_recovery_e2e.js
@@ -147,10 +147,13 @@ jobs:
         run: node scripts/browser_v8_full_sweep.js http://127.0.0.1:5000
       - name: V22 fixed-navigation physical scroll E2E
         run: node scripts/browser_v22_fixed_shell_e2e.js http://127.0.0.1:5000
+<<<<<<< HEAD
       - name: V23 clean UI all-pages responsive E2E
         run: node scripts/browser_v23_all_pages_ui_e2e.js http://127.0.0.1:5000
       - name: Camera local/cloud privacy Chromium E2E
         run: node scripts/browser_v11_7_detection_modes_e2e.js http://127.0.0.1:5000
+=======
+>>>>>>> main
       - name: V27 protected-session recovery Chromium E2E
         run: node scripts/browser_v27_session_recovery_e2e.js http://127.0.0.1:5000
       - name: Browser server log on failure

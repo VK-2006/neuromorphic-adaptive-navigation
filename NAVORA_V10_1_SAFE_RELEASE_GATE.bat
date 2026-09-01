@@ -366,7 +366,7 @@ echo.
 echo Test GPS/camera/Bluetooth/WebRTC on the actual phone/device.
 start "" "%BACKEND_URL%/journey.html"
 start "" "%BACKEND_URL%/devices.html"
-start "" "%BACKEND_URL%/camera-share.html"
+start "" "%BACKEND_URL%/journey.html"
 choice /C YN /N /M "Did physical GPS + camera + Bluetooth + WebRTC work? [Y/N] "
 if errorlevel 2 (
   set "HARDWARE_GATE=PENDING"

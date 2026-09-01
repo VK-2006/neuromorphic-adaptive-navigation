@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,19 +16,30 @@ ai_main = text("ai-service/app/main.py")
 production_smoke = text("scripts/production_smoke.py")
 ci = text(".github/workflows/ci.yml")
 
-# Startup auth/service redirects can intentionally supersede the inbound
-# cross-document transition. The application must observe the rejecting
-# `ready` promise before calling skipTransition; the browser test must continue
-# to reject every genuine application page error instead of filtering it out.
+# Startup auth/service redirects can occur during an inbound cross-document
+# transition. The application must settle that transition before navigating;
+# the browser test must continue to reject every genuine page error.
 for token in [
     "function replacePage(target,{skipActiveTransition=false}={})",
     "const transition=document.activeViewTransition",
-    "transition.ready?.catch(()=>{})",
-    "transition.skipTransition?.()",
     "replacePage(`offline.html?reason=${reason}`,{skipActiveTransition:true})",
     "replacePage(`login.html?returnTo=${encodeURIComponent(returnTo())}`,{skipActiveTransition:true})",
 ]:
     assert token in shell, f"session transition repair missing: {token}"
+
+settlement_barrier = re.search(
+    r"const transition=document\.activeViewTransition"
+    r"[\s\S]*?Promise\.allSettled\(\[\s*"
+    r"transition\.ready,\s*"
+    r"transition\.updateCallbackDone,\s*"
+    r"transition\.finished,\s*"
+    r"\]\)"
+    r"\.then\(\(\)=>location\.replace\(target\)\)",
+    shell,
+)
+assert settlement_barrier, "session transition settlement barrier missing"
+assert "skipTransition" not in shell, "session recovery must not skip transitions"
+assert "unhandledrejection" not in shell, "session recovery must not suppress page errors globally"
 
 assert "assert(!pageErrors.length" in browser_e2e
 assert "Transition was skipped" not in browser_e2e

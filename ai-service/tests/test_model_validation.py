@@ -180,6 +180,92 @@ def test_coherent_v30_bundle_is_live_validation_eligible(tmp_path):
     assert risk['reasons'] == []
 
 
+def real_world_bundle(tmp_path: Path):
+    """Create a coherent bundle that represents a genuine real‑world validation case.
+    It builds upon the existing ``coherent_bundle`` fixture and adds the required
+    ``datasetType`` and metric fields required for Phase 16 real‑world validation.
+    """
+    p = coherent_bundle(tmp_path)
+    # Load the existing evidence and augment it with real‑world provenance fields.
+    evidence = json.loads(p['evidence'].read_text(encoding='utf-8'))
+    evidence['datasetType'] = 'real-world'
+    # Include optional descriptive fields (they are not validated but provide realism).
+    evidence['datasetName'] = 'test-fixture-dataset'
+    evidence['datasetVersion'] = 'test'
+    evidence['datasetSource'] = 'test-fixture'
+    evidence['sampleCount'] = 500
+    # Ensure the required real‑world metrics are present.
+    evidence['metrics']['detector']['criticalRecall'] = 0.85
+    evidence['metrics']['snn']['highRiskRecall'] = 0.90
+    # Write back the updated evidence.
+    write_json(p['evidence'], evidence)
+    return p
+
+def test_real_world_bundle_is_accepted(tmp_path: Path):
+    """Validate that a correctly‑augmented real‑world bundle passes both generic
+    validation (``passed``) and the Phase 16 real‑world gate (``realWorldValidated``).
+    """
+    p = real_world_bundle(tmp_path)
+    detector = model_validation_status('detector', p['detector'], p['metadata'])
+    risk = model_validation_status('risk', p['snn'], p['metadata'])
+    assert detector['passed'] is True
+    assert risk['passed'] is True
+    assert detector['realWorldValidated'] is True
+    assert risk['realWorldValidated'] is True
+
+def test_missing_dataset_type_real_world_validated_is_false(tmp_path: Path):
+    """When ``datasetType`` is absent, the bundle should be considered valid
+    (``passed``) but not real‑world validated.
+    """
+    p = coherent_bundle(tmp_path)  # original bundle lacks ``datasetType``
+    detector = model_validation_status('detector', p['detector'], p['metadata'])
+    risk = model_validation_status('risk', p['snn'], p['metadata'])
+    assert detector['passed'] is True
+    assert risk['passed'] is True
+    assert detector['realWorldValidated'] is False
+    assert risk['realWorldValidated'] is False
+
+def test_synthetic_dataset_type_is_rejected(tmp_path: Path):
+    """A synthetic ``datasetType`` must not be treated as real‑world validated.
+    The generic validation should still pass.
+    """
+    p = coherent_bundle(tmp_path)
+    evidence = json.loads(p['evidence'].read_text(encoding='utf-8'))
+    evidence['datasetType'] = 'synthetic'
+    write_json(p['evidence'], evidence)
+    detector = model_validation_status('detector', p['detector'], p['metadata'])
+    risk = model_validation_status('risk', p['snn'], p['metadata'])
+    assert detector['passed'] is True
+    assert risk['passed'] is True
+    assert detector['realWorldValidated'] is False
+    assert risk['realWorldValidated'] is False
+
+def test_real_world_missing_criticalRecall_fails(tmp_path: Path):
+    """If a real‑world bundle lacks the required ``criticalRecall`` metric for the
+    detector, the generic validation should fail, and consequently real‑world
+    validation must also be false.
+    """
+    p = real_world_bundle(tmp_path)
+    evidence = json.loads(p['evidence'].read_text(encoding='utf-8'))
+    # Remove the required metric.
+    del evidence['metrics']['detector']['criticalRecall']
+    write_json(p['evidence'], evidence)
+    detector = model_validation_status('detector', p['detector'], p['metadata'])
+    assert detector['passed'] is False
+    assert detector['realWorldValidated'] is False
+
+def test_real_world_missing_highRiskRecall_fails(tmp_path: Path):
+    """Analogous test for the SNN ``highRiskRecall`` metric.
+    """
+    p = real_world_bundle(tmp_path)
+    evidence = json.loads(p['evidence'].read_text(encoding='utf-8'))
+    del evidence['metrics']['snn']['highRiskRecall']
+    write_json(p['evidence'], evidence)
+    risk = model_validation_status('risk', p['snn'], p['metadata'])
+    assert risk['passed'] is False
+    assert risk['realWorldValidated'] is False
+
+
 def test_weight_tamper_revokes_validation(tmp_path):
     p = coherent_bundle(tmp_path)
     p['detector'].write_bytes(b'tampered-detector')

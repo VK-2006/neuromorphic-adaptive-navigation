@@ -4,7 +4,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]
 pages=sorted((ROOT/'frontend/public').glob('*.html'))
-if len(pages)!=28:errors.append(f'expected 28 pages, found {len(pages)}')
+if len(pages)!=27:errors.append(f'expected 27 pages, found {len(pages)}')
 for p in pages:
     t=p.read_text(encoding='utf-8')
     for asset in ('/assets/css/product-repair-v10.css','/assets/js/product-repair-v10.js'):

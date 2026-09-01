@@ -254,7 +254,7 @@ def main():
     info = None
     try:
         _, _, info = call("GET", ai + "/model/info", timeout=90, retries=5)
-        ok("AI model metadata") if isinstance(info, dict) and info.get("riskModel") and info.get("detector") else fail("AI model metadata", repr(info))
+        ok("AI model metadata") if isinstance(info, dict) and info.get("riskModel") else fail("AI model metadata", repr(info))
     except Exception as exc:
         fail("AI model metadata", str(exc))
 
@@ -286,11 +286,10 @@ def main():
         fail("AI risk inference", str(exc))
 
     if isinstance(info, dict):
-        dv = (info.get("detector") or {}).get("validated") is True
         rv = (info.get("riskModel") or {}).get("validated") is True
-        ok("Validated AI gate") if dv and rv else warn(
+        ok("Validated AI gate") if rv else warn(
             "Validated AI gate",
-            "trained + held-out-validated detector/SNN weights are not present; fallback/research mode remains correctly non-safety-eligible",
+            "trained + held-out-validated SNN weights are not present; fallback/research mode remains correctly non-safety-eligible",
         )
 
     print()

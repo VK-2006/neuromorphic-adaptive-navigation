@@ -87,7 +87,7 @@ async function pair(){
       if(controlUuid){
         bt.control=await svc.getCharacteristic(controlUuid);
         if(!bt.control?.properties?.write&&!bt.control?.properties?.writeWithoutResponse)throw new Error('Configured control characteristic is not writable.');
-        capabilities.push('START_STOP','DETECTION_CONTROL');
+        capabilities.push('START_STOP');
       }
       if(sensorUuid){
         bt.sensor=await svc.getCharacteristic(sensorUuid);

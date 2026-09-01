@@ -202,7 +202,7 @@ echo.
 echo Hardware gate: test on a physical HTTPS-capable phone/device.
 start "" "%BACKEND_URL%/journey.html"
 start "" "%BACKEND_URL%/devices.html"
-start "" "%BACKEND_URL%/camera-share.html"
+start "" "%BACKEND_URL%/journey.html"
 choice /C YN /N /M "Did physical GPS + camera + Bluetooth + WebRTC work on the real device? [Y/N] "
 if errorlevel 2 (set "HARDWARE_GATE=PENDING"& set /a PENDING+=1) else set "HARDWARE_GATE=PASS"
 

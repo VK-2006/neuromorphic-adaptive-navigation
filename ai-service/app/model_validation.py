@@ -212,8 +212,20 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
     evidence_metrics = evidence.get('metrics', {}).get(evidence_key, {})
     if evidence_metrics.get('passed') is not True or evidence_metrics.get('validationEligible') is not True:
         issues.append(f'{kind} evidence metrics are not validation-eligible')
+    # Verify evaluation metrics match evidence
     if evaluation and evidence_metrics and not _metric_subset_matches(evaluation, evidence_metrics, metric_keys):
         issues.append(f'{kind} evaluation metrics do not match validation evidence')
+
+    # Real‑world dataset provenance check — only enforce for real‑world validation
+    is_real_world = evidence.get('datasetType') == 'real-world'
+    if is_real_world:
+        # Ensure required metrics are present for real‑world validation
+        if kind == 'detector':
+            if not isinstance(evidence_metrics.get('criticalRecall'), (int, float)):
+                issues.append('detector evidence missing criticalRecall')
+        elif kind == 'risk':
+            if not isinstance(evidence_metrics.get('highRiskRecall'), (int, float)):
+                issues.append('risk evidence missing highRiskRecall')
 
     datasets = evidence.get('datasets', {})
     expected_datasets = {
@@ -237,9 +249,11 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
             _file_hash_matches(path, report_hashes.get(key), issues, label)
 
     unique_issues = list(dict.fromkeys(issues))
+    real_world_validated = is_real_world and (not unique_issues)
     return {
         'kind': kind,
         'passed': not unique_issues,
+        'realWorldValidated': real_world_validated,
         'weightSha256': actual_sha,
         'evidenceBound': not unique_issues,
         'reasons': unique_issues,

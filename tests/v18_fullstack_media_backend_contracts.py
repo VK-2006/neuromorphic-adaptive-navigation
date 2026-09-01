@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 PAGES=ROOT/'frontend'/'public'
@@ -9,7 +10,7 @@ def between(text,start,end):
     a=text.index(start);b=text.index(end,a);return text[a:b]
 
 pages=sorted(PAGES.glob('*.html'))
-assert len(pages)==28,f'expected 28 frontend pages, found {len(pages)}'
+assert len(pages)==27,f'expected 27 frontend pages, found {len(pages)}'
 for page in pages:
     text=page.read_text(encoding='utf-8')
     assert '/assets/js/theme.js' in text,f'{page.name}: theme bootstrap missing'
@@ -64,7 +65,8 @@ assert 'if(!user||user.disabledAt)' in tokens
 assert 'RefreshToken.updateMany({family:stored.family' in tokens
 
 hazard=read(Path('backend/src/controllers/hazardController.js'))
-assert "if(journey.status!=='ACTIVE')return res.status(409)" in hazard
+assert re.search(r'canAffectLive\s*=\s*\(\s*journey\s*\)\s*=>\s*Boolean\(\s*journey\s*&&\s*!\(\s*journey\.status\s*!==\s*[\'"]ACTIVE[\'"]\s*\)\s*\)', hazard)
+assert re.search(r'if\s*\(\s*!canAffectLive\(\s*journey\s*\)\s*\)\s*return\s+res\.status\(\s*409\s*\)', hazard)
 
 chat=read(Path('backend/src/routes/chatRoutes.js'))
 for token in ['mongoose.isValidObjectId','Invalid message pagination timestamp','deletedAt:null','Invalid reply target','User not found']:
@@ -78,10 +80,7 @@ crm=read(Path('backend/src/services/routeMemoryService.js'))
 assert 'elapsedMs-Math.max(0,Number(journey.totalPausedMs)||0)' in crm
 
 risk=read(Path('ai-service/app/services/risk_service.py'))
-detector=read(Path('ai-service/app/services/detection_service.py'))
 assert 'if self.model is None:\n            self.validated=False' in risk
 assert "self.mode='development/heuristic-fallback-runtime'" in risk
-assert 'if self.model is None:self.validated=False' in detector
-assert "self.mode='development/heuristic-fallback-runtime'" in detector
 
-print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 28-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')
+print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 27-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')

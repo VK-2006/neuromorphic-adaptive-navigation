@@ -9,7 +9,7 @@ SHELL_JS_PATH = ROOT / 'frontend' / 'assets' / 'js' / 'app-shell.js'
 SW_PATH = ROOT / 'frontend' / 'service-worker.js'
 
 pages = sorted(PUBLIC.glob('*.html'))
-assert len(pages) == 28, f'Expected 28 frontend pages, found {len(pages)}'
+assert len(pages) == 27, f'Expected 27 frontend pages, found {len(pages)}'
 
 for page in pages:
     text = page.read_text(encoding='utf-8')
@@ -85,4 +85,4 @@ assert '"/assets/js/profile-all-pages-v17.js"' in sw
 without_comments = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
 assert without_comments.count('{') == without_comments.count('}'), 'V19 CSS braces are unbalanced'
 
-print('V19_SIDEBAR_LIGHT_THEME_CONTRACTS PASS: 28-page shared shell, fixed-bottom app/admin/public profile dock, premium non-blue light palette, and PWA cache bump are locked')
+print('V19_SIDEBAR_LIGHT_THEME_CONTRACTS PASS: 27-page shared shell, fixed-bottom app/admin/public profile dock, premium non-blue light palette, and PWA cache bump are locked')
