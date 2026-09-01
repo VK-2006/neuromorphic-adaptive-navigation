@@ -1,5 +1,5 @@
 
-import{api,toast}from'./api.js'; // Supports DETECTION_ON / DETECTION_OFF
+import{api,toast}from'./api.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const arr=v=>Array.isArray(v)?v:[];
@@ -87,7 +87,7 @@ async function pair(){
       if(controlUuid){
         bt.control=await svc.getCharacteristic(controlUuid);
         if(!bt.control?.properties?.write&&!bt.control?.properties?.writeWithoutResponse)throw new Error('Configured control characteristic is not writable.');
-        capabilities.push('START_STOP','DETECTION_CONTROL');
+        capabilities.push('START_STOP');
       }
       if(sensorUuid){
         bt.sensor=await svc.getCharacteristic(sensorUuid);

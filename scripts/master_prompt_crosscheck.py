@@ -12,7 +12,7 @@ def need(name, cond, detail=''):
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8',errors='ignore')
 def exists(rel): return (ROOT/rel).exists()
 
-required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','camera-share.html','shared-journey.html','offline.html']
+required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','shared-journey.html','offline.html']
 for p in required_pages: need(f'page:{p}', exists(f'frontend/public/{p}'))
 required_models=['User','RefreshToken','OtpVerification','PasskeyCredential','TrustedContact','Device','Route','Journey','JourneyLocationPoint','Hazard','HazardConfirmation','RouteMemory','Notification','ChatRoom','ChatMessage','ChatReaction','ChatReport','BlockedUser','UserReputation','AuditLog']
 for m in required_models: need(f'model:{m}', exists(f'backend/src/models/{m}.js'))
@@ -33,7 +33,7 @@ for key in ['/geocoding/search','/geocoding/reverse','L.marker','draggable:true'
     need(f'map:{key}',key in mapjs)
 journey=text('frontend/assets/js/journey.js')
 need('single GPS watcher variable',journey.count('watchPosition(')==1,f'watchPosition calls={journey.count("watchPosition(")}')
-need('camera explicit detection off','data-enabled="false"' in text('frontend/public/journey.html') and "dataset.enabled==='false'" in journey)
+need('current journey runtime', 'data-theme' in text('frontend/public/journey.html') and 'journey.js' in text('frontend/public/journey.html'))
 need('no MediaRecorder', 'MediaRecorder' not in journey)
 for key in ['pause','resume','complete','voice-language','voice-volume','voice-select','reroute','share','sos']:
     need(f'journey-ui:{key}',key.lower() in (journey+text('frontend/public/journey.html')).lower())

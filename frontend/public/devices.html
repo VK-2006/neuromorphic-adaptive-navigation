@@ -23,7 +23,7 @@
       <div class="device-how">
         <div><span><strong>Pair</strong><br><small>Browser opens the secure Bluetooth chooser.</small></span></div>
         <div><span><strong>Connect GATT</strong><br><small>Battery works when the standard service exists; custom UUIDs come from your device firmware/docs.</small></span></div>
-        <div><span><strong>Control</strong><br><small>START / STOP / DETECTION_ON / DETECTION_OFF are UTF-8 commands written to the configured writable characteristic.</small></span></div>
+        <div><span><strong>Control</strong><br><small>START / STOP are UTF-8 commands written to the configured writable characteristic.</small></span></div>
         <div><span><strong>Read / stream</strong><br><small>Readable or notify characteristics provide sensor metadata; the latest value/status is saved to Navora.</small></span></div>
       </div>
       <label for="bt-service">Custom service UUID</label><input class="input" id="bt-service" placeholder="Your hardware service UUID">
@@ -33,17 +33,15 @@
         <button class="btn-navora" type="button" data-bluetooth-pair>Pair Bluetooth</button>
         <button class="btn-navora btn-ghost" type="button" data-bt-command="START" disabled>Start</button>
         <button class="btn-navora btn-ghost" type="button" data-bt-command="STOP" disabled>Stop</button>
-        <button class="btn-navora btn-ghost" type="button" data-bt-command="DETECTION_ON" disabled>Detection ON</button>
-        <button class="btn-navora btn-ghost" type="button" data-bt-command="DETECTION_OFF" disabled>Detection OFF</button>
         <button class="btn-navora btn-ghost" type="button" data-bt-read disabled>Read sensor</button>
       </div>
       <div class="px-mini" style="margin-top:12px"><small>Current sensor value</small><div id="bt-sensor-output">No custom GATT controller connected.</div></div>
       <div class="px-mini" style="margin-top:8px"><small>Controller activity</small><div id="bt-controller-log">No Bluetooth activity yet.</div></div>
     </section>
     <section class="card">
-      <span class="chip">WebRTC / Wi-Fi</span><h3>Mobile / network camera</h3>
-      <p class="muted">Use WebRTC or a supported network stream for video. Bluetooth remains the optional controller/sensor channel.</p>
-      <a class="btn-navora btn-ghost" href="camera-share.html">Open mobile camera sender</a>
+      <span class="chip">Route sync</span><h3>Field controller</h3>
+      <p class="muted">Keep a Bluetooth sensor/controller connected for route status, battery, and metadata sync without camera streaming.</p>
+      <a class="btn-navora btn-ghost" href="journey.html">Open Live Journey</a>
     </section>
   </div>
   <section class="card" style="margin-top:18px"><div class="page-head" style="margin-bottom:12px"><div><h3>Saved devices</h3><p class="muted">Persisted identity, capabilities, last connection state, command and latest sensor metadata.</p></div></div><div class="data-list" id="device-list"></div></section>

@@ -12,7 +12,7 @@
     auth:new Set(['login','register','forgot-password','reset-password','verify-email','verify-otp']),
     dashboard:new Set(['dashboard','memory','history','notifications','profile','settings']),
     map:new Set(['map']),
-    journey:new Set(['journey','journey-replay','shared-journey','camera-share']),
+    journey:new Set(['journey','journey-replay','shared-journey']),
     admin:new Set(['admin','admin-audit','admin-chat','admin-devices','admin-hazards','admin-health','admin-users']),
     chat:new Set(['world-chat']),devices:new Set(['devices']),offline:new Set(['offline'])
   };

@@ -13,8 +13,8 @@ const ASSETS=path.join(FRONT,'assets');
 const PORT=Number(process.env.NAVORA_UI_AUDIT_PORT||5097);
 const BASE=`http://127.0.0.1:${PORT}`;
 
-const pages=['index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','camera-share.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
-if(pages.length!==28)throw new Error(`UI sweep expected 28 pages, found ${pages.length}`);
+const pages=['index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
+if(pages.length!==27)throw new Error(`UI sweep expected 27 pages, found ${pages.length}`);
 
 const auth=new Set(['register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html']);
 const publicPages=new Set(['index.html','shared-journey.html','offline.html',...auth]);
