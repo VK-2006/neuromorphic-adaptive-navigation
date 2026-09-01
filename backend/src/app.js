@@ -75,7 +75,7 @@ function createApp(){
   }));
   app.use(cors({origin:env.frontendUrl,credentials:true}));
   app.use((req,res,next)=>{
-    res.setHeader('Permissions-Policy','geolocation=(self), camera=(self), microphone=(), screen-wake-lock=(self), bluetooth=(self)');
+    res.setHeader('Permissions-Policy','geolocation=(self), microphone=(), screen-wake-lock=(self), bluetooth=()');
     next();
   });
   app.use(express.json({limit:'2mb'}));
@@ -116,7 +116,6 @@ function createApp(){
   app.use('/api/v1/routes',require('./routes/routeRoutes'));
   app.use('/api/v1/traffic',require('./routes/trafficRoutes'));
   app.use('/api/v1/weather',require('./routes/weatherRoutes'));
-  app.use('/api/v1/roboflow',require('./routes/roboflowRoutes'));
   app.use('/api/v1/journeys',require('./routes/journeyRoutes'));
   app.use('/api/v1/tracking',require('./routes/trackingRoutes'));
   app.use('/api/v1/live',require('./routes/liveRoutes'));

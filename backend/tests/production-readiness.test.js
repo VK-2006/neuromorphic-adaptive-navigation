@@ -10,7 +10,6 @@ function productionConfig(overrides={}){
     socketOrigin:'https://navora.example.com',
     aiServiceUrl:'https://navora-ai.example.com',
     simulationMode:false,
-    liveRequireValidatedAi:true,
     googleClientId:'1234567890-abcdef.apps.googleusercontent.com',
     brevoApiKey:'brevo-secret-placeholder',
     brevoSenderEmail:'navora@example.com',
@@ -20,10 +19,6 @@ function productionConfig(overrides={}){
     webauthnRpId:'navora.example.com',
     weatherProvider:'openweathermap',
     openWeatherApiKey:'weather-secret-placeholder',
-    roboflowApiKey:'roboflow-secret-placeholder',
-    roboflowWorkspace:'navora-workspace',
-    roboflowWorkflowId:'navora-workflow',
-    roboflowWorkflowUrl:'',
     webrtcTurnUrl:'turns:turn.example.com:5349',
     webrtcTurnUsername:'navora',
     webrtcTurnCredential:'turn-secret-placeholder',
@@ -69,8 +64,7 @@ describe('V34 production readiness',()=>{
         frontendUrl:'http://localhost:5000',
         socketOrigin:'http://localhost:5000',
         aiServiceUrl:'http://localhost:8000',
-        simulationMode:true,
-        liveRequireValidatedAi:false
+        simulationMode:true
       }),
       rawEnv:productionRaw({
         MONGODB_URI:'',
@@ -88,7 +82,6 @@ describe('V34 production readiness',()=>{
     expect(out.critical.socketHttps.pass).toBe(false);
     expect(out.critical.aiHttps.pass).toBe(false);
     expect(out.critical.liveMode.pass).toBe(false);
-    expect(out.critical.validatedAiPolicy.pass).toBe(false);
   });
 
   test('optional integration gaps do not make the core deployment unavailable',()=>{
@@ -100,9 +93,6 @@ describe('V34 production readiness',()=>{
         trafficProvider:'',
         trafficApiKey:'',
         openWeatherApiKey:'',
-        roboflowApiKey:'',
-        roboflowWorkspace:'',
-        roboflowWorkflowId:'',
         webrtcTurnUrl:'',
         webrtcTurnUsername:'',
         webrtcTurnCredential:''
@@ -112,7 +102,7 @@ describe('V34 production readiness',()=>{
     });
     expect(out.ready).toBe(true);
     expect(out.fullIntegrationReady).toBe(false);
-    expect(out.missingIntegrations).toEqual(expect.arrayContaining(['google','brevo','traffic','weather','roboflow','turn']));
+    expect(out.missingIntegrations).toEqual(expect.arrayContaining(['google','brevo','traffic','weather','turn']));
   });
 
   test('public readiness never serializes secret values',()=>{
@@ -128,7 +118,6 @@ describe('V34 production readiness',()=>{
     expect(serialized).not.toContain(refresh);
     expect(serialized).not.toContain('brevo-secret-placeholder');
     expect(serialized).not.toContain('tomtom-secret-placeholder');
-    expect(serialized).not.toContain('roboflow-secret-placeholder');
     expect(serialized).not.toContain('turn-secret-placeholder');
   });
 });

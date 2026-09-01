@@ -66,21 +66,7 @@ async function main(){
   await p.goto(BASE+'/settings.html',{waitUntil:'domcontentloaded',timeout:60000});await p.waitForTimeout(250);await p.fill('#contact-name','Friend');await p.check('#contact-share');await p.click('#contact-form button[type="submit"]');await p.waitForTimeout(200);assert(posts===0,'unsafe contact was posted without email');await c.close();
  });
 
- await test('camera detect request never transmits image and becomes metadata analyze',async()=>{
-  const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage();await authUser(p);let detectNetwork=0,analyzeBody=null;
-  await p.addInitScript(()=>{window.tf={};window.cocoSsd={load:async()=>({detect:async()=>[{class:'person',score:.91,bbox:[10,10,100,200]}]})}});
-  await p.route('**/api/v1/journeys/j1',r=>fulfill(r,{journey:{_id:'j1',mode:'LIVE',status:'PAUSED'},route:{_id:'r1',label:'Route',coordinates:[{lat:17.38,lng:78.48},{lat:17.39,lng:78.49}],distance:1000,trafficDuration:300,safetyScore:90}}));
-  await p.route('**/api/v1/live/readiness',r=>fulfill(r,{ai:{reachable:true,safetyEligible:false},routing:{live:true,provider:'osrm'},warnings:[]}));
-  await p.route('**/api/v1/live/webrtc-config',r=>fulfill(r,{iceServers:[],turnConfigured:false}));
-  await p.route('**/api/v1/hazards/detect',r=>{detectNetwork++;return fulfill(r,{})});
-  await p.route('**/api/v1/hazards/analyze',async r=>{analyzeBody=JSON.parse(r.request().postData()||'{}');return fulfill(r,{detections:analyzeBody.detections,risk:{score:.2,level:'LOW',validated:false},safetyEligible:false})});
-  await p.addInitScript(()=>sessionStorage.setItem('journeyId','j1'));
-  await p.goto(BASE+'/journey.html',{waitUntil:'domcontentloaded',timeout:60000});await p.waitForTimeout(500);
-  await p.evaluate(()=>{const v=document.getElementById('camera-video');Object.defineProperty(v,'videoWidth',{configurable:true,value:640});Object.defineProperty(v,'videoHeight',{configurable:true,value:480})});
-  await p.evaluate(()=>fetch('/api/v1/hazards/detect',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({image:'data:image/jpeg;base64,SHOULD_NOT_LEAVE_BROWSER',journeyId:'j1',location:{lat:17.38,lng:78.48,speed:3}})}).then(r=>r.json()));
-  assert(detectNetwork===0,'raw detect endpoint reached network');assert(analyzeBody&&Array.isArray(analyzeBody.detections),'metadata analyze not called');assert(!('image'in analyzeBody),'image leaked into metadata payload');assert(analyzeBody.context?.frameTransmitted===false,'privacy marker missing');await c.close();
- });
-
+ 
  await test('shared journey stops on revoked/expired token',async()=>{
   const c=await browser.newContext({serviceWorkers:'block'}),p=await c.newPage();let calls=0;
   await p.route('**/api/v1/journeys/shared/*',r=>{calls++;return fulfill(r,null,404)});
