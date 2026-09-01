@@ -33,12 +33,12 @@ async function test(browser,page,vp){
   const result=await p.evaluate(()=>{
     const root=document.documentElement,body=document.body;
     const scrollWidth=root.scrollWidth,clientWidth=root.clientWidth;
-    const shell=document.querySelector('.page-shell');
+    const shell=document.querySelector('.page-shell, .map-layout, .journey-layout, .chat-layout');
     const nav=document.querySelector('.navora-nav');
     const frames=[...document.querySelectorAll('.camera-pane,#map,#journey-map,.replay-map,#journey-detail-map,.three-shell,#three-hero,#three-research,.media-frame,.video-frame')];
     const grids=[...document.querySelectorAll('.grid,.grid-2,.grid-3,.grid-4,.journey-layout,.map-layout,.replay-grid,.chat-layout')];
     const overflow=[];
-    for(const el of [...document.querySelectorAll('body *')]){const r=el.getBoundingClientRect();if(r.right>innerWidth+2||r.left<-2)overflow.push({tag:el.tagName,cls:String(el.className||'').slice(0,100),right:Math.round(r.right),left:Math.round(r.left)});if(overflow.length>8)break}
+    for(const el of [...document.querySelectorAll('body *')]){const r=el.getBoundingClientRect();const s=getComputedStyle(el);let hasTransformed=s.transform!=='none';if(!hasTransformed){let p=el.parentElement;while(p&&!hasTransformed){const ps=getComputedStyle(p);hasTransformed=ps.transform!=='none';if(!hasTransformed&&(ps.overflowX==='auto'||ps.overflowX==='scroll'||ps.overflowY==='auto'||ps.overflowY==='scroll'))hasTransformed=true;p=p.parentElement}}if((r.right>innerWidth+2||r.left<-2)&&!hasTransformed)overflow.push({tag:el.tagName,cls:String(el.className||'').slice(0,100),right:Math.round(r.right),left:Math.round(r.left)});if(overflow.length>8)break}
     return{
       width:innerWidth,scrollWidth,clientWidth,bodyClass:body.className,
       shell:Boolean(shell),nav:Boolean(nav),styleLoaded:Boolean(document.querySelector('link[data-navora-ui-layout-v23]')),
