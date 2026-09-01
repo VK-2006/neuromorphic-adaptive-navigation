@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 PAGES=ROOT/'frontend'/'public'
@@ -64,7 +65,8 @@ assert 'if(!user||user.disabledAt)' in tokens
 assert 'RefreshToken.updateMany({family:stored.family' in tokens
 
 hazard=read(Path('backend/src/controllers/hazardController.js'))
-assert "if(journey.status!=='ACTIVE')return res.status(409)" in hazard
+assert re.search(r'canAffectLive\s*=\s*\(\s*journey\s*\)\s*=>\s*Boolean\(\s*journey\s*&&\s*!\(\s*journey\.status\s*!==\s*[\'"]ACTIVE[\'"]\s*\)\s*\)', hazard)
+assert re.search(r'if\s*\(\s*!canAffectLive\(\s*journey\s*\)\s*\)\s*return\s+res\.status\(\s*409\s*\)', hazard)
 
 chat=read(Path('backend/src/routes/chatRoutes.js'))
 for token in ['mongoose.isValidObjectId','Invalid message pagination timestamp','deletedAt:null','Invalid reply target','User not found']:
