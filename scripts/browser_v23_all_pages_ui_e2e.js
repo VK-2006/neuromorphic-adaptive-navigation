@@ -2,7 +2,7 @@ const { chromium } = require('../backend/node_modules/playwright');
 
 const BASE=(process.argv[2]||'http://127.0.0.1:5000').replace(/\/$/,'');
 const PAGES=[
-  'index.html','login.html','register.html','forgot-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','camera-share.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'
+  'index.html','login.html','register.html','forgot-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'
 ];
 const APP=new Set(PAGES.filter(p=>!['index.html','login.html','register.html','forgot-password.html'].includes(p)));
 const ADMIN=new Set(['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);

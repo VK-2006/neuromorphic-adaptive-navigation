@@ -22,12 +22,6 @@
   document.addEventListener('DOMContentLoaded',()=>render(window.NavoraTheme.get()),{once:true});
   document.addEventListener('click',event=>{const button=event.target.closest?.('[data-theme-toggle]');if(!button)return;const current=window.NavoraTheme.get();apply(order[(order.indexOf(current)+1)%order.length])});
   media()?.addEventListener?.('change',()=>{if(window.NavoraTheme.get()==='system')apply('system')});
-<<<<<<< HEAD
-  if(!document.querySelector('script[data-navora-v9]')){
-    const s=document.createElement('script');s.type='module';s.src='/assets/js/v9-functional.js';s.dataset.navoraV9='true';document.head.appendChild(s);
-  }
-=======
 
   // Keep the current route/navigation shell without loading legacy V9 enhancement layers.
->>>>>>> main
 })();
