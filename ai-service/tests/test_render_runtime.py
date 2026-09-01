@@ -17,4 +17,4 @@ def test_model_info_available():
     assert r.status_code==200
     j=r.json()
     assert 'riskModel' in j
-    assert 'detector' in j
+    assert 'detector' not in j
