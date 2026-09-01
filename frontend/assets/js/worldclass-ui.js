@@ -37,7 +37,7 @@
   ];
 
   function pageIndex(){
-    const files=[...authPages,'index','dashboard','map','journey','journey-replay','camera-share','devices','memory','history','notifications','profile','settings','world-chat','offline','admin','admin-users','admin-devices','admin-hazards','admin-chat','admin-health','admin-audit'];
+    const files=[...authPages,'index','dashboard','map','journey','journey-replay','devices','memory','history','notifications','profile','settings','world-chat','offline','admin','admin-users','admin-devices','admin-hazards','admin-chat','admin-health','admin-audit'];
     const i=Math.max(0,files.indexOf(page)); return `NAVORA / ${String(i+1).padStart(2,'0')}`;
   }
 
@@ -96,7 +96,7 @@
     const hero=$('.hero');const copy=hero?.firstElementChild;if(!copy||copy.querySelector('.wc-hero-pipeline'))return;
     const rail=node('div','wc-hero-pipeline',{'aria-label':'Navora intelligence pipeline'});
     const steps=[
-      ['01','Perception','Camera + local context'],['02','Neuromorphic','SNN risk processing'],['03','Memory','CRM + DTW experience'],['04','Optimization','ACO route decision']
+      ['01','Neuromorphic','SNN risk processing'],['02','Memory','CRM + DTW experience'],['03','Optimization','ACO route decision']
     ];
     steps.forEach(([n,t,s])=>rail.append(node('span','',{'data-step':n,html:`${t}<small>${s}</small>`})));
     copy.append(rail);
@@ -248,30 +248,10 @@
   }
 
   function journeyExperience(){
-    if(page!=='journey'&&page!=='camera-share')return;
-    const pane=$('.camera-pane')||$('#share-video')?.parentElement;
-    if(pane){pane.append(node('span','wc-camera-corners',{'aria-hidden':'true'}));const rail=node('div','wc-perception-rail',{'aria-hidden':'true'});['PERCEPTION','OBJECT RISK','SNN SIGNAL','ROUTE CONTEXT'].forEach(t=>rail.append(node('span','',{text:t})));pane.append(rail)}
+    if(page!=='journey')return;
     const risk=$('#risk');
     if(risk){const sync=()=>{const text=(risk.textContent||'').toLowerCase();let level='low';const n=parseFloat(text);if(text.includes('high')||(!Number.isNaN(n)&&n>=.67))level='high';else if(text.includes('medium')||(!Number.isNaN(n)&&n>=.34))level='medium';body.dataset.risk=level};sync();const mo=new MutationObserver(sync);watch(mo,risk,{childList:true,subtree:true,characterData:true})}
-    $('#camera-video')?.setAttribute('aria-label','Live camera perception feed');
     $('#journey-map')?.setAttribute('aria-label','Live journey navigation map');
-    if(page==='journey'&&!$('.wc-journey-switch')){
-      const layout=$('.journey-layout');
-      if(layout){
-        const switcher=node('div','wc-journey-switch',{'role':'group','aria-label':'Mobile journey view'});
-        const camera=node('button','active',{'type':'button','aria-pressed':'true','text':'Camera + AI'});
-        const nav=node('button','',{'type':'button','aria-pressed':'false','text':'Map + journey'});
-        const setMode=mode=>{
-          body.dataset.journeyMobileMode=mode;
-          camera.classList.toggle('active',mode==='camera');
-          nav.classList.toggle('active',mode==='map');
-          camera.setAttribute('aria-pressed',String(mode==='camera'));
-          nav.setAttribute('aria-pressed',String(mode==='map'));
-        };
-        camera.dataset.mode='camera';nav.dataset.mode='map';switcher.append(camera,nav);layout.parentNode.insertBefore(switcher,layout);setMode('camera');
-        on(switcher,'click',e=>{const b=e.target.closest('button[data-mode]');if(b)setMode(b.dataset.mode)});
-      }
-    }
   }
 
   function memoryExperience(){

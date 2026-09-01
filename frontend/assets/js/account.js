@@ -31,7 +31,6 @@ async function loadProfile(){
     setValue('pref-familiarity',Math.round(Number(p.familiarity??.45)*100));
     setValue('pref-theme',p.theme||String(document.documentElement.dataset.themeChoice||'SYSTEM').toUpperCase());
     setValue('pref-units',p.units||'METRIC');setValue('pref-voice-language',p.voiceLanguage||u.preferredLanguage||'en-IN');
-    setValue('pref-detection-mode',p.detectionMode||'LOCAL');
     if($('pref-high-accuracy'))$('pref-high-accuracy').checked=p.highAccuracyGps!==false;
     rangePaint('pref-safety','pref-safety-out');rangePaint('pref-traffic','pref-traffic-out');rangePaint('pref-familiarity','pref-familiarity-out');
 
@@ -61,7 +60,7 @@ $('preferences-form')?.addEventListener('submit',async e=>{
       safety:Number($('pref-safety')?.value||75)/100,traffic:Number($('pref-traffic')?.value||55)/100,
       familiarity:Number($('pref-familiarity')?.value||45)/100,theme:value('pref-theme')||'SYSTEM',
       units:value('pref-units')||'METRIC',voiceLanguage:value('pref-voice-language')||'en-IN',
-      detectionMode:value('pref-detection-mode')||'LOCAL',highAccuracyGps:Boolean($('pref-high-accuracy')?.checked)
+      highAccuracyGps:Boolean($('pref-high-accuracy')?.checked)
     };
     await api('/users/me',{method:'PATCH',body:JSON.stringify({preferences})});
     try{localStorage.setItem('navora:preferences',JSON.stringify(preferences))}catch{}

@@ -1,4 +1,4 @@
-const DEFAULT_OPTIONAL_CHECKS=['google','brevo','traffic','passkeys','weather','roboflow','turn'];
+const DEFAULT_OPTIONAL_CHECKS=['google','brevo','traffic','passkeys','weather','turn'];
 
 function validHttps(value){
   try{
@@ -32,10 +32,6 @@ function turnReady(config){
   return /^turns?:/i.test(String(config.webrtcTurnUrl||''))&&!!config.webrtcTurnUsername&&!!config.webrtcTurnCredential;
 }
 
-function roboflowReady(config){
-  return !!config.roboflowApiKey&&!!config.roboflowWorkspace&&!!config.roboflowWorkflowId;
-}
-
 function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=false}={}){
   if(!config)throw new Error('Production readiness requires resolved config');
   const production=config.nodeEnv==='production';
@@ -48,8 +44,7 @@ function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=fa
     frontendHttps:{required:production,pass:!production||validHttps(config.frontendUrl),message:'FRONTEND_URL must be HTTPS in production'},
     socketHttps:{required:production,pass:!production||validHttps(config.socketOrigin),message:'SOCKET_CORS_ORIGIN must be HTTPS in production'},
     aiHttps:{required:production,pass:!production||validHttps(config.aiServiceUrl),message:'AI_SERVICE_URL must be HTTPS in production'},
-    liveMode:{required:production,pass:!production||config.simulationMode===false,message:'SIMULATION_MODE must be false for production live mode'},
-    validatedAiPolicy:{required:production,pass:!production||config.liveRequireValidatedAi===true,message:'LIVE_REQUIRE_VALIDATED_AI must remain true in production'}
+    liveMode:{required:production,pass:!production||config.simulationMode===false,message:'SIMULATION_MODE must be false for production live mode'}
   };
 
   const integrations={
@@ -58,7 +53,6 @@ function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=fa
     traffic:{required:false,pass:config.trafficProvider==='tomtom'&&!!config.trafficApiKey,message:'TomTom live traffic requires TRAFFIC_PROVIDER=tomtom and TRAFFIC_API_KEY'},
     passkeys:{required:false,pass:!production||passkeyReady(config),message:'Production passkeys require HTTPS WEBAUTHN_ORIGIN whose hostname equals WEBAUTHN_RP_ID'},
     weather:{required:false,pass:config.weatherProvider==='openweathermap'&&!!config.openWeatherApiKey,message:'OpenWeather live weather risk requires OPENWEATHER_API_KEY'},
-    roboflow:{required:false,pass:roboflowReady(config),message:'Roboflow cloud inference requires ROBOFLOW_API_KEY, ROBOFLOW_WORKSPACE and ROBOFLOW_WORKFLOW_ID'},
     turn:{required:false,pass:turnReady(config),message:'Remote WebRTC reliability requires a TURN URL, username and credential'}
   };
 

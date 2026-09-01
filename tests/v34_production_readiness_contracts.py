@@ -20,7 +20,7 @@ prod_ci=text('.github/workflows/production-smoke.yml')
 for token in [
     'evaluateProductionReadiness','criticalReady','fullIntegrationReady',
     'mongodbEnv','jwtAccess','jwtRefresh','jwtDistinct','frontendHttps',
-    'socketHttps','aiHttps','liveMode','validatedAiPolicy','publicReadiness'
+    'socketHttps','aiHttps','liveMode','publicReadiness'
 ]:
     need(f'readiness:{token}',token in service)
 
@@ -32,8 +32,8 @@ need('readiness never exposes secret values','publicReadiness(readiness)' in app
 for token in [
     'AI_REQUEST_TIMEOUT_MS=8000','AI_COLD_START_TIMEOUT_MS=45000',
     'ROUTING_API_URL=https://router.project-osrm.org','GEOCODING_API_KEY=',
-    'TRAFFIC_PROVIDER=tomtom','OPENWEATHER_API_KEY=','ROBOFLOW_API_KEY=',
-    'WEBRTC_TURN_URL=','LIVE_REQUIRE_VALIDATED_AI=true'
+    'TRAFFIC_PROVIDER=tomtom','OPENWEATHER_API_KEY=',
+    'WEBRTC_TURN_URL='
 ]:
     need(f'production-env:{token}',token in env)
 need('production template no real secrets','mongodb+srv://' not in env and 'sk-' not in env)
@@ -43,7 +43,6 @@ need('google secret documented as unused','not require a client secret' in env)
 need('smoke checks backend readiness','"/ready"' in smoke and 'Backend deployment readiness' in smoke)
 need('smoke checks exact backend release','Exact backend Render commit' in smoke)
 need('smoke checks exact AI release','Exact AI Render commit' in smoke)
-need('smoke checks V33 inference gate','V33 validated-only inference policy' in smoke)
 
 need('Render health check uses /ready','Health Check Path: `/ready`' in doc)
 need('Render docs explain liveness','`GET /health` is a liveness endpoint' in doc)

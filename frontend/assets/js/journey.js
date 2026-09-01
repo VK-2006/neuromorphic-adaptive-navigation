@@ -1,16 +1,15 @@
 import {api,toast} from './api.js';
 
-let gpsWatch=null,stream=null,webrtcPc=null,webrtcPeerId=null,inferenceTimer=null,simulationTimer=null,adaptiveTimer=null;
-let lastInferenceAt=0,inferenceCount=0,inferenceBusy=false;
+let gpsWatch=null;
 let map,userMarker,routeLine,coveredLine,remainingLine,socket,headingLine=null;
 let route=[],routeDoc=null,journey=null,progress=0,lastSpoken='',pendingReroute=null,rerouteBusy=false,voiceEnabled=false,lastPosition=null;
 let wakeLock=null,trackingInFlight=false,pendingTracking=null,trackingTimer=null,lastTrackingSentAt=0,lastTrackingPosition=null;
 let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=false;
-let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true,detectionMode:'LOCAL'};
+let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true};
 const jid=()=>sessionStorage.getItem('journeyId');
 const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
-const journeyControlIds=['start-camera','stop-camera','detection-toggle','start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','connect-webrtc','accept-reroute','decline-reroute'];
+const journeyControlIds=['start-journey','pause-journey','complete-journey','sos','voice-toggle','recenter','fullscreen-journey','share-journey','revoke-share','accept-reroute','decline-reroute'];
 function setJourneyControls(enabled){journeyControlIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=!enabled});const share=document.getElementById('open-mobile-share');if(share){share.setAttribute('aria-disabled',String(!enabled));share.style.pointerEvents=enabled?'':'none';share.style.opacity=enabled?'':'0.55'}}
 function showNoJourneyState(message='Plan and select a route before opening Live Journey.'){setJourneyControls(false);const pane=document.querySelector('.navigation-pane');if(!pane||pane.querySelector('.navora-state-panel'))return;const box=document.createElement('div');box.className='navora-state-panel';box.innerHTML=`<h3>No active journey</h3><p class="muted">${esc(message)}</p><a class="btn-navora" href="map.html">Plan a route</a>`;pane.prepend(box)}
 function safeStoredPreferences(){try{const p=JSON.parse(localStorage.getItem('navora:preferences')||'{}');return p&&typeof p==='object'&&!Array.isArray(p)?p:{}}catch{return{}}}
@@ -38,7 +37,6 @@ async function init(){
   bind();
   setupFieldEnvironment();
   await loadNavigationPreferences();
-  await enumerateCameras();
   loadVoices();
   window.speechSynthesis?.addEventListener?.('voiceschanged',loadVoices);
   const id=jid();
@@ -73,9 +71,6 @@ async function init(){
 }
 
 function bind(){
-  document.getElementById('start-camera')?.addEventListener('click',startCamera);
-  document.getElementById('stop-camera')?.addEventListener('click',stopCamera);
-  document.getElementById('detection-toggle')?.addEventListener('click',toggleDetection);
   document.getElementById('start-journey')?.addEventListener('click',resumeJourney);
   document.getElementById('pause-journey')?.addEventListener('click',pauseJourney);
   document.getElementById('complete-journey')?.addEventListener('click',()=>completeJourney());
@@ -85,8 +80,6 @@ function bind(){
   document.getElementById('fullscreen-journey')?.addEventListener('click',enterFullscreen);
   document.getElementById('share-journey')?.addEventListener('click',shareJourney);
   document.getElementById('revoke-share')?.addEventListener('click',revokeShare);
-  document.getElementById('connect-webrtc')?.addEventListener('click',connectWebRtcReceiver);
-  const share=document.getElementById('open-mobile-share');if(share)share.href=`camera-share.html?journeyId=${encodeURIComponent(jid()||'')}`;
   document.getElementById('accept-reroute')?.addEventListener('click',acceptReroute);
   document.getElementById('decline-reroute')?.addEventListener('click',()=>{pendingReroute=null;document.getElementById('reroute-panel').classList.add('hidden')});
 }
@@ -144,102 +137,8 @@ function connectSocket(){
   socket.on('connect',()=>setFieldChip('socket-state','REALTIME ON'));
   socket.on('disconnect',()=>setFieldChip('socket-state','REALTIME RETRY'));
   socket.emit('journey:join',{journeyId:jid()},ack=>{if(!ack?.ok)toast('Journey socket authorization failed','error')});
-  socket.emit('webrtc:join',{journeyId:jid()});
-  socket.on('webrtc:signal',handleWebRtcSignal);
   socket.on('route:updated',({route:r})=>{if(!r)return;routeDoc=r;route=r.coordinates||[];drawRoute();toast('Route updated across connected devices')});
   socket.on('hazard:alerts',alerts=>alerts?.forEach(a=>toast(`${a.risk||'HAZARD'}: ${a.type} ${fmtShortDistance(a.distanceAhead)} ahead`,'warning')));
-}
-
-async function connectWebRtcReceiver(){
-  if(!socket)return toast('Journey socket not connected','error');
-  if(!window.RTCPeerConnection)return toast('WebRTC is not supported in this browser.','error');
-  try{
-    if(webrtcPc)webrtcPc.close();
-    webrtcPc=new window.RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    webrtcPc.ontrack=event=>{stream=event.streams[0];const video=document.getElementById('camera-video');video.srcObject=stream;video.play?.().catch?.(()=>{});document.getElementById('camera-state').textContent='Mobile WebRTC ON';startInferenceLoop()};
-    webrtcPc.onicecandidate=event=>{if(event.candidate&&webrtcPeerId)socket.emit('webrtc:signal',{journeyId:jid(),targetId:webrtcPeerId,signal:{type:'candidate',candidate:event.candidate}})};
-    webrtcPc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(webrtcPc.connectionState))document.getElementById('camera-state').textContent='Mobile WebRTC disconnected'};
-    socket.emit('webrtc:receiver-ready',{journeyId:jid()});toast('Waiting for your mobile camera peer...');
-  }catch(error){toast(`WebRTC: ${error.message}`,'error')}
-}
-
-async function handleWebRtcSignal({fromId,signal}){
-  if(!webrtcPc)return;
-  try{
-    webrtcPeerId=fromId;
-    if(signal.type==='offer'){
-      await webrtcPc.setRemoteDescription(signal.sdp);const answer=await webrtcPc.createAnswer();await webrtcPc.setLocalDescription(answer);
-      socket.emit('webrtc:signal',{journeyId:jid(),targetId:fromId,signal:{type:'answer',sdp:webrtcPc.localDescription}});
-    }else if(signal.type==='candidate'&&signal.candidate)await webrtcPc.addIceCandidate(signal.candidate);
-  }catch(error){toast(`WebRTC signal: ${error.message}`,'error')}
-}
-
-async function enumerateCameras(){
-  if(!navigator.mediaDevices?.enumerateDevices)return;
-  try{
-    const list=(await navigator.mediaDevices.enumerateDevices()).filter(device=>device.kind==='videoinput');
-    const select=document.getElementById('camera-select');if(!select)return;
-    select.innerHTML='<option value="">Rear/default camera</option>';
-    list.forEach((device,index)=>{const option=document.createElement('option');option.value=device.deviceId;option.textContent=device.label||`Camera ${index+1}`;select.appendChild(option)});
-  }catch{}
-}
-
-async function startCamera(){
-  if(stream)return;
-  if(!window.isSecureContext)return toast('Field camera requires HTTPS (localhost is allowed only for development).','error');
-  if(!navigator.mediaDevices?.getUserMedia)return toast('Camera API is unavailable in this browser.','error');
-  try{
-    const deviceId=document.getElementById('camera-select')?.value;
-    stream=await navigator.mediaDevices.getUserMedia({video:deviceId?{deviceId:{exact:deviceId}}:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
-    const video=document.getElementById('camera-video');video.srcObject=stream;await video.play();await enumerateCameras();
-    document.getElementById('camera-state').textContent='Camera ON';startInferenceLoop();
-  }catch(error){toast(`Camera unavailable: ${error.message}`,'error')}
-}
-
-function startInferenceLoop(){if(inferenceTimer)clearInterval(inferenceTimer);inferenceTimer=setInterval(captureForInference,700)}
-
-function stopCamera(){
-  webrtcPc?.close();webrtcPc=null;webrtcPeerId=null;
-  if(inferenceTimer)clearInterval(inferenceTimer);inferenceTimer=null;inferenceBusy=false;
-  stream?.getTracks().forEach(track=>track.stop());stream=null;
-  const video=document.getElementById('camera-video');if(video)video.srcObject=null;
-  const state=document.getElementById('camera-state');if(state)state.textContent='Camera OFF';
-  clearBoxes();
-}
-
-function toggleDetection(){
-  const button=document.getElementById('detection-toggle');
-  button.dataset.enabled=button.dataset.enabled==='true'?'false':'true';
-  button.textContent=`Detection ${button.dataset.enabled==='true'?'ON':'OFF'}`;
-  if(button.dataset.enabled==='false')clearBoxes();
-  else if(liveReadiness?.ai&&!liveReadiness.ai.safetyEligible)toast('Camera AI is research-only until trained detector and SNN weights are marked validated. It will not auto-reroute a LIVE journey.','warning');
-}
-
-async function captureForInference(){
-  const fps=document.getElementById('camera-fps');
-  if(!stream||document.getElementById('detection-toggle')?.dataset.enabled==='false'||!navigator.onLine){if(fps)fps.textContent='AI 0 FPS';return}
-  if(inferenceBusy)return;
-  const video=document.getElementById('camera-video');if(!video?.videoWidth)return;
-  inferenceBusy=true;inferenceCount++;
-  const now=performance.now();if(!lastInferenceAt)lastInferenceAt=now;
-  if(now-lastInferenceAt>=1000){if(fps)fps.textContent=`AI ${inferenceCount} req/s`;inferenceCount=0;lastInferenceAt=now}
-  try{
-    const canvas=document.getElementById('capture-canvas');const width=512;canvas.width=width;canvas.height=Math.max(288,Math.round(width*video.videoHeight/video.videoWidth));
-    canvas.getContext('2d',{alpha:false}).drawImage(video,0,0,canvas.width,canvas.height);
-    const image=canvas.toDataURL('image/jpeg',.52);
-    const data=await api('/hazards/detect',{method:'POST',body:JSON.stringify({image,journeyId:jid(),location:lastPosition||null})});
-    const safetyEligible=data.safetyEligible===true;
-    document.getElementById('risk').textContent=`${safetyEligible?'Risk':'Research'} ${data.risk?.level||'LOW'} ${Math.round((data.risk?.score||0)*100)}%`;
-    setFieldChip('ai-state',safetyEligible?'AI VALIDATED':'AI RESEARCH ONLY');drawBoxes(data.detections||[]);
-    if(safetyEligible&&data.risk?.level==='CRITICAL'){speak('Critical validated hazard detected ahead.');if(!rerouteBusy&&!pendingReroute)requestReroute('validated critical camera-detected obstacle')}
-    else if(safetyEligible&&data.risk?.level==='HIGH')speak('Validated high-risk obstacle detected ahead.');
-  }catch{setFieldChip('ai-state','AI DEGRADED')}finally{inferenceBusy=false}
-}
-
-function drawBoxes(detections){
-  const canvas=document.getElementById('overlay-canvas'),video=document.getElementById('camera-video');if(!canvas||!video)return;
-  canvas.width=video.clientWidth;canvas.height=video.clientHeight;const context=canvas.getContext('2d');context.clearRect(0,0,canvas.width,canvas.height);const accent=getComputedStyle(document.documentElement).getPropertyValue('--ui-ai-accent').trim()||'#A99BFF';context.strokeStyle=accent;context.fillStyle=accent;context.font='14px sans-serif';
-  detections.forEach(detection=>{const box=detection.boundingBox||[.1,.1,.2,.2];context.strokeRect(box[0]*canvas.width,box[1]*canvas.height,box[2]*canvas.width,box[3]*canvas.height);context.fillText(`${detection.objectClass} ${Math.round(detection.confidence*100)}%`,box[0]*canvas.width,Math.max(14,box[1]*canvas.height-4))});
 }
 
 
@@ -431,6 +330,7 @@ function fmtKm(v){return fmtDistance(v,1)}
 function fmtMin(v){return `${Math.round((v||0)/60)} min`}
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
-addEventListener('pagehide',()=>{stopGps();stopSimulation();stopAdaptiveReevaluation();stopCamera();releaseWakeLock();if(trackingTimer)clearTimeout(trackingTimer);socket?.disconnect();window.speechSynthesis?.cancel?.()});
+addEventListener('pagehide',()=>{stopGps();stopSimulation();stopAdaptiveReevaluation();releaseWakeLock();if(trackingTimer)clearTimeout(trackingTimer);socket?.disconnect();window.speechSynthesis?.cancel?.()});
 
 init();
+
