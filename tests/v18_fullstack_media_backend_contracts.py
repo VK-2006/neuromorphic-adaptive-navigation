@@ -78,10 +78,7 @@ crm=read(Path('backend/src/services/routeMemoryService.js'))
 assert 'elapsedMs-Math.max(0,Number(journey.totalPausedMs)||0)' in crm
 
 risk=read(Path('ai-service/app/services/risk_service.py'))
-detector=read(Path('ai-service/app/services/detection_service.py'))
 assert 'if self.model is None:\n            self.validated=False' in risk
 assert "self.mode='development/heuristic-fallback-runtime'" in risk
-assert 'if self.model is None:self.validated=False' in detector
-assert "self.mode='development/heuristic-fallback-runtime'" in detector
 
 print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 27-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')

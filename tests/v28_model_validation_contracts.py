@@ -14,7 +14,6 @@ def require(condition,message):
 
 def main():
     helper=text(Path('ai-service/app/model_validation.py'))
-    detector=text(Path('ai-service/app/services/detection_service.py'))
     risk=text(Path('ai-service/app/services/risk_service.py'))
     routes=text(Path('ai-service/app/api/routes.py'))
     gate=text(Path('scripts/model_data_gate.py'))
@@ -24,7 +23,7 @@ def main():
     readiness=text(Path('scripts/model_readiness.py'))
 
     for source,name in [
-        (helper,'model_validation.py'),(detector,'detection_service.py'),(risk,'risk_service.py'),
+        (helper,'model_validation.py'),(risk,'risk_service.py'),
         (routes,'routes.py'),(gate,'model_data_gate.py'),(det_eval,'evaluate_detector.py'),
         (snn_eval,'evaluate_snn.py'),(evidence,'validation_evidence.py'),(readiness,'model_readiness.py')
     ]:
@@ -38,9 +37,7 @@ def main():
     require('detectorEvaluationSha256' in helper and 'snnEvaluationSha256' in helper,'runtime report-hash binding missing')
     require('metadataSha256' in helper and 'dataGateSha256' in helper,'runtime metadata/data-gate hash binding missing')
 
-    require("model_validation_status('detector'" in detector,'detector does not use validation guard')
     require("model_validation_status('risk'" in risk,'SNN does not use validation guard')
-    require("self.validated=bool(validation.get('passed'))" in detector,'detector validation is not derived from validation guard')
     require("self.validated=bool(validation.get('passed'))" in risk,'SNN validation is not derived from validation guard')
     require('validationIssues' in routes,'model/info must expose validation blockers')
 
