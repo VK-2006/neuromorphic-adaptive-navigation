@@ -86,15 +86,11 @@ async function predictRiskResilient(features){
   }
 }
 
-async function detect(image){
-  return post('/api/v1/detect',{image},Number(env.aiRequestTimeoutMs)||8000);
-}
 async function info(){
   return get('/model/info',Number(env.aiRequestTimeoutMs)||8000);
 }
 
 module.exports={
-  detect,
   predictRisk,
   predictRiskResilient,
   info,

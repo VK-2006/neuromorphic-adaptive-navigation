@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from collections import Counter
@@ -24,6 +25,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_Weights,
     fasterrcnn_resnet50_fpn,
+    FasterRCNN_MobileNet_V3_Large_320_FPN_Weights,
+    fasterrcnn_mobilenet_v3_large_320_fpn,
 )
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms.functional import to_tensor
@@ -35,8 +38,9 @@ from app.model_validation import sha256_file
 
 
 class ManifestDataset(Dataset):
-    def __init__(self, path, max_samples=0):
+    def __init__(self, path, max_samples=0, dataset_root=None):
         self.path = Path(path)
+        self.dataset_root = Path(dataset_root) if dataset_root else ROOT
         all_rows = [
             json.loads(x)
             for x in self.path.read_text(encoding='utf-8').splitlines()
@@ -53,8 +57,8 @@ class ManifestDataset(Dataset):
         for n, row in enumerate(self.rows, 1):
             source = str(row.get('source') or '')
             boxes = row.get('boxes')
-            if not isinstance(boxes, list) or not boxes:
-                raise ValueError(f'{self.path}:{n}: boxes must be non-empty')
+            if not isinstance(boxes, list):
+                raise ValueError(f'{self.path}:{n}: boxes must be a list')
             for ann in boxes:
                 class_name = str(ann.get('class') or '')
                 validate_source_class(source, class_name)
@@ -78,9 +82,12 @@ class ManifestDataset(Dataset):
 
     def __getitem__(self, i):
         row = self.rows[i]
-        image = cv2.imread(row['image'])
+        image_path = Path(row['image'])
+        if not image_path.is_absolute():
+            image_path = self.dataset_root / image_path
+        image = cv2.imread(str(image_path))
         if image is None:
-            raise FileNotFoundError(row['image'])
+            raise FileNotFoundError(str(image_path))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         boxes = []
@@ -90,7 +97,7 @@ class ManifestDataset(Dataset):
             labels.append(self.c2i[ann['class']])
 
         target = {
-            'boxes': torch.tensor(boxes, dtype=torch.float32),
+            'boxes': torch.tensor(boxes, dtype=torch.float32).reshape(-1, 4),
             'labels': torch.tensor(labels, dtype=torch.int64),
             'image_id': torch.tensor([i]),
         }
@@ -143,10 +150,25 @@ def _transfer_coco_predictor(model, weights, classes):
     return mapping, fresh
 
 
-def build_model(classes, from_scratch=False, head_only=False):
+def build_model(classes, from_scratch=False, head_only=False, architecture='resnet50'):
     if not classes:
         raise ValueError('at least one detector class is required')
-    if from_scratch:
+    if architecture == 'mobilenet320':
+        weights = None if from_scratch else FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
+        model = fasterrcnn_mobilenet_v3_large_320_fpn(
+            weights=weights,
+            weights_backbone=None if from_scratch else None,
+            min_size=320,
+            max_size=512,
+        )
+        if weights is None:
+            initialization = 'from-scratch'
+            mapping = []
+            fresh = list(classes)
+        else:
+            mapping, fresh = _transfer_coco_predictor(model, weights, classes)
+            initialization = 'torchvision-coco-pretrained+partial-class-head-transfer'
+    elif from_scratch:
         model = fasterrcnn_resnet50_fpn(
             weights=None,
             weights_backbone=None,
@@ -161,7 +183,7 @@ def build_model(classes, from_scratch=False, head_only=False):
         initialization = 'from-scratch'
         mapping = []
         fresh = list(classes)
-    else:
+    elif architecture == 'resnet50':
         weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
         model = fasterrcnn_resnet50_fpn(
             weights=weights,
@@ -170,6 +192,8 @@ def build_model(classes, from_scratch=False, head_only=False):
         )
         mapping, fresh = _transfer_coco_predictor(model, weights, classes)
         initialization = 'torchvision-coco-pretrained+partial-class-head-transfer'
+    else:
+        raise ValueError(f'unsupported architecture: {architecture}')
 
     if head_only:
         for p in model.parameters():
@@ -186,11 +210,29 @@ def main():
         '--manifest',
         default=ROOT / 'datasets/derived-risk-data/detection-train.jsonl',
     )
+    ap.add_argument('--dataset-root', default=ROOT,
+                    help='Root used to resolve relative image paths in the manifest.')
     ap.add_argument('--epochs', type=int, default=5)
     ap.add_argument('--batch-size', type=int, default=2)
     ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     ap.add_argument('--max-samples', type=int, default=0)
     ap.add_argument('--lr', type=float, default=1e-4)
+    ap.add_argument(
+        '--architecture',
+        choices=('resnet50', 'mobilenet320'),
+        default='resnet50',
+        help='Detector backbone; mobilenet320 is a CPU-oriented Faster R-CNN variant.',
+    )
+    ap.add_argument('--seed', type=int, default=1337)
+    ap.add_argument('--num-workers', type=int, default=2)
+    ap.add_argument(
+        '--resume',
+        default=ROOT / 'ai-service/trained_models/detector-training-checkpoint.pt',
+        help='Epoch checkpoint to resume when it exists.',
+    )
+    ap.add_argument('--no-resume', action='store_true')
+    ap.add_argument('--amp', action='store_true',
+                    help='Use CUDA automatic mixed precision (ignored on CPU).')
     ap.add_argument(
         '--head-only',
         action='store_true',
@@ -213,21 +255,35 @@ def main():
         raise SystemExit('CUDA requested but torch.cuda.is_available() is False')
     if args.max_samples and not args.smoke:
         raise SystemExit('--max-samples is smoke/development-only; validated-capable training must consume the complete gated training manifest')
+    if args.num_workers < 0:
+        raise SystemExit('--num-workers must be non-negative')
+
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    if args.device == 'cpu':
+        torch.set_num_threads(max(1, min(torch.get_num_threads(), os.cpu_count() or 1)))
 
     manifest_path = Path(args.manifest)
-    ds = ManifestDataset(manifest_path, args.max_samples)
+    dataset_root = Path(args.dataset_root)
+    ds = ManifestDataset(manifest_path, args.max_samples, dataset_root)
+    use_amp = bool(args.amp and args.device == 'cuda')
+    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
     dl = DataLoader(
         ds,
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate,
-        num_workers=0,
+        num_workers=args.num_workers,
+        pin_memory=args.device == 'cuda',
+        persistent_workers=args.num_workers > 0,
     )
 
     model, initialization, mapping, fresh = build_model(
         ds.classes,
         from_scratch=args.from_scratch,
         head_only=args.head_only,
+        architecture=args.architecture,
     )
     model.to(args.device)
 
@@ -239,16 +295,52 @@ def main():
         lr=args.lr,
         weight_decay=1e-4,
     )
+    scheduler = None
+
+    out = ROOT / 'ai-service/trained_models'
+    out.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = Path(args.resume)
+    start_epoch = 0
+    if not args.no_resume and checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=args.device)
+        if checkpoint.get('classes') != ds.classes:
+            raise SystemExit(
+                f'checkpoint classes do not match manifest: '
+                f'{checkpoint.get("classes")} != {ds.classes}'
+            )
+        if checkpoint.get('architecture', 'resnet50') != args.architecture:
+            raise SystemExit('checkpoint architecture does not match requested architecture')
+        model.load_state_dict(checkpoint['model_state'])
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+        if scheduler is not None and checkpoint.get('scheduler_state') is not None:
+            scheduler.load_state_dict(checkpoint['scheduler_state'])
+        start_epoch = int(checkpoint['epoch'])
+        if start_epoch >= args.epochs:
+            print(f'checkpoint already completed {start_epoch} epoch(s); skipping training')
 
     print('initialization =', initialization)
     print('device =', args.device)
+    if args.device == 'cuda':
+        print('gpu_name =', torch.cuda.get_device_name(torch.cuda.current_device()))
+        print('gpu_memory_gib =', round(torch.cuda.get_device_properties(0).total_memory / 2**30, 2))
     print('images =', len(ds))
     print('sources =', dict(ds.source_counts))
     print('classes =', ds.classes)
     print('class_instances =', dict(ds.class_counts))
     print('head_only =', args.head_only)
     print('learning_rate =', args.lr)
-    print('internal_resize = min_size=384 max_size=640')
+    print('architecture =', args.architecture)
+    print('seed =', args.seed)
+    print('num_workers =', args.num_workers)
+    print('dataset_root =', dataset_root)
+    print('amp =', use_amp)
+    print('checkpoint =', checkpoint_path)
+    print(
+        'internal_resize =',
+        'min_size=320 max_size=512'
+        if args.architecture == 'mobilenet320'
+        else 'min_size=384 max_size=640',
+    )
     print('trainable_parameter_tensors =', len(trainable))
     if mapping:
         print(
@@ -261,7 +353,7 @@ def main():
     started = time.perf_counter()
     seen = 0
 
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total = 0.0
         epoch_started = time.perf_counter()
@@ -273,12 +365,18 @@ def main():
                 for t in targets
             ]
 
-            losses = model(images, targets)
+            with torch.autocast(
+                device_type='cuda',
+                dtype=torch.float16,
+                enabled=use_amp,
+            ):
+                losses = model(images, targets)
             loss = sum(losses.values())
 
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             total += float(loss.detach())
             seen += len(images)
@@ -293,12 +391,44 @@ def main():
                     f'images_per_sec={rate:.4f}'
                 )
 
+        if scheduler is not None:
+            scheduler.step()
         epoch_s = time.perf_counter() - epoch_started
         print(
             f'epoch {epoch+1}/{args.epochs} '
             f'avg_loss={total/max(1, len(dl)):.4f} '
             f'seconds={epoch_s:.2f}'
         )
+        if not args.smoke:
+            torch.save(
+                {
+                    'model_state': model.state_dict(),
+                    'optimizer_state': optimizer.state_dict(),
+                    'scheduler_state': scheduler.state_dict() if scheduler is not None else None,
+                    'epoch': epoch + 1,
+                    'classes': ds.classes,
+                    'training_config': {
+                        'manifest': str(manifest_path),
+                        'dataset_root': str(dataset_root),
+                        'epochs': args.epochs,
+                        'batch_size': args.batch_size,
+                        'learning_rate': args.lr,
+                        'device': args.device,
+                        'num_workers': args.num_workers,
+                        'internal_resize': (
+                            {'min_size': 320, 'max_size': 512}
+                            if args.architecture == 'mobilenet320'
+                            else {'min_size': 384, 'max_size': 640}
+                        ),
+                        'architecture': args.architecture,
+                        'amp': use_amp,
+                    },
+                    'seed': args.seed,
+                    'architecture': args.architecture,
+                },
+                checkpoint_path,
+            )
+            print('saved_epoch_checkpoint =', checkpoint_path)
 
     elapsed = time.perf_counter() - started
     rate = seen / max(1e-9, elapsed)
@@ -313,9 +443,6 @@ def main():
         print(f'ROUGH_FULL_EPOCH_SECONDS_AT_SMOKE_RATE={full_epoch_s:.2f}')
         print('CPU_SMOKE_TRAINING_PASS')
         return
-
-    out = ROOT / 'ai-service/trained_models'
-    out.mkdir(parents=True, exist_ok=True)
 
     state = out / 'detector_state.pt'
     torch.save(model.state_dict(), state)
@@ -368,7 +495,13 @@ def main():
         'cocoClassHeadTransfer': [x[0] for x in mapping],
         'freshHeadClasses': fresh,
         'headOnlyTraining': bool(args.head_only),
-        'internalResize': {'minSize': 384, 'maxSize': 640},
+        'internalResize': (
+            {'minSize': 320, 'maxSize': 512}
+            if args.architecture == 'mobilenet320'
+            else {'minSize': 384, 'maxSize': 640}
+        ),
+        'architecture': args.architecture,
+        'amp': use_amp,
         'trainingManifest': str(manifest_path),
         'trainingManifestSha256': sha256_file(manifest_path),
         'dataProvenance': {

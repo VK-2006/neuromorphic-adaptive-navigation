@@ -5,18 +5,13 @@
 
 <main class="page-shell">
   <div class="page-head"><div><span class="eyebrow">Device connectivity</span><h1>Devices & sensor controllers</h1>
-  <p class="muted">Camera video and Bluetooth control are separate: MediaDevices/WebRTC handles video; Web Bluetooth handles GATT identity, battery, commands and sensor metadata.</p></div></div>
+  <p class="muted">Connect an optional Bluetooth controller for route status, battery, commands and sensor metadata.</p></div></div>
   <div class="device-status-strip">
     <span class="chip" id="bt-secure-status">Checking secure context…</span>
     <span class="chip" id="bt-support-status">Checking Web Bluetooth…</span>
     <span class="chip" id="bt-connection-status">Not connected</span>
   </div>
   <div class="grid grid-3">
-    <section class="card">
-      <span class="chip">MediaDevices</span><h3>Browser / USB camera</h3>
-      <p class="muted">Use the browser camera for local perception. Frames remain local by default; only detection/risk metadata is sent unless cloud inference is explicitly selected.</p>
-      <a class="btn-navora" href="journey.html">Open Live Journey camera</a>
-    </section>
     <section class="card">
       <span class="chip">Web Bluetooth · GATT</span><h3>Sensor Controller</h3>
       <p class="muted">Use this for a BLE microcontroller/sensor that exposes documented GATT UUIDs. Bluetooth is control/metadata only, not video transport.</p>
@@ -40,7 +35,7 @@
     </section>
     <section class="card">
       <span class="chip">Route sync</span><h3>Field controller</h3>
-      <p class="muted">Keep a Bluetooth sensor/controller connected for route status, battery, and metadata sync without camera streaming.</p>
+      <p class="muted">Keep a Bluetooth sensor/controller connected for route status, battery, and metadata sync.</p>
       <a class="btn-navora btn-ghost" href="journey.html">Open Live Journey</a>
     </section>
   </div>

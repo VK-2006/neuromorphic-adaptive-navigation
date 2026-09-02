@@ -7,27 +7,25 @@
 
 <main class="page-shell">
   <div class="page-head"><div><span class="eyebrow">Navigation defaults & safety</span><h1>Settings</h1>
-  <p class="muted">These are account defaults. You can still adjust route priorities per search, and cloud detection always requires explicit consent when used.</p></div></div>
+  <p class="muted">These are account defaults for route priorities, voice guidance and journey safety.</p></div></div>
   <div class="grid grid-2">
     <form class="card settings-section" id="preferences-form"><h3>Route priorities</h3>
       <div class="settings-range-row"><label for="pref-safety">Safety</label><input id="pref-safety" max="100" min="0" type="range"><output id="pref-safety-out">—</output></div>
       <div class="settings-range-row"><label for="pref-traffic">Traffic avoidance</label><input id="pref-traffic" max="100" min="0" type="range"><output id="pref-traffic-out">—</output></div>
       <div class="settings-range-row"><label for="pref-familiarity">Familiarity</label><input id="pref-familiarity" max="100" min="0" type="range"><output id="pref-familiarity-out">—</output></div>
-      <hr><h3>Navigation & perception</h3>
+      <hr><h3>Navigation</h3>
       <div class="grid grid-2">
         <div><label for="pref-units">Units</label><select class="select" id="pref-units"><option value="METRIC">Metric (km)</option><option value="IMPERIAL">Imperial (mi)</option></select></div>
         <div><label for="pref-voice-language">Voice guidance</label><select class="select" id="pref-voice-language"><option value="en-IN">English (India)</option><option value="en-US">English (US)</option><option value="te-IN">Telugu</option><option value="hi-IN">Hindi</option></select></div>
-        <div><label for="pref-detection-mode">Default detection</label><select class="select" id="pref-detection-mode"><option value="LOCAL">Private local</option><option value="CLOUD">Cloud option (consent still required)</option></select></div>
         <div><label for="pref-theme">Theme</label><select class="select" id="pref-theme"><option value="SYSTEM">System</option><option value="LIGHT">Light</option><option value="DARK">Dark</option></select></div>
       </div>
       <label style="display:flex;gap:8px;align-items:center"><input id="pref-high-accuracy" type="checkbox"> Prefer high-accuracy GPS for Live Journey</label>
       <div class="toolbar"><button class="btn-navora" type="submit">Save settings</button></div>
     </form>
     <section class="card"><h3>Privacy & behavior</h3><div class="px-info-list">
-      <div><span>Camera default</span><strong>OFF</strong></div><div><span>Raw camera storage</span><strong>Not permanent by default</strong></div>
-      <div><span>Bluetooth role</span><strong>Control + sensor metadata</strong></div><div><span>Cloud detection</span><strong>Explicit opt-in</strong></div>
+      <div><span>Route intelligence</span><strong>RiskSNN + CRM + ACO</strong></div><div><span>Bluetooth role</span><strong>Optional control metadata</strong></div>
       <div><span>Reduced motion</span><strong>System preference respected</strong></div><div><span>Route learning</span><strong>Completed journeys only</strong></div>
-    </div><p class="muted" style="margin-top:16px">Switching the default detection mode to cloud does not grant consent. Live Journey asks separately before any selected camera snapshot is sent to cloud inference.</p></section>
+    </div><p class="muted" style="margin-top:16px">NAVORA uses route features, learned risk and route memory; no camera or object detection is required.</p></section>
   </div>
   <section class="card" style="margin-top:18px"><h3>Trusted contacts</h3><p class="muted">SOS and journey sharing use contacts you configure. Email is required for sharing/SOS delivery. Phone remains metadata until an SMS provider is configured.</p>
     <form class="inline-form" id="contact-form"><label class="sr-only" for="contact-name">Name</label><input class="input" id="contact-name" placeholder="Name" required>

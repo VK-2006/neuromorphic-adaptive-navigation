@@ -78,6 +78,19 @@ describe('Phase 7: Adaptive Route Decision Pipeline Verification', () => {
       expect(opt.ranked[0].finalUtility).toBeGreaterThan(opt.ranked[1].finalUtility);
     });
 
+    test('Scenario C2 — configured risk-aware objective selects the slightly longer safer route', () => {
+      const routes = [
+        { id: 'A', distance: 1000, trafficDuration: 100, trafficDelay: 0, safetyScore: 25, familiarity: 0.1, historicalSafety: 0.2 },
+        { id: 'B', distance: 1080, trafficDuration: 105, trafficDelay: 0, safetyScore: 92, familiarity: 0.1, historicalSafety: 0.9 },
+      ];
+      const weights = { distance: 0.10, time: 0.10, traffic: 0.05, safety: 0.45, familiarity: 0.05, history: 0.20, preference: 0.05 };
+      const result = optimize(routes, { ants: 30, iterations: 45, weights, seed: 42 });
+      expect(result.selected.id).toBe('B');
+      expect(result.selected.distance).toBeGreaterThan(routes[0].distance);
+      expect(result.selected.safetyScore).toBeGreaterThan(routes[0].safetyScore);
+      expect(result.metadata).toEqual(expect.objectContaining({ ants: 30, iterations: 45 }));
+    });
+
     test('Scenario D — Traffic severity delay penalizes candidate utility', async () => {
       const res = await compare({
         source,

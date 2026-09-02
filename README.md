@@ -1,6 +1,6 @@
 # Navora — Neuromorphic Adaptive Navigation Using Cognitive Route Memory and Swarm Intelligence
 
-Navora is a research-oriented intelligent-navigation web platform that combines conventional road routing with an **additional adaptive safety layer**. It does **not** claim to replace or universally outperform Google Maps. The research contribution is the connected use of local visual perception, SNN risk processing, Cognitive Route Memory (CRM), Dynamic Time Warping (DTW), Exponential Moving Average (EMA) learning, verified community hazards/reputation, Ant Colony Optimization (ACO) and explainable route decisions.
+Navora is a research-oriented, camera-free intelligent-navigation web platform that combines conventional road routing with an adaptive route-risk layer. It does not claim to replace or universally outperform Google Maps. The connected research components are a custom NAVORA Route Risk prototype dataset, RiskSNN processing, Cognitive Route Memory (CRM), DTW, EMA, verified community hazards/reputation, ACO and explainable route decisions.
 
 ## What the application recommends
 
@@ -12,15 +12,15 @@ For a source and destination the orchestration layer obtains road-route candidat
 
 During an active journey:
 
-`GPS + optional explicit camera → detection metadata → SNN/fallback risk → hazard dedup/trust → route-corridor geofence → safety/traffic re-evaluation → ACO alternative → current-vs-alternative explanation → user-confirmed reroute → destination → CRM/EMA update → journey replay.`
+`GPS → route features → RiskSNN/RiskEngine → hazard trust → route-corridor geofence → CRM/DTW/EMA → ACO alternative → explanation → user-confirmed reroute → destination → CRM update → journey replay.`
 
 ## Technology stack
 
-**Frontend:** HTML5, CSS3, ES6+, Bootstrap 5, Leaflet/OpenStreetMap, Chart.js, Three.js, GSAP, AOS/Lottie where useful, Socket.IO client, Web Speech, Geolocation, MediaDevices, WebRTC, optional Web Bluetooth, Service Worker/PWA.
+**Frontend:** HTML5, CSS3, ES6+, Bootstrap 5, Leaflet/OpenStreetMap, Chart.js, Three.js, GSAP, AOS/Lottie where useful, Socket.IO client, Web Speech, Geolocation, optional Web Bluetooth, Service Worker/PWA.
 
 **Backend:** Node.js, Express 5, MongoDB/Mongoose, Socket.IO, JWT access tokens + rotating hashed refresh tokens, bcrypt, Helmet, CORS, rate limiting, express-validator, Winston/Morgan, Google identity verification and Brevo transactional-email architecture.
 
-**AI:** Python, FastAPI, PyTorch, snnTorch architecture, OpenCV, NumPy, SciPy, scikit-learn, Pydantic and Pytest.
+**AI:** Python, FastAPI, PyTorch, snnTorch RiskSNN, NumPy, scikit-learn, Pydantic and Pytest.
 
 ## Main implemented modules
 
@@ -30,9 +30,7 @@ During an active journey:
 - TomTom traffic-flow adapter plus explicit `UNKNOWN`, degraded and `SIMULATION` behavior.
 - Live GPS `watchPosition`, segment map matching, covered/remaining distance, progress, speed, heading, arrival/ETA and route deviation using distance + accuracy + heading + speed + time outside route.
 - Journey start/pause/resume/complete, reroute cooldown and current-vs-alternative comparison.
-- Browser camera selection, Detection OFF by default, metadata-only backend path and no permanent raw-video recording.
-- Journey-scoped WebRTC mobile camera and optional documented Web Bluetooth GATT control/sensor reads; Bluetooth is not treated as video transport.
-- Object/road-damage detector service and SNN risk service with explicit development fallback when trained weights are unavailable.
+- Camera-free route-risk service using RiskSNN with an explicit unvalidated/research fallback.
 - CRM, DTW, EMA, ACO and WHY THIS ROUTE? explainability using calculated values.
 - Hazard deduplication, admin/community verification, proximity-limited confirmations, reputation and route-aware geofenced alerts.
 - Turn-by-turn instructions and Web Speech voice/language/volume/voice selection.
@@ -44,34 +42,32 @@ During an active journey:
 - Three.js landing + SNN/ACO/CRM research visualizations with single state/RAF lifecycle, disposal, reduced-motion and adaptive quality.
 - User/admin dashboards, live Mongo-backed history/memory/notifications/profile/devices and audit/system-health pages.
 
-## Datasets and models
+## Dataset and model
 
-- **BDD100K:** intended primary road-scene/object-detection source.
-- **RDD2022:** intended road-damage source (potholes/cracks/damage).
-- **Cityscapes:** optional semantic-segmentation source.
-- **OpenStreetMap:** geographic/road-network data, **not** an ML training dataset.
+- **NAVORA Route Risk Dataset:** 800 manually curated/generated prototype records, split 560/120/120, with 14 route-risk inputs and a continuous `route_risk_score` target. It is not a public or real-world benchmark.
+- **OpenStreetMap/OSRM:** geographic and routing data, not ML training data.
 - `datasets/demo-data/snn-risk-raw.csv`: synthetic/demo-only fixture with all master-prompt SNN risk fields.
 - `datasets/derived-risk-data/risk-training.csv`: normalized SNN training fixture.
 - `datasets/demo-data/crm-journeys.json`: synthetic/demo-only CRM journey fixture.
 
-Large public datasets and trained weights are intentionally not redistributed. `scripts/prepare_detection_data.py`, `scripts/train_detector.py` and `scripts/train_snn.py` provide preparation/training; `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` enforce held-out validation gates. Training never marks a model validated.
+Reproduce the dataset with `python scripts/create_navora_dataset.py --seed 42 --records 800`. Train RiskSNN with `python scripts/train_navora_snn.py`. Trained weights remain local and research-only until independent validation.
 
 ### SNN truthfulness rule
 
-`ai-service/app/models/snn.py` contains the real snnTorch LIF architecture and the risk engine contains temporal/spike/membrane processing. Detector and SNN validation are independent (`detectorValidated` and `riskValidated`); global safety validation is true only when both held-out evaluation gates pass. Missing/unvalidated weights remain explicitly research/development output.
+`ai-service/app/models/snn.py` contains the real snnTorch LIF architecture and the risk engine contains temporal/spike/membrane processing. The current model is a mini-project prototype: held-out results on the custom dataset are accuracy 0.8417, macro-F1 0.5743 and MAE 0.0954. These are not evidence of production-grade generalization. Missing/unvalidated weights remain explicitly research/development output.
 
 ## Authentication and security
 
 Email/password, Google identity and WebAuthn/passkeys are supported. Email verification/reset OTPs are hashed, expiring, attempt-limited, resend-limited and one-time. Reset grants and refresh tokens are hashed; refresh tokens rotate and token-family reuse revokes the family. RBAC provides `USER`/`ADMIN` authorization.
 
-Camera detection is opt-in. Exact private GPS is never globally broadcast. Chat strips HTML and checks room/ownership access. Device/contact mutation fields are allowlisted. Socket.IO checks journey/device/route/chat/WebRTC room access. Development JWT secrets are generated ephemerally at runtime when missing; production requires real secrets supplied outside source control. Only `.env.example` files are committed.
+Exact private GPS is never globally broadcast. Chat strips HTML and checks room/ownership access. Device/contact mutation fields are allowlisted. Socket.IO checks journey/device/route/chat room access. Development JWT secrets are generated ephemerally at runtime when missing; production requires real secrets supplied outside source control. Only `.env.example` files are committed.
 
 ## Repository layout
 
 ```text
 frontend/       static PWA/UI, Leaflet, Three.js, browser APIs
 backend/        Express 5/Mongo/Socket orchestration, tests, .env.example, Dockerfile
-ai-service/     FastAPI detector/SNN service, tests, .env.example, Dockerfile
+ai-service/     FastAPI RiskSNN route-risk service, tests, .env.example, Dockerfile
 datasets/       documentation + explicitly labelled demo/derived fixtures
 docs/           architecture/API/database/AI/security/testing/deployment/user docs
 postman/        82-request API collection
@@ -145,7 +141,7 @@ The user's Git working repository already preserves `backend/package-lock.json`;
 
 ## Limitations / validation boundary
 
-No fabricated BDD100K/RDD2022 or SNN validation is claimed. Browser camera/GPS/Screen Wake Lock/Bluetooth/WebRTC/passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
+No fabricated SNN validation is claimed. The custom 800-record dataset and reported metrics are prototype/held-out research results, not production evidence. Geolocation, Screen Wake Lock, Bluetooth and passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
 
 The source contains training/evaluation/runtime-validation tooling so those gates can be completed without redesigning the application.
 
@@ -165,7 +161,7 @@ python .\scripts\production_smoke.py `
   --expected-commit (git rev-parse HEAD)
 ```
 
-The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/camera/Bluetooth/WebRTC testing remain explicit external gates.
+The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/Bluetooth testing remain explicit external gates.
 
 
 ### Production geocoding policy

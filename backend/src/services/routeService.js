@@ -7,6 +7,7 @@ const weather = require('./weatherService');
 const { optimize } = require('./aco');
 const { explain } = require('./explainabilityService');
 const logger = require('../config/logger');
+const ai = require('./aiClient');
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
 
@@ -59,11 +60,28 @@ async function compare({ userId, source, destination, preferences = {}, simulati
       ? Number(route.historicalSafety)
       : 0.5;
 
+    const riskFeatures = {
+      distanceKm: route.distance / 1000,
+      travelTimeMin: route.trafficDuration / 60,
+      trafficLevel: Math.min(2, Math.round((route.trafficDelay || 0) / 300)),
+      roadCondition: Math.min(2, Math.round(evidence.exposure * 2)),
+      potholeLevel: Math.min(3, Math.round(evidence.snnRisk * 3)),
+      roadDamageLevel: Math.min(3, Math.round(evidence.exposure * 3)),
+      roadBlockageLevel: Math.min(3, Math.round(evidence.exposure * 3)),
+      weatherRisk: weatherEvidence.weatherRisk || 0,
+      accidentRisk: evidence.snnRisk || 0,
+      pedestrianDensity: 0,
+      vehicleDensity: Math.min(1, (route.trafficDelay || 0) / 900),
+      roadWidth: 10,
+      lightingCondition: 0,
+      historicalRisk: 1 - historicalSafety,
+    };
+    const modelRisk = await ai.predictRiskResilient(riskFeatures);
     const baseRisk = Math.min(
       1,
-      0.35 * evidence.exposure +
-      0.25 * evidence.snnRisk +
-      0.40 * (1 - historicalSafety)
+      0.55 * (Number(modelRisk?.score) || 0) +
+      0.20 * evidence.exposure +
+      0.25 * (1 - historicalSafety)
     );
 
     const weatherWeight = Math.max(0, Math.min(0.35, Number(env.weatherRouteRiskWeight) || 0.15));
@@ -80,6 +98,10 @@ async function compare({ userId, source, destination, preferences = {}, simulati
       ...weatherEvidence,
       hazardExposure: evidence.exposure,
       snnHazardRisk: evidence.snnRisk,
+      modelRisk: Number(modelRisk?.score) || 0,
+      modelRiskMode: modelRisk?.mode || 'unavailable/degraded',
+      modelValidated: modelRisk?.validated === true,
+      riskFeatures,
       baseRisk,
       risk,
       safetyScore: Math.max(0, 100 * (1 - risk)),

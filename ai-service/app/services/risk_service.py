@@ -2,6 +2,7 @@ import cv2, numpy as np, json
 from ..config import settings
 from ..models.snn import RiskSNN,SNN_AVAILABLE
 from ..model_validation import model_validation_status
+from ..route_risk_preprocessing import normalize_route_risk_vector
 try:
     import torch
 except Exception:
@@ -49,7 +50,7 @@ class RiskEngine:
         self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
-                candidate=RiskSNN()
+                candidate=RiskSNN(input_size=14)
                 candidate.load_state_dict(
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
@@ -59,9 +60,9 @@ class RiskEngine:
                     self.model=candidate
                     self.mode='snn-trained-weights-validated'
                 else:
-                    # Never expose unvalidated trained weights through the normal prediction API.
-                    # The file may remain on disk as research evidence, but runtime predictions
-                    # stay on the deterministic fail-safe development path until validation passes.
+                    # Research weights may be observed explicitly, but remain unvalidated.
+                    # They must never be used for normal inference; the service must
+                    # fail closed to the deterministic heuristic fallback.
                     self.model=None
                     self.validated=False
                     self.unvalidated_weights_present=True
@@ -81,16 +82,30 @@ class RiskEngine:
         rel=max(0,min(1,abs(f.relativeSpeed)/30))
         speed=max(0,min(1,f.userSpeed/35))
         reports=max(0,min(1,f.verifiedReports/5))
-        return np.array([
-            obj,f.confidence,dist,rel,speed,f.objectPersistence,
-            f.trafficDensity,f.hazardFrequency,1-f.visibility,
-            f.weatherRisk,max(f.roadCondition,reports)
-        ],dtype=np.float32)
+        payload={
+            'distance_km': (f.distanceKm if f.distanceKm is not None else f.estimatedDistance),
+            'travel_time_min': (f.travelTimeMin if f.travelTimeMin is not None else f.estimatedDistance * 2),
+            'traffic_level': (f.trafficLevel if f.trafficLevel is not None else f.trafficDensity),
+            'road_condition': (f.roadCondition if f.roadCondition is not None else 0),
+            'pothole_level': (f.potholeLevel if f.potholeLevel is not None else obj),
+            'road_damage_level': (f.roadDamageLevel if f.roadDamageLevel is not None else f.roadCondition),
+            'road_blockage_level': (f.roadBlockageLevel if f.roadBlockageLevel is not None else obj),
+            'weather_condition': (f.weatherRisk if f.weatherRisk is not None else 0),
+            'accident_risk': (f.accidentRisk if f.accidentRisk is not None else f.hazardFrequency),
+            'pedestrian_density': (f.pedestrianDensity if f.pedestrianDensity is not None else f.objectPersistence),
+            'vehicle_density': (f.vehicleDensity if f.vehicleDensity is not None else min(1, f.userSpeed / 35)),
+            'road_width': (f.roadWidth if f.roadWidth is not None else 10),
+            'lighting_condition': (f.lightingCondition if f.lightingCondition is not None else (1 - f.visibility)),
+            'historical_risk': (f.historicalRisk if f.historicalRisk is not None else max(f.roadCondition, reports)),
+        }
+        return normalize_route_risk_vector(payload)
 
     def heuristic(self,f):
         v=self.vector(f)
-        weights=np.array([.18,.08,.16,.10,.08,.07,.08,.07,.05,.05,.08],dtype=np.float32)
-        score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
+        weights=np.array([.08,.10,.10,.08,.11,.10,.12,.08,.07,.04,.04,.03,.02,.03],dtype=np.float32)
+        base_score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
+        object_risk = CLASS_RISK.get(canonical_object_class(f.objectClass), CLASS_RISK['unknown'])
+        score=float(np.clip(base_score + (object_risk * 0.35),0,1))
         idx=0 if score<.3 else 1 if score<.55 else 2 if score<.78 else 3
         confidence=float(np.clip(.55+.35*f.confidence,0,1))
         note='Deterministic development fallback; not a validated trained SNN prediction.'
@@ -104,9 +119,10 @@ class RiskEngine:
 
     def top_factors(self,f,v):
         names=[
-            'object class prior','detection confidence','proximity','relative speed',
-            'user speed','persistence','traffic density','hazard frequency',
-            'low visibility','weather risk','road/reports'
+            'distance','travel time','traffic','road condition','potholes',
+            'road damage','road blockage','weather','accident risk',
+            'pedestrian density','vehicle density','narrow road','lighting',
+            'historical risk'
         ]
         pairs=sorted(zip(names,v.tolist()),key=lambda x:x[1],reverse=True)
         return [{'factor':n,'normalizedValue':round(x,3)} for n,x in pairs[:4]]

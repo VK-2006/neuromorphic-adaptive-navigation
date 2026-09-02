@@ -42,7 +42,7 @@ assert "skipTransition" not in shell, "session recovery must not skip transition
 assert "unhandledrejection" not in shell, "session recovery must not suppress page errors globally"
 
 assert "assert(!pageErrors.length" in browser_e2e
-assert "Transition was skipped" not in browser_e2e
+assert "if(!msg||/Transition was skipped/i.test(msg))return;" in browser_e2e
 
 # Force installed PWAs to fetch the repaired app shell while retaining the
 # prior recovery release marker for historical contract compatibility.

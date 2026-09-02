@@ -79,6 +79,7 @@ def class_policy_status(per_class,trained_classes,configured):
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--manifest',type=Path,required=True,help='Held-out JSONL manifest, not training data')
+    ap.add_argument('--dataset-root',type=Path,default=ROOT,help='Root used to resolve relative image paths')
     ap.add_argument('--weights',type=Path,default=ROOT/'ai-service/trained_models/detector.pt');ap.add_argument('--metadata',type=Path,default=ROOT/'ai-service/trained_models/metadata.json')
     ap.add_argument('--iou',type=float,default=.5);ap.add_argument('--min-samples',type=int,default=DETECTOR_EVAL_MINIMUMS['minSamples']);ap.add_argument('--min-precision',type=float,default=DETECTOR_EVAL_MINIMUMS['minPrecision']);ap.add_argument('--min-recall',type=float,default=DETECTOR_EVAL_MINIMUMS['minRecall']);ap.add_argument('--min-f1',type=float,default=DETECTOR_EVAL_MINIMUMS['minF1']);ap.add_argument('--min-per-class-precision',type=float,default=DETECTOR_EVAL_MINIMUMS['minPerClassPrecision']);ap.add_argument('--min-per-class-recall',type=float,default=DETECTOR_EVAL_MINIMUMS['minPerClassRecall']);ap.add_argument('--min-per-class-f1',type=float,default=DETECTOR_EVAL_MINIMUMS['minPerClassF1']);ap.add_argument('--mark-validation',action='store_true')
     a=ap.parse_args()
@@ -95,7 +96,9 @@ def main():
     rows=[json.loads(x) for x in a.manifest.read_text(encoding='utf-8').splitlines() if x.strip()]
     tp=fp=fn=0;used=0;per={}
     for row in rows:
-        image=cv2.imread(str(row['image']))
+        image_path=Path(row['image'])
+        if not image_path.is_absolute(): image_path=a.dataset_root/image_path
+        image=cv2.imread(str(image_path))
         if image is None:continue
         h,w=image.shape[:2];preds=detector.detect(image);gts=[{'objectClass':g['class'],'boundingBox':norm_gt(g['box'],w,h)} for g in row.get('boxes',[])]
         matched=set();used+=1

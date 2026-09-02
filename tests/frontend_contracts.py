@@ -49,7 +49,7 @@ express_spec=json.loads(read('backend/package.json'))['dependencies']['express']
 assert express_spec.lstrip('^~>= ').split('.')[0]=='5', 'Express 5 is required for async promise error propagation'
 
 require('backend/src/sockets/index.js','journey:join','device:join','route:join','chat:join','webrtc:join')
-require('backend/src/services/aiClient.js','/api/v1/detect','/api/v1/risk/predict','degraded')
+require('backend/src/services/aiClient.js','/api/v1/risk/predict','degraded')
 
 
 # Device/Bluetooth and simulation/digital-twin contracts.
@@ -79,7 +79,7 @@ require('backend/src/services/webauthnService.js','CHALLENGE_TTL_MS','putChallen
 require('backend/src/services/otpService.js','return rec')
 require('backend/src/services/routeService.js','route_intelligence','snnHazardRisk','dtwSimilarity')
 
-print('FRONTEND_CONTRACTS PASS: map/providers, journey/privacy/reroute/WebRTC, device/Bluetooth, chat, simulation/replay, PWA, themes/Three.js, auth/socket/AI/database-degraded contracts')
+print('FRONTEND_CONTRACTS PASS: map/providers, camera-free journey/privacy/reroute, device/Bluetooth, chat, simulation/replay, PWA, themes/Three.js, auth/socket/AI/database-degraded contracts')
 
 # Admin navigation and Render/source compliance.
 require('frontend/public/admin-health.html','NAVORA ADMIN','admin-users.html','admin-hazards.html','admin-chat.html','admin-devices.html','admin-audit.html')

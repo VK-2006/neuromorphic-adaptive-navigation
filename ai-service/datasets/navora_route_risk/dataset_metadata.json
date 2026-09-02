@@ -1,0 +1,39 @@
+{
+  "name": "NAVORA Route Risk Dataset",
+  "version": "prototype-v1",
+  "description": "NAVORA Route Risk Dataset is a manually curated prototype dataset created for evaluating and demonstrating the NAVORA mini-project.",
+  "seed": 42,
+  "records": 800,
+  "features": [
+    "distance_km",
+    "travel_time_min",
+    "traffic_level",
+    "road_condition",
+    "pothole_level",
+    "road_damage_level",
+    "road_blockage_level",
+    "weather_condition",
+    "accident_risk",
+    "pedestrian_density",
+    "vehicle_density",
+    "road_width",
+    "lighting_condition",
+    "historical_risk"
+  ],
+  "target": "route_risk_score",
+  "encodings": {
+    "traffic_level": "0=low, 1=medium, 2=high",
+    "road_condition": "0=good, 1=moderate, 2=poor",
+    "pothole_level": "0=none, 1=low, 2=medium, 3=severe",
+    "road_damage_level": "0=none, 1=low, 2=medium, 3=severe",
+    "road_blockage_level": "0=none, 1=low, 2=medium, 3=severe",
+    "weather_condition": "0=clear, 1=cloudy, 2=rain, 3=heavy rain",
+    "lighting_condition": "0=good, 1=moderate, 2=poor"
+  },
+  "splits": {
+    "train": 560,
+    "val": 120,
+    "test": 120
+  },
+  "validation": "dataset_validation.json"
+}

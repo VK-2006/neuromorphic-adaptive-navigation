@@ -1,8 +1,28 @@
 # Dataset Documentation
 
-## Detection
+## NAVORA Route Risk Dataset
 
-Navora V29 supports a **source-aware BDD100K + RDD2022 Faster R-CNN training pipeline**. The repository does not redistribute either upstream dataset and does not bundle a validated detector merely because the trainer supports these classes.
+The final mini-project uses a camera-free route-risk prototype dataset. It contains
+800 deterministic, manually curated prototype observations split into 560 train,
+120 validation, and 120 test records. It is not a public benchmark, GPS-ground-truth
+dataset, or representative sample of real-world roads.
+
+Generate and validate it reproducibly with:
+
+```bash
+python scripts/create_navora_dataset.py --seed 42 --records 800
+```
+
+The 14 inputs and their encodings are recorded in
+`ai-service/datasets/navora_route_risk/dataset_metadata.json`. The target is
+`route_risk_score` in `[0, 1]`. The generated artifacts are local research data.
+
+## Legacy detection
+
+The historical BDD100K/RDD2022 detector pipeline is retained only for reproducibility
+of prior research work and is not required by the camera-free runtime. It is not part
+of the final route-risk architecture and must not be used to claim application
+validation.
 
 Supported normalized detector classes are:
 
