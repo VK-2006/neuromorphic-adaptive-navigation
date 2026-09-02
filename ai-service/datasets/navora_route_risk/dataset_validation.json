@@ -7,12 +7,12 @@
   "passed": true,
   "featureRanges": {
     "distance_km": [
-      1.504,
-      23.984
+      1.575,
+      23.957
     ],
     "travel_time_min": [
-      3.709,
-      127.956
+      3.693,
+      135.828
     ],
     "traffic_level": [
       0.0,
@@ -39,32 +39,32 @@
       3.0
     ],
     "accident_risk": [
-      0.001,
-      0.999
+      0.0214,
+      0.98
     ],
     "pedestrian_density": [
-      0.0001,
-      0.9968
+      0.0212,
+      0.9598
     ],
     "vehicle_density": [
       0.0,
       1.0
     ],
     "road_width": [
-      3.0,
-      13.97
+      3.01,
+      13.96
     ],
     "lighting_condition": [
       0.0,
       2.0
     ],
     "historical_risk": [
-      0.0002,
-      0.9994
+      0.0501,
+      0.9591
     ],
     "route_risk_score": [
-      0.123803,
-      0.82247
+      0.096693,
+      0.94
     ]
   }
 }
