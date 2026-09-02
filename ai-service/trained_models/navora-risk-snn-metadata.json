@@ -235,5 +235,10 @@
     "maeRiskScore": 0.09336642850604322
   },
   "validated": false,
-  "note": "Prototype data; independent real-world validation is required."
+  "note": "Prototype NAVORA route-risk SNN remains unvalidated: held-out macroF1 0.56431 is below the repository policy floor 0.70 and the CRITICAL class has zero support in the held-out set.",
+  "riskValidated": false,
+  "validation": {
+    "riskReport": "snn-evaluation.json",
+    "evidenceSchema": 3
+  }
 }
