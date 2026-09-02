@@ -2,6 +2,7 @@ import cv2, numpy as np, json
 from ..config import settings
 from ..models.snn import RiskSNN,SNN_AVAILABLE
 from ..model_validation import model_validation_status
+from ..route_risk_preprocessing import normalize_route_risk_vector
 try:
     import torch
 except Exception:
@@ -81,27 +82,30 @@ class RiskEngine:
         rel=max(0,min(1,abs(f.relativeSpeed)/30))
         speed=max(0,min(1,f.userSpeed/35))
         reports=max(0,min(1,f.verifiedReports/5))
-        return np.array([
-            min(1, (f.distanceKm if f.distanceKm is not None else f.estimatedDistance) / 24),
-            min(1, (f.travelTimeMin if f.travelTimeMin is not None else f.estimatedDistance * 2) / 100),
-            (f.trafficLevel / 2 if f.trafficLevel is not None else f.trafficDensity),
-            (f.roadCondition / 2 if f.roadCondition > 1 else f.roadCondition),
-            (f.potholeLevel / 3 if f.potholeLevel is not None else obj),
-            (f.roadDamageLevel / 3 if f.roadDamageLevel is not None else f.roadCondition),
-            (f.roadBlockageLevel / 3 if f.roadBlockageLevel is not None else obj),
-            f.weatherRisk,
-            (f.accidentRisk if f.accidentRisk is not None else f.hazardFrequency),
-            (f.pedestrianDensity if f.pedestrianDensity is not None else f.objectPersistence),
-            (f.vehicleDensity if f.vehicleDensity is not None else min(1, f.userSpeed / 35)),
-            max(0, 1 - (f.roadWidth if f.roadWidth is not None else 10) / 14),
-            (f.lightingCondition / 2 if f.lightingCondition is not None else 1 - f.visibility),
-            (f.historicalRisk if f.historicalRisk is not None else max(f.roadCondition, reports)),
-        ], dtype=np.float32)
+        payload={
+            'distance_km': (f.distanceKm if f.distanceKm is not None else f.estimatedDistance),
+            'travel_time_min': (f.travelTimeMin if f.travelTimeMin is not None else f.estimatedDistance * 2),
+            'traffic_level': (f.trafficLevel if f.trafficLevel is not None else f.trafficDensity),
+            'road_condition': (f.roadCondition if f.roadCondition is not None else 0),
+            'pothole_level': (f.potholeLevel if f.potholeLevel is not None else obj),
+            'road_damage_level': (f.roadDamageLevel if f.roadDamageLevel is not None else f.roadCondition),
+            'road_blockage_level': (f.roadBlockageLevel if f.roadBlockageLevel is not None else obj),
+            'weather_condition': (f.weatherRisk if f.weatherRisk is not None else 0),
+            'accident_risk': (f.accidentRisk if f.accidentRisk is not None else f.hazardFrequency),
+            'pedestrian_density': (f.pedestrianDensity if f.pedestrianDensity is not None else f.objectPersistence),
+            'vehicle_density': (f.vehicleDensity if f.vehicleDensity is not None else min(1, f.userSpeed / 35)),
+            'road_width': (f.roadWidth if f.roadWidth is not None else 10),
+            'lighting_condition': (f.lightingCondition if f.lightingCondition is not None else (1 - f.visibility)),
+            'historical_risk': (f.historicalRisk if f.historicalRisk is not None else max(f.roadCondition, reports)),
+        }
+        return normalize_route_risk_vector(payload)
 
     def heuristic(self,f):
         v=self.vector(f)
         weights=np.array([.08,.10,.10,.08,.11,.10,.12,.08,.07,.04,.04,.03,.02,.03],dtype=np.float32)
-        score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
+        base_score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
+        object_risk = CLASS_RISK.get(canonical_object_class(f.objectClass), CLASS_RISK['unknown'])
+        score=float(np.clip(base_score + (object_risk * 0.35),0,1))
         idx=0 if score<.3 else 1 if score<.55 else 2 if score<.78 else 3
         confidence=float(np.clip(.55+.35*f.confidence,0,1))
         note='Deterministic development fallback; not a validated trained SNN prediction.'

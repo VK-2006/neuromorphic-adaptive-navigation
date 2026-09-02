@@ -26,6 +26,10 @@ ENCODINGS = {
 }
 
 
+def clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
+    return max(low, min(high, value))
+
+
 def make_records(count: int, seed: int) -> list[dict]:
     rng = random.Random(seed)
     records = []
@@ -40,7 +44,7 @@ def make_records(count: int, seed: int) -> list[dict]:
         lighting = rng.randint(0, 2)
         accident = round(rng.random(), 4)
         pedestrian = round(rng.random(), 4)
-        vehicle = round(min(1.0, traffic / 2 + rng.uniform(-0.12, 0.12)), 4)
+        vehicle = round(clamp(traffic / 2 + rng.uniform(-0.12, 0.12)), 4)
         width = round(rng.uniform(3.0, 14.0), 2)
         historical = round(rng.random(), 4)
         travel = round(distance * rng.uniform(1.8, 4.2) * (1 + traffic * 0.18), 3)
@@ -77,6 +81,13 @@ def make_records(count: int, seed: int) -> list[dict]:
 def validate(records: list[dict]) -> dict:
     invalid = []
     ids = set()
+    range_checks = {
+        "vehicle_density": (0.0, 1.0),
+        "accident_risk": (0.0, 1.0),
+        "pedestrian_density": (0.0, 1.0),
+        "historical_risk": (0.0, 1.0),
+        "route_risk_score": (0.0, 1.0),
+    }
     for row in records:
         if row["route_id"] in ids:
             invalid.append(row["route_id"])
@@ -85,6 +96,10 @@ def validate(records: list[dict]) -> dict:
             value = row.get(key)
             if not isinstance(value, (int, float)) or not math.isfinite(value):
                 invalid.append(f"{row['route_id']}:{key}")
+                continue
+            lower, upper = range_checks.get(key, (-float("inf"), float("inf")))
+            if value < lower or value > upper:
+                invalid.append(f"{row['route_id']}:{key}:{value}")
     return {
         "records": len(records),
         "featureCount": len(FEATURES),

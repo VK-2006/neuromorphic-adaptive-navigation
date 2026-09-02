@@ -16,18 +16,12 @@ from torch.utils.data import DataLoader, TensorDataset
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ai-service"))
 from app.models.snn import RiskSNN
-
-FEATURES = ["distance_km", "travel_time_min", "traffic_level", "road_condition",
-            "pothole_level", "road_damage_level", "road_blockage_level",
-            "weather_condition", "accident_risk", "pedestrian_density",
-            "vehicle_density", "road_width", "lighting_condition", "historical_risk"]
+from app.route_risk_preprocessing import FEATURES, normalize_route_risk_vector
 
 
 def read_csv(path: Path):
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
-    x = np.array([[float(row[key]) for key in FEATURES] for row in rows], dtype=np.float32)
-    x[:, 0] /= 24; x[:, 1] /= 100; x[:, 2:3] /= 2; x[:, 3:7] /= 3
-    x[:, 7] /= 3; x[:, 11] = 1 - x[:, 11] / 14; x[:, 12] /= 2
+    x = np.stack([normalize_route_risk_vector(row).astype(np.float32) for row in rows])
     y_score = np.array([float(row["route_risk_score"]) for row in rows], dtype=np.float32)
     y = np.select([y_score < .25, y_score < .5, y_score < .75], [0, 1, 2], default=3).astype(np.int64)
     return torch.from_numpy(x), torch.from_numpy(y), y_score
