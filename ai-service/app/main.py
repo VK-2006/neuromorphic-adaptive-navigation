@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from .api.routes import router
 
-app=FastAPI(title='Navora AI Service',version='1.0.0',description='Separate object detection and neuromorphic risk service')
+app=FastAPI(title='Navora AI Service',version='1.0.0',description='Camera-free route-risk service using RiskSNN')
 
 @app.get('/health')
 def health():

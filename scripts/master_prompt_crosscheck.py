@@ -126,7 +126,7 @@ risk_runtime=text('ai-service/app/services/risk_service.py')
 route_contract=text('ai-service/app/api/routes.py')
 need('V28 validation helper',"def model_validation_status" in validation_helper and "schemaVersion" in validation_helper and "SHA-256" in validation_helper)
 need('risk evidence-bound validation runtime',"model_validation_status('risk'" in risk_runtime and "self.validated=bool(validation.get('passed'))" in risk_runtime)
-need('risk-only runtime contract',"Object detection subsystem has been removed." in route_contract and "/model/info" in route_contract)
+need('risk-only runtime contract',"camera-free route-risk engine." in route_contract and "/model/info" in route_contract)
 
 # Secrets: examples may name variables, but no non-empty values for secret/key fields.
 envexample=text('backend/.env.example')

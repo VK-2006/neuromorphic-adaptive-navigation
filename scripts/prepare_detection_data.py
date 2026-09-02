@@ -7,14 +7,18 @@ from __future__ import annotations
 import argparse, json
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import sys
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'ai-service'))
+from app.detector_taxonomy import CANONICAL_CLASSES, QUARANTINED_CLASSES
 
 BDD_MAP={
     'pedestrian':'person','rider':'person','person':'person','bike':'bicycle','bicycle':'bicycle',
     'motor':'motorcycle','motorcycle':'motorcycle','car':'car','bus':'bus','truck':'truck',
     'traffic cone':'traffic cone','barrier':'barrier','train':'other',
 }
-RDD_MAP={'D00':'road damage','D10':'road damage','D20':'road damage','D40':'pothole','pothole':'pothole',
-         'longitudinal crack':'road damage','transverse crack':'road damage','alligator crack':'road damage'}
+RDD_CLASSES=set(CANONICAL_CLASSES)
 
 def bdd_rows(labels:Path,images:Path):
     data=json.loads(labels.read_text(encoding='utf-8'))
@@ -28,6 +32,7 @@ def bdd_rows(labels:Path,images:Path):
         if boxes and image.exists(): yield {'image':str(image),'source':'BDD100K','boxes':boxes}
 
 def rdd_rows(root:Path):
+    quarantined=[]
     for xml in root.rglob('*.xml'):
         try: tree=ET.parse(xml).getroot()
         except ET.ParseError: continue
@@ -36,14 +41,28 @@ def rdd_rows(root:Path):
         image=next((p for p in candidates if p.exists()),None)
         if not image: continue
         boxes=[]
+        has_quarantined=False
         for obj in tree.findall('object'):
-            raw=(obj.findtext('name') or '').strip(); cls=RDD_MAP.get(raw,RDD_MAP.get(raw.lower()))
+            raw=(obj.findtext('name') or '').strip()
+            cls=raw if raw in RDD_CLASSES else None
+            has_quarantined = has_quarantined or raw in QUARANTINED_CLASSES
             bb=obj.find('bndbox')
             if not cls or bb is None: continue
             try: coords=[float(bb.findtext(k)) for k in ('xmin','ymin','xmax','ymax')]
             except (TypeError,ValueError): continue
             boxes.append({'class':cls,'box':coords})
-        if boxes: yield {'image':str(image),'source':'RDD2022','boxes':boxes}
+        if has_quarantined and not boxes:
+            quarantined.append(xml.stem)
+            continue
+        yield {
+            'image':str(image),
+            'source':'RDD2022',
+            'annotation':str(xml),
+            'boxes':boxes,
+            'background':not boxes,
+        }
+    if quarantined:
+        print(f'RDD2022 quarantine exclusions: {len(quarantined)} image(s): {", ".join(quarantined)}')
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--bdd-labels',type=Path);ap.add_argument('--bdd-images',type=Path);ap.add_argument('--rdd-root',type=Path);ap.add_argument('--out',type=Path,default=Path('datasets/derived-risk-data/detection-manifest.jsonl'));a=ap.parse_args()
