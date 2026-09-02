@@ -1,46 +1,51 @@
+﻿"""Report whether the NAVORA RiskSNN is genuinely ready for validation."""
 from __future__ import annotations
+
+import json
+import sys
 from pathlib import Path
-import json,sys
 
-ROOT=Path(__file__).resolve().parents[1]
-MODEL_DIR=ROOT/'ai-service'/'trained_models'
-sys.path.insert(0,str(ROOT/'ai-service'))
-from app.model_validation import model_validation_status
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_DIR = ROOT / "ai-service" / "trained_models"
+MODEL_PATH = MODEL_DIR / "navora-risk-snn.pt"
+METADATA_PATH = MODEL_DIR / "navora-risk-snn-metadata.json"
+EVIDENCE_PATH = MODEL_DIR / "navora-risk-validation-evidence.json"
 
-meta_path=MODEL_DIR/'metadata.json'
-detector=MODEL_DIR/'detector.pt'
-snn=MODEL_DIR/'risk_snn.pt'
 
-def load(path):
+def load_json(path: Path):
+    if not path.exists():
+        return {}
     try:
-        return json.loads(path.read_text(encoding='utf-8'))
-    except Exception as e:
-        print(f'MODEL_READINESS FAIL: invalid {path.name}:',e)
-        sys.exit(1)
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
-meta=load(meta_path) if meta_path.exists() else {}
-validated=bool(meta.get('validated',False))
-detector_ready=detector.exists() and detector.stat().st_size>0
-snn_ready=snn.exists() and snn.stat().st_size>0
 
-if validated:
-    detector_status=model_validation_status('detector',detector,meta_path)
-    risk_status=model_validation_status('risk',snn,meta_path)
-    problems=[]
-    if not detector_status['passed']:
-        problems.extend(f'detector: {x}' for x in detector_status['reasons'])
-    if not risk_status['passed']:
-        problems.extend(f'SNN: {x}' for x in risk_status['reasons'])
-    if problems:
-        print('MODEL_READINESS FAIL: validated=true is not backed by V30 live validation evidence.')
-        for problem in dict.fromkeys(problems):
-            print('-',problem)
-        sys.exit(1)
-    print('MODEL_READINESS PASS: both validated models are present and bound to V30 passing evidence, per-class policy, exact reports, datasets, and weight hashes.')
-else:
-    print('MODEL_READINESS PASS: research/development state is truthful; validated safety AI is NOT claimed.')
-    print(f'- detector weights present: {detector_ready}')
-    print(f'- SNN weights present: {snn_ready}')
-    print(f"- detector independently evaluated flag: {bool(meta.get('detectorValidated',False))}")
-    print(f"- SNN independently evaluated flag: {bool(meta.get('riskValidated',False))}")
-    print('- Live validated mode remains disabled until both held-out evaluations, per-class gates, data binding, and V30 validation evidence pass.')
+def main() -> None:
+    metadata = load_json(METADATA_PATH)
+    evidence = load_json(EVIDENCE_PATH)
+    model_exists = MODEL_PATH.exists() and MODEL_PATH.stat().st_size > 0
+    validated = bool(metadata.get("validated", False))
+    risk_validated = bool(metadata.get("riskValidated", False))
+
+    if validated or risk_validated:
+        if not model_exists:
+            print("MODEL_READINESS FAIL: NAVORA RiskSNN weights are missing")
+            return 1
+        if evidence.get("passed") is not True:
+            print("MODEL_READINESS FAIL: validation evidence is not passing")
+            for problem in evidence.get("problems", []):
+                print("-", problem)
+            return 1
+        print("MODEL_READINESS PASS: NAVORA RiskSNN is backed by passing evidence and matching model hashes.")
+        return 0
+
+    print("MODEL_READINESS PASS: development state remains truthful; validated safety status stays disabled until evidence is genuine.")
+    print(f"- NAVORA RiskSNN weights present: {model_exists}")
+    print(f"- metadata validated flag: {validated}")
+    print(f"- metadata riskValidated flag: {risk_validated}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

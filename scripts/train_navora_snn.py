@@ -73,13 +73,26 @@ def main() -> None:
     out = ROOT / "ai-service/trained_models"; out.mkdir(exist_ok=True)
     weights = out / "navora-risk-snn.pt"; torch.save(model.state_dict(), weights)
     (out / "navora-risk-snn-metadata.json").write_text(json.dumps({
-        "model": "RiskSNN", "riskModelVersion": "navora-risk-snn-prototype-v1",
-        "dataset": "NAVORA Route Risk Dataset prototype-v1",
-        "features": FEATURES, "seed": args.seed, "epochs": args.epochs,
-        "batchSize": args.batch_size, "optimizer": "Adam", "learningRate": 5e-3,
-        "trainSamples": len(train_y), "validationSamples": len(val_y),
-        "testSamples": len(test_y), "history": history, "testMetrics": metrics,
-        "validated": False, "note": "Prototype data; independent real-world validation is required.",
+        "model": "RiskSNN",
+        "riskModelVersion": "navora-risk-snn-prototype-v2",
+        "datasetVersion": "prototype-v2",
+        "dataset": "NAVORA Route Risk Dataset prototype-v2",
+        "features": FEATURES,
+        "featureCount": len(FEATURES),
+        "seed": args.seed,
+        "epochs": args.epochs,
+        "batchSize": args.batch_size,
+        "optimizer": "Adam",
+        "learningRate": 5e-3,
+        "trainSamples": len(train_y),
+        "validationSamples": len(val_y),
+        "finalTestSamples": len(test_y),
+        "testSamples": len(test_y),
+        "history": history,
+        "testMetrics": metrics,
+        "validated": False,
+        "riskValidated": False,
+        "note": "Prototype data; final held-out evaluation is locked for one-time validation only.",
     }, indent=2), encoding="utf-8")
     print(json.dumps({"weights": str(weights), "metrics": metrics}, indent=2))
 

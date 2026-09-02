@@ -1,197 +1,196 @@
+﻿"""Validate the NAVORA route-risk CSV splits for the camera-free RiskSNN pipeline."""
 from __future__ import annotations
-from pathlib import Path
-import argparse,csv,hashlib,json,math,sys
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+import sys
 from collections import Counter
+from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(ROOT/'ai-service'))
-from app.detector_taxonomy import ordered_classes,validate_source_class
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "ai-service"))
 from app.model_validation import DATA_GATE_MINIMUMS
+from app.route_risk_preprocessing import FEATURES
 
-FEATURES=['objectPrior','confidence','proximity','relativeSpeed','userSpeed','objectPersistence','trafficDensity','hazardFrequency','lowVisibility','weatherRisk','roadOrReports']
-RISK_LABELS=['LOW','MEDIUM','HIGH','CRITICAL']
+CLASS_ORDER = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+TARGET = "route_risk_score"
+EXPECTED_TRAIN = 600
+EXPECTED_VAL = 200
+EXPECTED_TEST = 200
 
-def sha256_file(path:Path):
-    h=hashlib.sha256()
-    with path.open('rb') as f:
-        for chunk in iter(lambda:f.read(1024*1024),b''):
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
 
-def risk_signature(row):
-    vals=[f'{float(row[k]):.12g}' for k in FEATURES]
-    return hashlib.sha256(('|'.join(vals+[row['riskLabel']])).encode()).hexdigest()
 
-def read_risk(path:Path):
+def label_for_score(score: float) -> str:
+    if score < 0.25:
+        return "LOW"
+    if score < 0.5:
+        return "MEDIUM"
+    if score < 0.75:
+        return "HIGH"
+    return "CRITICAL"
+
+
+def read_route_risk_csv(path: Path) -> list[dict]:
     if not path.exists():
-        raise ValueError(f'missing file: {path}')
-    rows=[]; labels=Counter()
-    with path.open(newline='',encoding='utf-8') as f:
-        reader=csv.DictReader(f)
-        missing=[x for x in FEATURES+['riskLabel'] if x not in (reader.fieldnames or [])]
+        raise ValueError(f"missing CSV: {path}")
+    with path.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        required = ["route_id"] + FEATURES + [TARGET]
+        missing = [name for name in required if name not in (reader.fieldnames or [])]
         if missing:
-            raise ValueError(f'{path}: missing columns {missing}')
-        for n,row in enumerate(reader,2):
-            label=(row.get('riskLabel') or '').strip().upper()
-            if label not in RISK_LABELS:
-                raise ValueError(f'{path}:{n}: invalid riskLabel {label!r}')
+            raise ValueError(f"{path}: missing columns: {missing}")
+        rows = []
+        for line_no, row in enumerate(reader, start=2):
+            route_id = (row.get("route_id") or "").strip()
+            if not route_id:
+                raise ValueError(f"{path}:{line_no}: missing route_id")
+            score = float(row.get(TARGET, "nan"))
+            if not math.isfinite(score) or not 0.0 <= score <= 1.0:
+                raise ValueError(f"{path}:{line_no}: route_risk_score must be finite and in [0,1]")
             for key in FEATURES:
+                value = row.get(key)
                 try:
-                    value=float(row[key])
-                except Exception:
-                    raise ValueError(f'{path}:{n}: non-numeric {key}')
-                if not math.isfinite(value) or not 0<=value<=1:
-                    raise ValueError(f'{path}:{n}: {key}={value} must be normalized to [0,1]')
-            row['riskLabel']=label
-            rows.append(row); labels[label]+=1
-    return rows,labels
+                    value = float(value)
+                except (TypeError, ValueError):
+                    raise ValueError(f"{path}:{line_no}: non-numeric {key}={value!r}")
+                if key in {"accident_risk", "pedestrian_density", "vehicle_density", "historical_risk"} and not 0.0 <= value <= 1.0:
+                    raise ValueError(f"{path}:{line_no}: {key}={value} is outside [0,1]")
+                if not math.isfinite(value):
+                    raise ValueError(f"{path}:{line_no}: {key} is not finite")
+            rows.append({**row, "_inferred_label": label_for_score(score)})
+    return rows
 
-def read_manifest(path:Path):
-    if not path.exists():
-        raise ValueError(f'missing file: {path}')
-    rows=[];classes=Counter();images=[];sources=Counter();class_images=Counter()
-    for n,line in enumerate(path.read_text(encoding='utf-8').splitlines(),1):
-        if not line.strip():
-            continue
-        try:
-            row=json.loads(line)
-        except Exception as e:
-            raise ValueError(f'{path}:{n}: invalid JSON: {e}')
-        image=Path(str(row.get('image') or '')).expanduser()
-        if not image.is_absolute():
-            image=(Path.cwd()/image)
-        image=image.resolve()
-        if not image.exists():
-            raise ValueError(f'{path}:{n}: image missing: {image}')
-        source=str(row.get('source') or '')
-        boxes=row.get('boxes')
-        if not isinstance(boxes,list) or not boxes:
-            raise ValueError(f'{path}:{n}: boxes must be a non-empty list')
-        row_classes=set()
-        for boxrow in boxes:
-            cls=str(boxrow.get('class') or '')
-            try:
-                validate_source_class(source,cls)
-            except ValueError as e:
-                raise ValueError(f'{path}:{n}: {e}') from e
-            box=boxrow.get('box')
-            if not isinstance(box,list) or len(box)!=4:
-                raise ValueError(f'{path}:{n}: invalid box for {cls}')
-            vals=[float(x) for x in box]
-            if not all(math.isfinite(x) for x in vals) or vals[2]<=vals[0] or vals[3]<=vals[1]:
-                raise ValueError(f'{path}:{n}: invalid xyxy box {box}')
-            classes[cls]+=1;row_classes.add(cls)
-        for cls in row_classes:class_images[cls]+=1
-        rows.append(row);images.append(str(image).lower());sources[source]+=1
-    return rows,classes,images,sources,class_images
 
-def main():
-    ap=argparse.ArgumentParser()
-    ap.add_argument('--det-train',type=Path,required=True)
-    ap.add_argument('--det-eval',type=Path,required=True)
-    ap.add_argument('--snn-train',type=Path,required=True)
-    ap.add_argument('--snn-eval',type=Path,required=True)
-    ap.add_argument('--min-det-train',type=int,default=DATA_GATE_MINIMUMS['minDetectorTrainImages'])
-    ap.add_argument('--min-det-eval',type=int,default=DATA_GATE_MINIMUMS['minDetectorEvalImages'])
-    ap.add_argument('--min-snn-train',type=int,default=DATA_GATE_MINIMUMS['minSnnTrainRows'])
-    ap.add_argument('--min-snn-eval',type=int,default=DATA_GATE_MINIMUMS['minSnnEvalRows'])
-    ap.add_argument('--min-det-eval-class-instances',type=int,default=DATA_GATE_MINIMUMS['minDetectorEvalInstancesPerTrainedClass'])
-    ap.add_argument('--min-snn-eval-class-samples',type=int,default=DATA_GATE_MINIMUMS['minSnnEvalSamplesPerClass'])
-    ap.add_argument('--out',type=Path,default=Path('ai-service/trained_models/data-gate-report.json'))
-    a=ap.parse_args()
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/train.csv")
+    parser.add_argument("--val", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/val.csv")
+    parser.add_argument("--test", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/test.csv")
+    parser.add_argument("--out", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-data-gate.json")
+    parser.add_argument("--min-train", type=int, default=DATA_GATE_MINIMUMS["minSnnTrainRows"])
+    parser.add_argument("--min-eval", type=int, default=DATA_GATE_MINIMUMS["minSnnEvalRows"])
+    parser.add_argument("--min-class", type=int, default=DATA_GATE_MINIMUMS["minSnnEvalSamplesPerClass"])
+    args = parser.parse_args()
 
-    configured={
-        'minDetectorTrainImages':a.min_det_train,
-        'minDetectorEvalImages':a.min_det_eval,
-        'minSnnTrainRows':a.min_snn_train,
-        'minSnnEvalRows':a.min_snn_eval,
-        'minDetectorEvalInstancesPerTrainedClass':a.min_det_eval_class_instances,
-        'minSnnEvalSamplesPerClass':a.min_snn_eval_class_samples,
-    }
-    policy_problems=[
-        f'configured threshold {key}={configured[key]} is below policy floor {floor}'
-        for key,floor in DATA_GATE_MINIMUMS.items()
-        if configured[key] < floor
-    ]
+    problems = []
+    if args.min_train < DATA_GATE_MINIMUMS["minSnnTrainRows"]:
+        problems.append(f"--min-train {args.min_train} below policy floor {DATA_GATE_MINIMUMS['minSnnTrainRows']}")
+    if args.min_eval < DATA_GATE_MINIMUMS["minSnnEvalRows"]:
+        problems.append(f"--min-eval {args.min_eval} below policy floor {DATA_GATE_MINIMUMS['minSnnEvalRows']}")
+    if args.min_class < DATA_GATE_MINIMUMS["minSnnEvalSamplesPerClass"]:
+        problems.append(f"--min-class {args.min_class} below policy floor {DATA_GATE_MINIMUMS['minSnnEvalSamplesPerClass']}")
 
     try:
-        dtr,dtr_cls,dtr_images,dtr_sources,dtr_class_images=read_manifest(a.det_train)
-        dev,dev_cls,dev_images,dev_sources,dev_class_images=read_manifest(a.det_eval)
-        str_rows,str_labels=read_risk(a.snn_train)
-        sev_rows,sev_labels=read_risk(a.snn_eval)
-    except Exception as e:
-        print('MODEL DATA GATE: BLOCKED')
-        print('-',e)
+        train_rows = read_route_risk_csv(args.train)
+        val_rows = read_route_risk_csv(args.val)
+        test_rows = read_route_risk_csv(args.test)
+    except Exception as exc:
+        print("NAVORA DATA GATE: BLOCKED")
+        print("-", exc)
         return 2
 
-    problems=list(policy_problems)
-    det_overlap=set(dtr_images)&set(dev_images)
-    snn_overlap=set(map(risk_signature,str_rows))&set(map(risk_signature,sev_rows))
-    det_dup_train=len(dtr_images)-len(set(dtr_images))
-    det_dup_eval=len(dev_images)-len(set(dev_images))
+    train_ids = {row["route_id"] for row in train_rows}
+    val_ids = {row["route_id"] for row in val_rows}
+    test_ids = {row["route_id"] for row in test_rows}
+    train_val_overlap = train_ids & val_ids
+    train_test_overlap = train_ids & test_ids
+    val_test_overlap = val_ids & test_ids
 
-    if len(dtr)<a.min_det_train: problems.append(f'detector training images {len(dtr)} < {a.min_det_train}')
-    if len(dev)<a.min_det_eval: problems.append(f'detector held-out images {len(dev)} < {a.min_det_eval}')
-    if len(str_rows)<a.min_snn_train: problems.append(f'SNN training rows {len(str_rows)} < {a.min_snn_train}')
-    if len(sev_rows)<a.min_snn_eval: problems.append(f'SNN held-out rows {len(sev_rows)} < {a.min_snn_eval}')
-    if det_overlap: problems.append(f'detector train/eval leakage: {len(det_overlap)} shared image(s)')
-    if snn_overlap: problems.append(f'SNN train/eval leakage: {len(snn_overlap)} identical row(s)')
-    if det_dup_train: problems.append(f'detector train manifest has {det_dup_train} duplicate image row(s)')
-    if det_dup_eval: problems.append(f'detector eval manifest has {det_dup_eval} duplicate image row(s)')
+    if len(train_rows) < args.min_train:
+        problems.append(f"train rows {len(train_rows)} < {args.min_train}")
+    if len(val_rows) < args.min_eval:
+        problems.append(f"validation rows {len(val_rows)} < {args.min_eval}")
+    if len(test_rows) < args.min_eval:
+        problems.append(f"final test rows {len(test_rows)} < {args.min_eval}")
+    if len(train_rows) != EXPECTED_TRAIN:
+        problems.append(f"train rows expected {EXPECTED_TRAIN}, found {len(train_rows)}")
+    if len(val_rows) != EXPECTED_VAL:
+        problems.append(f"validation rows expected {EXPECTED_VAL}, found {len(val_rows)}")
+    if len(test_rows) != EXPECTED_TEST:
+        problems.append(f"final test rows expected {EXPECTED_TEST}, found {len(test_rows)}")
 
-    trained_classes=ordered_classes(c for c,n in dtr_cls.items() if n>0)
-    eval_classes=ordered_classes(c for c,n in dev_cls.items() if n>0)
-    eval_only_classes=[c for c in eval_classes if c not in trained_classes]
-    if eval_only_classes:
-        problems.append(f'detector held-out manifest contains classes absent from training: {eval_only_classes}')
-    train_sources=sorted(dtr_sources)
-    eval_sources=sorted(dev_sources)
-    eval_only_sources=[s for s in eval_sources if s not in train_sources]
-    missing_eval_sources=[s for s in train_sources if dev_sources.get(s,0)==0]
-    if eval_only_sources:
-        problems.append(f'detector held-out manifest contains sources absent from training: {eval_only_sources}')
-    if missing_eval_sources:
-        problems.append(f'detector trained sources missing from held-out data: {missing_eval_sources}')
+    if train_val_overlap:
+        problems.append(f"train/val overlap: {len(train_val_overlap)} shared route IDs")
+    if train_test_overlap:
+        problems.append(f"train/test overlap: {len(train_test_overlap)} shared route IDs")
+    if val_test_overlap:
+        problems.append(f"val/test overlap: {len(val_test_overlap)} shared route IDs")
 
-    low_eval={c:dev_cls.get(c,0) for c in trained_classes if dev_cls.get(c,0)<a.min_det_eval_class_instances}
-    if low_eval:
-        problems.append(f'detector held-out class coverage below {a.min_det_eval_class_instances}: {low_eval}')
-    low_risk={c:sev_labels.get(c,0) for c in RISK_LABELS if sev_labels.get(c,0)<a.min_snn_eval_class_samples}
-    if low_risk:
-        problems.append(f'SNN held-out label coverage below {a.min_snn_eval_class_samples}: {low_risk}')
+    if len(train_ids) != len(train_rows):
+        problems.append(f"train split contains duplicate route IDs: {len(train_rows) - len(train_ids)}")
+    if len(val_ids) != len(val_rows):
+        problems.append(f"validation split contains duplicate route IDs: {len(val_rows) - len(val_ids)}")
+    if len(test_ids) != len(test_rows):
+        problems.append(f"final test split contains duplicate route IDs: {len(test_rows) - len(test_ids)}")
 
-    report={
-        'passed':not problems,
-        'policyCompliant':not policy_problems,
-        'thresholds':configured,
-        'policyFloors':DATA_GATE_MINIMUMS,
-        'detector':{
-            'trainImages':len(dtr),'evalImages':len(dev),
-            'trainClasses':trained_classes,'evalClasses':eval_classes,
-            'trainSources':dict(dtr_sources),'evalSources':dict(dev_sources),
-            'trainClassInstances':dict(dtr_cls),'evalClassInstances':dict(dev_cls),
-            'trainClassImages':dict(dtr_class_images),'evalClassImages':dict(dev_class_images),
-            'trainEvalImageOverlap':len(det_overlap),
-            'trainSha256':sha256_file(a.det_train),'evalSha256':sha256_file(a.det_eval)
+    train_counts = Counter(row["_inferred_label"] for row in train_rows)
+    val_counts = Counter(row["_inferred_label"] for row in val_rows)
+    test_counts = Counter(row["_inferred_label"] for row in test_rows)
+    for label in CLASS_ORDER:
+        if train_counts.get(label, 0) < 150:
+            problems.append(f"train class {label} count {train_counts.get(label, 0)} < 150")
+        if val_counts.get(label, 0) < 50:
+            problems.append(f"validation class {label} count {val_counts.get(label, 0)} < 50")
+        if test_counts.get(label, 0) < 50:
+            problems.append(f"final test class {label} count {test_counts.get(label, 0)} < 50")
+
+    report = {
+        "passed": not problems,
+        "datasetVersion": "prototype-v2",
+        "featureCount": len(FEATURES),
+        "featureNames": FEATURES,
+        "seed": 42,
+        "expected": {
+            "trainRows": EXPECTED_TRAIN,
+            "validationRows": EXPECTED_VAL,
+            "finalTestRows": EXPECTED_TEST,
+            "trainClassCounts": {label: 150 for label in CLASS_ORDER},
+            "validationClassCounts": {label: 50 for label in CLASS_ORDER},
+            "finalTestClassCounts": {label: 50 for label in CLASS_ORDER},
         },
-        'snn':{
-            'trainRows':len(str_rows),'evalRows':len(sev_rows),
-            'trainLabels':dict(str_labels),'evalLabels':dict(sev_labels),
-            'trainEvalRowOverlap':len(snn_overlap),
-            'trainSha256':sha256_file(a.snn_train),'evalSha256':sha256_file(a.snn_eval)
+        "observed": {
+            "trainRows": len(train_rows),
+            "validationRows": len(val_rows),
+            "finalTestRows": len(test_rows),
+            "trainClassCounts": dict(train_counts),
+            "validationClassCounts": dict(val_counts),
+            "finalTestClassCounts": dict(test_counts),
         },
-        'problems':problems
+        "hashes": {
+            "trainCsvSha256": sha256_file(args.train),
+            "valCsvSha256": sha256_file(args.val),
+            "testCsvSha256": sha256_file(args.test),
+        },
+        "splitOverlap": {
+            "trainValRouteIds": len(train_val_overlap),
+            "trainTestRouteIds": len(train_test_overlap),
+            "valTestRouteIds": len(val_test_overlap),
+        },
+        "thresholds": {
+            "minSnnTrainRows": DATA_GATE_MINIMUMS["minSnnTrainRows"],
+            "minSnnEvalRows": DATA_GATE_MINIMUMS["minSnnEvalRows"],
+            "minSnnEvalSamplesPerClass": DATA_GATE_MINIMUMS["minSnnEvalSamplesPerClass"],
+        },
+        "problems": problems,
     }
-    a.out.parent.mkdir(parents=True,exist_ok=True)
-    a.out.write_text(json.dumps(report,indent=2),encoding='utf-8')
-    print(json.dumps(report,indent=2))
+    args.out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(json.dumps(report, indent=2))
     if problems:
-        print('MODEL DATA GATE: BLOCKED')
-        for p in problems:
-            print('-',p)
+        print("NAVORA DATA GATE: BLOCKED")
         return 2
-    print('MODEL DATA GATE: PASS')
+    print("NAVORA DATA GATE: PASS")
     return 0
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     raise SystemExit(main())

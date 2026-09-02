@@ -1,0 +1,84 @@
+{
+  "passed": true,
+  "datasetVersion": "prototype-v2",
+  "featureCount": 14,
+  "featureNames": [
+    "distance_km",
+    "travel_time_min",
+    "traffic_level",
+    "road_condition",
+    "pothole_level",
+    "road_damage_level",
+    "road_blockage_level",
+    "weather_condition",
+    "accident_risk",
+    "pedestrian_density",
+    "vehicle_density",
+    "road_width",
+    "lighting_condition",
+    "historical_risk"
+  ],
+  "seed": 42,
+  "expected": {
+    "trainRows": 600,
+    "validationRows": 200,
+    "finalTestRows": 200,
+    "trainClassCounts": {
+      "LOW": 150,
+      "MEDIUM": 150,
+      "HIGH": 150,
+      "CRITICAL": 150
+    },
+    "validationClassCounts": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    },
+    "finalTestClassCounts": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    }
+  },
+  "observed": {
+    "trainRows": 600,
+    "validationRows": 200,
+    "finalTestRows": 200,
+    "trainClassCounts": {
+      "LOW": 150,
+      "MEDIUM": 150,
+      "HIGH": 150,
+      "CRITICAL": 150
+    },
+    "validationClassCounts": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    },
+    "finalTestClassCounts": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    }
+  },
+  "hashes": {
+    "trainCsvSha256": "0d3b86e6ee7a3c002c261f13f948bec2ccac1d55b9ac5edcca65c3dfd47f097f",
+    "valCsvSha256": "84de81f0c8f89688b65e8ddeea8aa702b3fd9ed69503042726b4f0e295f54cf4",
+    "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2"
+  },
+  "splitOverlap": {
+    "trainValRouteIds": 0,
+    "trainTestRouteIds": 0,
+    "valTestRouteIds": 0
+  },
+  "thresholds": {
+    "minSnnTrainRows": 400,
+    "minSnnEvalRows": 200,
+    "minSnnEvalSamplesPerClass": 10
+  },
+  "problems": []
+}

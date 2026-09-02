@@ -1,7 +1,8 @@
 {
   "model": "RiskSNN",
-  "riskModelVersion": "navora-risk-snn-prototype-v1",
-  "dataset": "NAVORA Route Risk Dataset prototype-v1",
+  "riskModelVersion": "navora-risk-snn-prototype-v2",
+  "datasetVersion": "prototype-v2",
+  "dataset": "NAVORA Route Risk Dataset prototype-v2",
   "features": [
     "distance_km",
     "travel_time_min",
@@ -18,227 +19,225 @@
     "lighting_condition",
     "historical_risk"
   ],
+  "featureCount": 14,
   "seed": 42,
   "epochs": 40,
   "batchSize": 32,
   "optimizer": "Adam",
   "learningRate": 0.005,
-  "trainSamples": 560,
-  "validationSamples": 120,
-  "testSamples": 120,
+  "trainSamples": 600,
+  "validationSamples": 200,
+  "finalTestSamples": 200,
+  "testSamples": 200,
   "history": [
     {
       "epoch": 1,
-      "trainLoss": 1.2593639305659703,
-      "valLoss": 1.0883045196533203
+      "trainLoss": 1.2380949147542317,
+      "valLoss": 1.021216869354248
     },
     {
       "epoch": 2,
-      "trainLoss": 0.9412299122129167,
-      "valLoss": 0.7786999344825745
+      "trainLoss": 0.8938827443122864,
+      "valLoss": 0.7158886790275574
     },
     {
       "epoch": 3,
-      "trainLoss": 0.7077120218958174,
-      "valLoss": 0.6319767832756042
+      "trainLoss": 0.657003002166748,
+      "valLoss": 0.5496861934661865
     },
     {
       "epoch": 4,
-      "trainLoss": 0.5565226827348981,
-      "valLoss": 0.5761557221412659
+      "trainLoss": 0.5471154602368673,
+      "valLoss": 0.534045398235321
     },
     {
       "epoch": 5,
-      "trainLoss": 0.5156041537012372,
-      "valLoss": 0.5176823735237122
+      "trainLoss": 0.5082843589782715,
+      "valLoss": 0.5082990527153015
     },
     {
       "epoch": 6,
-      "trainLoss": 0.4865819215774536,
-      "valLoss": 0.4849361181259155
+      "trainLoss": 0.4988242304325104,
+      "valLoss": 0.5042735934257507
     },
     {
       "epoch": 7,
-      "trainLoss": 0.47985871859959195,
-      "valLoss": 0.48220884799957275
+      "trainLoss": 0.47879754622777304,
+      "valLoss": 0.46779078245162964
     },
     {
       "epoch": 8,
-      "trainLoss": 0.483714975629534,
-      "valLoss": 0.4860033094882965
+      "trainLoss": 0.4714310026168823,
+      "valLoss": 0.45962169766426086
     },
     {
       "epoch": 9,
-      "trainLoss": 0.4586992962019784,
-      "valLoss": 0.5241551399230957
+      "trainLoss": 0.4750899775822957,
+      "valLoss": 0.45831993222236633
     },
     {
       "epoch": 10,
-      "trainLoss": 0.4712238184043339,
-      "valLoss": 0.5403338074684143
+      "trainLoss": 0.4598256500562032,
+      "valLoss": 0.5022025108337402
     },
     {
       "epoch": 11,
-      "trainLoss": 0.4524964221886226,
-      "valLoss": 0.49472910165786743
+      "trainLoss": 0.4726888195673625,
+      "valLoss": 0.5101705193519592
     },
     {
       "epoch": 12,
-      "trainLoss": 0.4650816219193595,
-      "valLoss": 0.6049321293830872
+      "trainLoss": 0.4528683598836263,
+      "valLoss": 0.4425511062145233
     },
     {
       "epoch": 13,
-      "trainLoss": 0.49517189604895456,
-      "valLoss": 0.47158336639404297
+      "trainLoss": 0.43031255443890887,
+      "valLoss": 0.43493640422821045
     },
     {
       "epoch": 14,
-      "trainLoss": 0.4689543468611581,
-      "valLoss": 0.47015300393104553
+      "trainLoss": 0.4409577079614003,
+      "valLoss": 0.4430617392063141
     },
     {
       "epoch": 15,
-      "trainLoss": 0.44783872791699003,
-      "valLoss": 0.48991233110427856
+      "trainLoss": 0.44017583012580874,
+      "valLoss": 0.44552910327911377
     },
     {
       "epoch": 16,
-      "trainLoss": 0.4506582702909197,
-      "valLoss": 0.46081244945526123
+      "trainLoss": 0.4204644838968913,
+      "valLoss": 0.42190977931022644
     },
     {
       "epoch": 17,
-      "trainLoss": 0.4581031841891153,
-      "valLoss": 0.5433528423309326
+      "trainLoss": 0.42872151732444763,
+      "valLoss": 0.44562071561813354
     },
     {
       "epoch": 18,
-      "trainLoss": 0.4493987057890211,
-      "valLoss": 0.46855786442756653
+      "trainLoss": 0.4376706083615621,
+      "valLoss": 0.44817039370536804
     },
     {
       "epoch": 19,
-      "trainLoss": 0.43711071014404296,
-      "valLoss": 0.4266553521156311
+      "trainLoss": 0.41797539512316384,
+      "valLoss": 0.42832425236701965
     },
     {
       "epoch": 20,
-      "trainLoss": 0.4314860420567649,
-      "valLoss": 0.43508660793304443
+      "trainLoss": 0.41504972815513613,
+      "valLoss": 0.4301271140575409
     },
     {
       "epoch": 21,
-      "trainLoss": 0.43911003300121854,
-      "valLoss": 0.4164423942565918
+      "trainLoss": 0.40994465629259746,
+      "valLoss": 0.4149513244628906
     },
     {
       "epoch": 22,
-      "trainLoss": 0.43186392954417635,
-      "valLoss": 0.4400193393230438
+      "trainLoss": 0.420268136660258,
+      "valLoss": 0.4207746982574463
     },
     {
       "epoch": 23,
-      "trainLoss": 0.4101017211164747,
-      "valLoss": 0.4214250147342682
+      "trainLoss": 0.4131653638680776,
+      "valLoss": 0.41562560200691223
     },
     {
       "epoch": 24,
-      "trainLoss": 0.42160805123192924,
-      "valLoss": 0.4161968231201172
+      "trainLoss": 0.4221614952882131,
+      "valLoss": 0.4329167604446411
     },
     {
       "epoch": 25,
-      "trainLoss": 0.4263409146240779,
-      "valLoss": 0.4471540153026581
+      "trainLoss": 0.42265589237213136,
+      "valLoss": 0.4210015833377838
     },
     {
       "epoch": 26,
-      "trainLoss": 0.45451906153133936,
-      "valLoss": 0.46311405301094055
+      "trainLoss": 0.402214500506719,
+      "valLoss": 0.41231629252433777
     },
     {
       "epoch": 27,
-      "trainLoss": 0.41657271129744394,
-      "valLoss": 0.4545798897743225
+      "trainLoss": 0.40306920647621153,
+      "valLoss": 0.412947416305542
     },
     {
       "epoch": 28,
-      "trainLoss": 0.42486696328435625,
-      "valLoss": 0.42016345262527466
+      "trainLoss": 0.41381705125172935,
+      "valLoss": 0.41557368636131287
     },
     {
       "epoch": 29,
-      "trainLoss": 0.4093083943639483,
-      "valLoss": 0.4252268373966217
+      "trainLoss": 0.40381141304969786,
+      "valLoss": 0.40487584471702576
     },
     {
       "epoch": 30,
-      "trainLoss": 0.409667090007237,
-      "valLoss": 0.43851912021636963
+      "trainLoss": 0.4044341087341309,
+      "valLoss": 0.4067048728466034
     },
     {
       "epoch": 31,
-      "trainLoss": 0.42172872935022626,
-      "valLoss": 0.45707863569259644
+      "trainLoss": 0.4026134852568308,
+      "valLoss": 0.39864838123321533
     },
     {
       "epoch": 32,
-      "trainLoss": 0.4209732736860003,
-      "valLoss": 0.4882144629955292
+      "trainLoss": 0.41152538855870563,
+      "valLoss": 0.4301958382129669
     },
     {
       "epoch": 33,
-      "trainLoss": 0.4250104035649981,
-      "valLoss": 0.42383673787117004
+      "trainLoss": 0.42930299560228985,
+      "valLoss": 0.42371422052383423
     },
     {
       "epoch": 34,
-      "trainLoss": 0.41408421652657645,
-      "valLoss": 0.42883166670799255
+      "trainLoss": 0.410512361129125,
+      "valLoss": 0.41782259941101074
     },
     {
       "epoch": 35,
-      "trainLoss": 0.40088389686175757,
-      "valLoss": 0.4236949384212494
+      "trainLoss": 0.41677228927612303,
+      "valLoss": 0.42840635776519775
     },
     {
       "epoch": 36,
-      "trainLoss": 0.40162928530148095,
-      "valLoss": 0.4119352102279663
+      "trainLoss": 0.41260462125142416,
+      "valLoss": 0.4046209752559662
     },
     {
       "epoch": 37,
-      "trainLoss": 0.4140148299080985,
-      "valLoss": 0.429753839969635
+      "trainLoss": 0.396074104309082,
+      "valLoss": 0.43417710065841675
     },
     {
       "epoch": 38,
-      "trainLoss": 0.4474857296262469,
-      "valLoss": 0.4076412320137024
+      "trainLoss": 0.397422989209493,
+      "valLoss": 0.41155651211738586
     },
     {
       "epoch": 39,
-      "trainLoss": 0.40766031060900004,
-      "valLoss": 0.4225354492664337
+      "trainLoss": 0.3969079172611237,
+      "valLoss": 0.41761770844459534
     },
     {
       "epoch": 40,
-      "trainLoss": 0.42126269255365645,
-      "valLoss": 0.41210606694221497
+      "trainLoss": 0.4092275889714559,
+      "valLoss": 0.4514923095703125
     }
   ],
   "testMetrics": {
-    "samples": 120,
-    "accuracy": 0.975,
-    "macroF1": 0.9749858677218768,
-    "maeRiskScore": 0.09627062738355666
+    "samples": 200,
+    "accuracy": 0.965,
+    "macroF1": 0.964838950881883,
+    "maeRiskScore": 0.0976190308853984
   },
   "validated": false,
-  "note": "Prototype NAVORA route-risk SNN remains unvalidated because the repository policy requires a 200-sample held-out evaluation set, while the approved 560/120/120 split intentionally leaves 120 rows in test; the dataset is balanced and the model metrics are strong, but the gate is not weakened.",
   "riskValidated": false,
-  "validation": {
-    "riskReport": "snn-evaluation.json",
-    "evidenceSchema": 3
-  }
+  "note": "Prototype data; final held-out evaluation is locked for one-time validation only."
 }

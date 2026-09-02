@@ -1,18 +1,30 @@
 {
-  "records": 800,
+  "passed": true,
+  "records": 1000,
+  "duplicateRecords": 0,
   "featureCount": 14,
   "target": "route_risk_score",
-  "duplicateRecords": 0,
+  "classCounts": {
+    "LOW": 250,
+    "MEDIUM": 250,
+    "HIGH": 250,
+    "CRITICAL": 250
+  },
+  "expectedClassCounts": {
+    "LOW": 250,
+    "MEDIUM": 250,
+    "HIGH": 250,
+    "CRITICAL": 250
+  },
   "invalidValues": [],
-  "passed": true,
   "featureRanges": {
     "distance_km": [
-      1.575,
-      23.957
+      1.555,
+      23.977
     ],
     "travel_time_min": [
-      3.693,
-      135.828
+      3.259,
+      130.927
     ],
     "traffic_level": [
       0.0,
@@ -39,12 +51,12 @@
       3.0
     ],
     "accident_risk": [
-      0.0214,
-      0.98
+      0.0204,
+      0.9789
     ],
     "pedestrian_density": [
-      0.0212,
-      0.9598
+      0.0207,
+      0.9594
     ],
     "vehicle_density": [
       0.0,
@@ -60,7 +72,7 @@
     ],
     "historical_risk": [
       0.0501,
-      0.9591
+      0.9597
     ],
     "route_risk_score": [
       0.096693,

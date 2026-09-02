@@ -1,4 +1,4 @@
-"""Create and validate the small, deterministic NAVORA route-risk prototype dataset."""
+"""Create the deterministic NAVORA route-risk prototype-v2 dataset."""
 from __future__ import annotations
 
 import argparse
@@ -9,10 +9,20 @@ import random
 from pathlib import Path
 
 FEATURES = [
-    "distance_km", "travel_time_min", "traffic_level", "road_condition",
-    "pothole_level", "road_damage_level", "road_blockage_level",
-    "weather_condition", "accident_risk", "pedestrian_density",
-    "vehicle_density", "road_width", "lighting_condition", "historical_risk",
+    "distance_km",
+    "travel_time_min",
+    "traffic_level",
+    "road_condition",
+    "pothole_level",
+    "road_damage_level",
+    "road_blockage_level",
+    "weather_condition",
+    "accident_risk",
+    "pedestrian_density",
+    "vehicle_density",
+    "road_width",
+    "lighting_condition",
+    "historical_risk",
 ]
 TARGET = "route_risk_score"
 CLASS_ORDER = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -22,6 +32,8 @@ CLASS_BOUNDS = {
     "HIGH": (0.55, 0.74),
     "CRITICAL": (0.80, 0.94),
 }
+EXPECTED_CLASS_COUNTS = {label: 250 for label in CLASS_ORDER}
+EXPECTED_SPLITS = {"train": 600, "val": 200, "test": 200}
 ENCODINGS = {
     "traffic_level": "0=low, 1=medium, 2=high",
     "road_condition": "0=good, 1=moderate, 2=poor",
@@ -37,8 +49,14 @@ def clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
 
 
-def _choose_by_class(label: str, rng: random.Random, options: list[float]) -> float:
-    return round(float(rng.choice(options)), 4)
+def label_for_score(score: float) -> str:
+    if score < 0.25:
+        return "LOW"
+    if score < 0.5:
+        return "MEDIUM"
+    if score < 0.75:
+        return "HIGH"
+    return "CRITICAL"
 
 
 def make_record(label: str, route_index: int, rng: random.Random) -> dict:
@@ -142,31 +160,27 @@ def make_record(label: str, route_index: int, rng: random.Random) -> dict:
     else:
         score = clamp(score * 0.92 + 0.10, lower, upper)
     score = round(clamp(score, 0.0, 1.0), 6)
-    return {
-        "route_id": f"route-{route_index:04d}",
-        **frag,
-        TARGET: score,
-    }
+    return {"route_id": f"route-{route_index:04d}", **frag, TARGET: score}
 
 
-def make_records(count: int, seed: int) -> list[dict]:
-    if count % len(CLASS_ORDER) != 0:
-        raise ValueError("count must be divisible by the number of target classes")
+def make_records(total: int, seed: int) -> list[dict]:
+    if total != 1000:
+        raise ValueError("NAVORA prototype-v2 requires exactly 1000 rows for exact 250/class balance")
     rng = random.Random(seed)
-    per_class = count // len(CLASS_ORDER)
     records: list[dict] = []
     route_index = 1
     for label in CLASS_ORDER:
-        for _ in range(per_class):
+        for _ in range(EXPECTED_CLASS_COUNTS[label]):
             records.append(make_record(label, route_index, rng))
             route_index += 1
     rng.shuffle(records)
     return records
 
 
-def validate(records: list[dict]) -> dict:
+def validate_records(records: list[dict]) -> dict:
     invalid = []
-    ids = set()
+    route_ids = set()
+    class_counts = {label: 0 for label in CLASS_ORDER}
     range_checks = {
         "vehicle_density": (0.0, 1.0),
         "accident_risk": (0.0, 1.0),
@@ -175,47 +189,46 @@ def validate(records: list[dict]) -> dict:
         "route_risk_score": (0.0, 1.0),
     }
     for row in records:
-        if row["route_id"] in ids:
-            invalid.append(row["route_id"])
-        ids.add(row["route_id"])
+        route_id = row.get("route_id")
+        if route_id in route_ids:
+            invalid.append(f"duplicate route_id {route_id}")
+        route_ids.add(route_id)
+        s = float(row[TARGET])
+        inferred = label_for_score(s)
+        class_counts[inferred] = class_counts.get(inferred, 0) + 1
         for key in FEATURES + [TARGET]:
             value = row.get(key)
             if not isinstance(value, (int, float)) or not math.isfinite(value):
-                invalid.append(f"{row['route_id']}:{key}")
+                invalid.append(f"{route_id}:{key}: non-numeric")
                 continue
             lower, upper = range_checks.get(key, (-float("inf"), float("inf")))
             if value < lower or value > upper:
-                invalid.append(f"{row['route_id']}:{key}:{value}")
+                invalid.append(f"{route_id}:{key}:{value}")
+    expected_total = sum(EXPECTED_CLASS_COUNTS.values())
+    class_ok = class_counts == EXPECTED_CLASS_COUNTS
+    passed = (
+        len(records) == expected_total
+        and len(route_ids) == len(records)
+        and not invalid
+        and class_ok
+    )
     return {
+        "passed": passed,
         "records": len(records),
+        "duplicateRecords": len(records) - len(route_ids),
         "featureCount": len(FEATURES),
         "target": TARGET,
-        "duplicateRecords": len(records) - len(ids),
+        "classCounts": class_counts,
+        "expectedClassCounts": EXPECTED_CLASS_COUNTS,
         "invalidValues": invalid,
-        "passed": not invalid and len(records) == len(ids),
-        "featureRanges": {key: [min(float(r[key]) for r in records), max(float(r[key]) for r in records)] for key in FEATURES + [TARGET]},
+        "featureRanges": {
+            key: [min(float(r[key]) for r in records), max(float(r[key]) for r in records)]
+            for key in FEATURES + [TARGET]
+        },
     }
 
 
-def write_csv(path: Path, records: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["route_id"] + FEATURES + [TARGET])
-        writer.writeheader()
-        writer.writerows(records)
-
-
-def label_for_score(score: float) -> str:
-    if score < 0.25:
-        return "LOW"
-    if score < 0.5:
-        return "MEDIUM"
-    if score < 0.75:
-        return "HIGH"
-    return "CRITICAL"
-
-
-def stratified_splits(records: list[dict], seed: int) -> dict[str, list[dict]]:
+def split_records(records: list[dict], seed: int) -> dict[str, list[dict]]:
     by_class = {label: [] for label in CLASS_ORDER}
     for row in records:
         by_class[label_for_score(float(row[TARGET]))].append(row)
@@ -224,42 +237,70 @@ def stratified_splits(records: list[dict], seed: int) -> dict[str, list[dict]]:
     for label in CLASS_ORDER:
         rows = by_class[label][:]
         rng.shuffle(rows)
-        n_train = int(len(rows) * 0.70)
-        n_val = int(len(rows) * 0.15)
-        splits["train"].extend(rows[:n_train])
-        splits["val"].extend(rows[n_train:n_train + n_val])
-        splits["test"].extend(rows[n_train + n_val:])
+        splits["train"].extend(rows[:150])
+        splits["val"].extend(rows[150:200])
+        splits["test"].extend(rows[200:250])
     return splits
+
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["route_id"] + FEATURES + [TARGET])
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("ai-service/datasets/navora_route_risk"))
-    parser.add_argument("--records", type=int, default=800)
+    parser.add_argument("--records", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-    if args.records < 500 or args.records > 1000:
-        raise SystemExit("--records must be between 500 and 1000")
+
+    if args.records != 1000:
+        raise SystemExit("NAVORA prototype-v2 requires exactly 1000 rows; exact 250/class balance is mandatory")
     records = make_records(args.records, args.seed)
-    report = validate(records)
-    if not report["passed"]:
-        raise SystemExit(json.dumps(report, indent=2))
-    splits = stratified_splits(records, args.seed)
+    validation = validate_records(records)
+    if not validation["passed"]:
+        raise SystemExit(json.dumps(validation, indent=2))
+
+    splits = split_records(records, args.seed)
     args.output.mkdir(parents=True, exist_ok=True)
     write_csv(args.output / "navora_route_risk.csv", records)
-    for name, rows in splits.items():
-        write_csv(args.output / f"{name}.csv", rows)
-    (args.output / "dataset_validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    for split_name, rows in splits.items():
+        write_csv(args.output / f"{split_name}.csv", rows)
+
+    split_counts = {name: len(rows) for name, rows in splits.items()}
+    class_counts = {name: {label: sum(1 for row in rows if label_for_score(float(row[TARGET])) == label) for label in CLASS_ORDER} for name, rows in splits.items()}
     metadata = {
-        "name": "NAVORA Route Risk Dataset", "version": "prototype-v1",
-        "description": "NAVORA Route Risk Dataset is a manually curated prototype dataset created for evaluating and demonstrating the NAVORA mini-project.",
-        "seed": args.seed, "records": len(records), "features": FEATURES,
-        "target": TARGET, "encodings": ENCODINGS,
-        "splits": {name: len(rows) for name, rows in splits.items()},
+        "name": "NAVORA Route Risk Dataset",
+        "version": "prototype-v2",
+        "description": "NAVORA camera-free route-risk prototype dataset generated deterministically for reproducible validation and evaluation.",
+        "seed": args.seed,
+        "records": len(records),
+        "features": FEATURES,
+        "target": TARGET,
+        "encodings": ENCODINGS,
+        "splits": split_counts,
+        "classCounts": {
+            "total": validation["classCounts"],
+            "train": class_counts["train"],
+            "val": class_counts["val"],
+            "test": class_counts["test"],
+        },
         "validation": "dataset_validation.json",
     }
     (args.output / "dataset_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    print(json.dumps({"output": str(args.output), "splits": metadata["splits"], "passed": True}, indent=2))
+    (args.output / "dataset_validation.json").write_text(json.dumps(validation, indent=2), encoding="utf-8")
+
+    print(json.dumps({
+        "output": str(args.output),
+        "total": len(records),
+        "splits": split_counts,
+        "classCounts": metadata["classCounts"],
+        "passed": True,
+    }, indent=2))
 
 
 if __name__ == "__main__":

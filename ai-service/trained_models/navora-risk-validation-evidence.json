@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 3,
+  "datasetVersion": "prototype-v2",
+  "seed": 42,
+  "featureCount": 14,
+  "featureNames": [
+    "distance_km",
+    "travel_time_min",
+    "traffic_level",
+    "road_condition",
+    "pothole_level",
+    "road_damage_level",
+    "road_blockage_level",
+    "weather_condition",
+    "accident_risk",
+    "pedestrian_density",
+    "vehicle_density",
+    "road_width",
+    "lighting_condition",
+    "historical_risk"
+  ],
+  "createdAt": "2026-09-02T12:45:34.019783+00:00",
+  "passed": true,
+  "validationStatus": "PASS",
+  "weights": {
+    "modelWeightSha256": "1997cacacb127c6bca86d469f1ef6712f4e299aa85566cf637b646d25d80bd3e"
+  },
+  "datasets": {
+    "trainCsvSha256": "0d3b86e6ee7a3c002c261f13f948bec2ccac1d55b9ac5edcca65c3dfd47f097f",
+    "valCsvSha256": "84de81f0c8f89688b65e8ddeea8aa702b3fd9ed69503042726b4f0e295f54cf4",
+    "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2"
+  },
+  "reports": {
+    "evaluationSha256": "75c2eb3115774048bb5cf308b77dbda31d016295e22c17d5b8e7b1f0a67d4f4b",
+    "gateSha256": "1260777d8241f85c6f3627df3803c4d4e18140a1f9d393f96ac19cddb04b9c83",
+    "metadataSha256": "a92deb668a03f86cf634810ce66cd8326b1fef9e5352ae0d0b4a6644e51143b2"
+  },
+  "evaluation": {
+    "datasetVersion": "prototype-v2",
+    "seed": 42,
+    "model": "RiskSNN",
+    "featureCount": 14,
+    "featureNames": [
+      "distance_km",
+      "travel_time_min",
+      "traffic_level",
+      "road_condition",
+      "pothole_level",
+      "road_damage_level",
+      "road_blockage_level",
+      "weather_condition",
+      "accident_risk",
+      "pedestrian_density",
+      "vehicle_density",
+      "road_width",
+      "lighting_condition",
+      "historical_risk"
+    ],
+    "dataset": "C:\\Users\\kitty\\Main Project\\neuromorphic-adaptive-navigation\\ai-service\\datasets\\navora_route_risk\\test.csv",
+    "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2",
+    "modelWeightSha256": "1997cacacb127c6bca86d469f1ef6712f4e299aa85566cf637b646d25d80bd3e",
+    "samples": 200,
+    "labels": [
+      "LOW",
+      "MEDIUM",
+      "HIGH",
+      "CRITICAL"
+    ],
+    "accuracy": 0.98,
+    "macroF1": 0.979989,
+    "balancedAccuracy": 0.98,
+    "negativeLogLikelihood": 0.411414,
+    "classSupport": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    },
+    "confusionMatrix": [
+      [
+        50,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        49,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        47,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        50
+      ]
+    ],
+    "perClass": {
+      "LOW": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 50
+      },
+      "MEDIUM": {
+        "precision": 1.0,
+        "recall": 0.98,
+        "f1": 0.989899,
+        "support": 50
+      },
+      "HIGH": {
+        "precision": 0.979167,
+        "recall": 0.94,
+        "f1": 0.959184,
+        "support": 50
+      },
+      "CRITICAL": {
+        "precision": 0.943396,
+        "recall": 1.0,
+        "f1": 0.970874,
+        "support": 50
+      }
+    },
+    "thresholds": {
+      "minSamples": 200,
+      "minAccuracy": 0.75,
+      "minMacroF1": 0.7,
+      "minPerClassF1": 0.55,
+      "minHighRiskRecall": 0.65
+    },
+    "policyPassed": true,
+    "passed": true,
+    "problems": []
+  },
+  "dataGate": {
+    "passed": true,
+    "datasetVersion": "prototype-v2",
+    "featureCount": 14,
+    "featureNames": [
+      "distance_km",
+      "travel_time_min",
+      "traffic_level",
+      "road_condition",
+      "pothole_level",
+      "road_damage_level",
+      "road_blockage_level",
+      "weather_condition",
+      "accident_risk",
+      "pedestrian_density",
+      "vehicle_density",
+      "road_width",
+      "lighting_condition",
+      "historical_risk"
+    ],
+    "seed": 42,
+    "expected": {
+      "trainRows": 600,
+      "validationRows": 200,
+      "finalTestRows": 200,
+      "trainClassCounts": {
+        "LOW": 150,
+        "MEDIUM": 150,
+        "HIGH": 150,
+        "CRITICAL": 150
+      },
+      "validationClassCounts": {
+        "LOW": 50,
+        "MEDIUM": 50,
+        "HIGH": 50,
+        "CRITICAL": 50
+      },
+      "finalTestClassCounts": {
+        "LOW": 50,
+        "MEDIUM": 50,
+        "HIGH": 50,
+        "CRITICAL": 50
+      }
+    },
+    "observed": {
+      "trainRows": 600,
+      "validationRows": 200,
+      "finalTestRows": 200,
+      "trainClassCounts": {
+        "LOW": 150,
+        "MEDIUM": 150,
+        "HIGH": 150,
+        "CRITICAL": 150
+      },
+      "validationClassCounts": {
+        "LOW": 50,
+        "MEDIUM": 50,
+        "HIGH": 50,
+        "CRITICAL": 50
+      },
+      "finalTestClassCounts": {
+        "LOW": 50,
+        "MEDIUM": 50,
+        "HIGH": 50,
+        "CRITICAL": 50
+      }
+    },
+    "hashes": {
+      "trainCsvSha256": "0d3b86e6ee7a3c002c261f13f948bec2ccac1d55b9ac5edcca65c3dfd47f097f",
+      "valCsvSha256": "84de81f0c8f89688b65e8ddeea8aa702b3fd9ed69503042726b4f0e295f54cf4",
+      "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2"
+    },
+    "splitOverlap": {
+      "trainValRouteIds": 0,
+      "trainTestRouteIds": 0,
+      "valTestRouteIds": 0
+    },
+    "thresholds": {
+      "minSnnTrainRows": 400,
+      "minSnnEvalRows": 200,
+      "minSnnEvalSamplesPerClass": 10
+    },
+    "problems": []
+  },
+  "metadata": {
+    "model": "RiskSNN",
+    "riskModelVersion": "navora-risk-snn-prototype-v2",
+    "datasetVersion": "prototype-v2",
+    "dataset": "NAVORA Route Risk Dataset prototype-v2",
+    "features": [
+      "distance_km",
+      "travel_time_min",
+      "traffic_level",
+      "road_condition",
+      "pothole_level",
+      "road_damage_level",
+      "road_blockage_level",
+      "weather_condition",
+      "accident_risk",
+      "pedestrian_density",
+      "vehicle_density",
+      "road_width",
+      "lighting_condition",
+      "historical_risk"
+    ],
+    "featureCount": 14,
+    "seed": 42,
+    "epochs": 40,
+    "batchSize": 32,
+    "optimizer": "Adam",
+    "learningRate": 0.005,
+    "trainSamples": 600,
+    "validationSamples": 200,
+    "finalTestSamples": 200,
+    "testSamples": 200,
+    "history": [
+      {
+        "epoch": 1,
+        "trainLoss": 1.2380949147542317,
+        "valLoss": 1.021216869354248
+      },
+      {
+        "epoch": 2,
+        "trainLoss": 0.8938827443122864,
+        "valLoss": 0.7158886790275574
+      },
+      {
+        "epoch": 3,
+        "trainLoss": 0.657003002166748,
+        "valLoss": 0.5496861934661865
+      },
+      {
+        "epoch": 4,
+        "trainLoss": 0.5471154602368673,
+        "valLoss": 0.534045398235321
+      },
+      {
+        "epoch": 5,
+        "trainLoss": 0.5082843589782715,
+        "valLoss": 0.5082990527153015
+      },
+      {
+        "epoch": 6,
+        "trainLoss": 0.4988242304325104,
+        "valLoss": 0.5042735934257507
+      },
+      {
+        "epoch": 7,
+        "trainLoss": 0.47879754622777304,
+        "valLoss": 0.46779078245162964
+      },
+      {
+        "epoch": 8,
+        "trainLoss": 0.4714310026168823,
+        "valLoss": 0.45962169766426086
+      },
+      {
+        "epoch": 9,
+        "trainLoss": 0.4750899775822957,
+        "valLoss": 0.45831993222236633
+      },
+      {
+        "epoch": 10,
+        "trainLoss": 0.4598256500562032,
+        "valLoss": 0.5022025108337402
+      },
+      {
+        "epoch": 11,
+        "trainLoss": 0.4726888195673625,
+        "valLoss": 0.5101705193519592
+      },
+      {
+        "epoch": 12,
+        "trainLoss": 0.4528683598836263,
+        "valLoss": 0.4425511062145233
+      },
+      {
+        "epoch": 13,
+        "trainLoss": 0.43031255443890887,
+        "valLoss": 0.43493640422821045
+      },
+      {
+        "epoch": 14,
+        "trainLoss": 0.4409577079614003,
+        "valLoss": 0.4430617392063141
+      },
+      {
+        "epoch": 15,
+        "trainLoss": 0.44017583012580874,
+        "valLoss": 0.44552910327911377
+      },
+      {
+        "epoch": 16,
+        "trainLoss": 0.4204644838968913,
+        "valLoss": 0.42190977931022644
+      },
+      {
+        "epoch": 17,
+        "trainLoss": 0.42872151732444763,
+        "valLoss": 0.44562071561813354
+      },
+      {
+        "epoch": 18,
+        "trainLoss": 0.4376706083615621,
+        "valLoss": 0.44817039370536804
+      },
+      {
+        "epoch": 19,
+        "trainLoss": 0.41797539512316384,
+        "valLoss": 0.42832425236701965
+      },
+      {
+        "epoch": 20,
+        "trainLoss": 0.41504972815513613,
+        "valLoss": 0.4301271140575409
+      },
+      {
+        "epoch": 21,
+        "trainLoss": 0.40994465629259746,
+        "valLoss": 0.4149513244628906
+      },
+      {
+        "epoch": 22,
+        "trainLoss": 0.420268136660258,
+        "valLoss": 0.4207746982574463
+      },
+      {
+        "epoch": 23,
+        "trainLoss": 0.4131653638680776,
+        "valLoss": 0.41562560200691223
+      },
+      {
+        "epoch": 24,
+        "trainLoss": 0.4221614952882131,
+        "valLoss": 0.4329167604446411
+      },
+      {
+        "epoch": 25,
+        "trainLoss": 0.42265589237213136,
+        "valLoss": 0.4210015833377838
+      },
+      {
+        "epoch": 26,
+        "trainLoss": 0.402214500506719,
+        "valLoss": 0.41231629252433777
+      },
+      {
+        "epoch": 27,
+        "trainLoss": 0.40306920647621153,
+        "valLoss": 0.412947416305542
+      },
+      {
+        "epoch": 28,
+        "trainLoss": 0.41381705125172935,
+        "valLoss": 0.41557368636131287
+      },
+      {
+        "epoch": 29,
+        "trainLoss": 0.40381141304969786,
+        "valLoss": 0.40487584471702576
+      },
+      {
+        "epoch": 30,
+        "trainLoss": 0.4044341087341309,
+        "valLoss": 0.4067048728466034
+      },
+      {
+        "epoch": 31,
+        "trainLoss": 0.4026134852568308,
+        "valLoss": 0.39864838123321533
+      },
+      {
+        "epoch": 32,
+        "trainLoss": 0.41152538855870563,
+        "valLoss": 0.4301958382129669
+      },
+      {
+        "epoch": 33,
+        "trainLoss": 0.42930299560228985,
+        "valLoss": 0.42371422052383423
+      },
+      {
+        "epoch": 34,
+        "trainLoss": 0.410512361129125,
+        "valLoss": 0.41782259941101074
+      },
+      {
+        "epoch": 35,
+        "trainLoss": 0.41677228927612303,
+        "valLoss": 0.42840635776519775
+      },
+      {
+        "epoch": 36,
+        "trainLoss": 0.41260462125142416,
+        "valLoss": 0.4046209752559662
+      },
+      {
+        "epoch": 37,
+        "trainLoss": 0.396074104309082,
+        "valLoss": 0.43417710065841675
+      },
+      {
+        "epoch": 38,
+        "trainLoss": 0.397422989209493,
+        "valLoss": 0.41155651211738586
+      },
+      {
+        "epoch": 39,
+        "trainLoss": 0.3969079172611237,
+        "valLoss": 0.41761770844459534
+      },
+      {
+        "epoch": 40,
+        "trainLoss": 0.4092275889714559,
+        "valLoss": 0.4514923095703125
+      }
+    ],
+    "testMetrics": {
+      "samples": 200,
+      "accuracy": 0.965,
+      "macroF1": 0.964838950881883,
+      "maeRiskScore": 0.0976190308853984
+    },
+    "validated": false,
+    "riskValidated": false,
+    "note": "Prototype data; final held-out evaluation is locked for one-time validation only."
+  },
+  "thresholds": {
+    "minSnnTrainRows": 400,
+    "minSnnEvalRows": 200,
+    "minSnnEvalSamplesPerClass": 10,
+    "minAccuracy": 0.75,
+    "minMacroF1": 0.7,
+    "minPerClassF1": 0.55,
+    "minHighRiskRecall": 0.65
+  },
+  "problems": []
+}

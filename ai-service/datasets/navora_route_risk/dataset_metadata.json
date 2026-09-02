@@ -1,9 +1,9 @@
 {
   "name": "NAVORA Route Risk Dataset",
-  "version": "prototype-v1",
-  "description": "NAVORA Route Risk Dataset is a manually curated prototype dataset created for evaluating and demonstrating the NAVORA mini-project.",
+  "version": "prototype-v2",
+  "description": "NAVORA camera-free route-risk prototype dataset generated deterministically for reproducible validation and evaluation.",
   "seed": 42,
-  "records": 800,
+  "records": 1000,
   "features": [
     "distance_km",
     "travel_time_min",
@@ -31,9 +31,35 @@
     "lighting_condition": "0=good, 1=moderate, 2=poor"
   },
   "splits": {
-    "train": 560,
-    "val": 120,
-    "test": 120
+    "train": 600,
+    "val": 200,
+    "test": 200
+  },
+  "classCounts": {
+    "total": {
+      "LOW": 250,
+      "MEDIUM": 250,
+      "HIGH": 250,
+      "CRITICAL": 250
+    },
+    "train": {
+      "LOW": 150,
+      "MEDIUM": 150,
+      "HIGH": 150,
+      "CRITICAL": 150
+    },
+    "val": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    },
+    "test": {
+      "LOW": 50,
+      "MEDIUM": 50,
+      "HIGH": 50,
+      "CRITICAL": 50
+    }
   },
   "validation": "dataset_validation.json"
 }
