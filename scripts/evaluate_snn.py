@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ai-service"))
 from app.model_validation import SNN_EVAL_MINIMUMS
 from app.models.snn import RiskSNN
+from app.research_lock import assert_not_consumed_snn_final
 from app.route_risk_preprocessing import FEATURES, normalize_route_risk_vector
 
 LABELS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -121,6 +122,10 @@ def main() -> None:
     dataset_path = args.dataset / "test.csv"
     if not dataset_path.exists():
         raise SystemExit(f"Missing final test CSV: {dataset_path}")
+    try:
+        assert_not_consumed_snn_final(dataset_path, "re-evaluation, threshold tuning, or model selection")
+    except ValueError as exc:
+        raise SystemExit(f"RESEARCH LOCK: {exc}") from exc
     if not args.metadata.exists():
         raise SystemExit(f"Missing model metadata: {args.metadata}")
     if not args.weights.exists():
