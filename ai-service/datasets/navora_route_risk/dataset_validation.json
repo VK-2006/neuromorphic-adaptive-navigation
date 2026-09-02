@@ -1,0 +1,70 @@
+{
+  "records": 800,
+  "featureCount": 14,
+  "target": "route_risk_score",
+  "duplicateRecords": 0,
+  "invalidValues": [],
+  "passed": true,
+  "featureRanges": {
+    "distance_km": [
+      1.504,
+      23.984
+    ],
+    "travel_time_min": [
+      3.709,
+      127.956
+    ],
+    "traffic_level": [
+      0.0,
+      2.0
+    ],
+    "road_condition": [
+      0.0,
+      2.0
+    ],
+    "pothole_level": [
+      0.0,
+      3.0
+    ],
+    "road_damage_level": [
+      0.0,
+      3.0
+    ],
+    "road_blockage_level": [
+      0.0,
+      3.0
+    ],
+    "weather_condition": [
+      0.0,
+      3.0
+    ],
+    "accident_risk": [
+      0.001,
+      0.999
+    ],
+    "pedestrian_density": [
+      0.0001,
+      0.9968
+    ],
+    "vehicle_density": [
+      -0.1195,
+      1.0
+    ],
+    "road_width": [
+      3.0,
+      13.97
+    ],
+    "lighting_condition": [
+      0.0,
+      2.0
+    ],
+    "historical_risk": [
+      0.0002,
+      0.9994
+    ],
+    "route_risk_score": [
+      0.123803,
+      0.82247
+    ]
+  }
+}

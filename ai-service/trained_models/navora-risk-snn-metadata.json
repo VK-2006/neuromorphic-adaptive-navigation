@@ -1,0 +1,139 @@
+{
+  "model": "RiskSNN",
+  "riskModelVersion": "navora-risk-snn-prototype-v1",
+  "dataset": "NAVORA Route Risk Dataset prototype-v1",
+  "features": [
+    "distance_km",
+    "travel_time_min",
+    "traffic_level",
+    "road_condition",
+    "pothole_level",
+    "road_damage_level",
+    "road_blockage_level",
+    "weather_condition",
+    "accident_risk",
+    "pedestrian_density",
+    "vehicle_density",
+    "road_width",
+    "lighting_condition",
+    "historical_risk"
+  ],
+  "seed": 42,
+  "epochs": 20,
+  "batchSize": 32,
+  "optimizer": "Adam",
+  "learningRate": 0.005,
+  "trainSamples": 560,
+  "validationSamples": 120,
+  "testSamples": 120,
+  "history": [
+    {
+      "epoch": 1,
+      "trainLoss": 1.1182801416942052,
+      "valLoss": 0.7597678303718567
+    },
+    {
+      "epoch": 2,
+      "trainLoss": 0.7488944360188076,
+      "valLoss": 0.653655469417572
+    },
+    {
+      "epoch": 3,
+      "trainLoss": 0.6677507843290057,
+      "valLoss": 0.6097153425216675
+    },
+    {
+      "epoch": 4,
+      "trainLoss": 0.6489280615534101,
+      "valLoss": 0.5844833254814148
+    },
+    {
+      "epoch": 5,
+      "trainLoss": 0.6099004311220987,
+      "valLoss": 0.6097345948219299
+    },
+    {
+      "epoch": 6,
+      "trainLoss": 0.5761469432285854,
+      "valLoss": 0.5359501242637634
+    },
+    {
+      "epoch": 7,
+      "trainLoss": 0.5802791919027056,
+      "valLoss": 0.5640290379524231
+    },
+    {
+      "epoch": 8,
+      "trainLoss": 0.5824272309030806,
+      "valLoss": 0.5059581995010376
+    },
+    {
+      "epoch": 9,
+      "trainLoss": 0.6103191154343741,
+      "valLoss": 0.5684953927993774
+    },
+    {
+      "epoch": 10,
+      "trainLoss": 0.5646981103079659,
+      "valLoss": 0.5412108302116394
+    },
+    {
+      "epoch": 11,
+      "trainLoss": 0.5634517346109663,
+      "valLoss": 0.5250585675239563
+    },
+    {
+      "epoch": 12,
+      "trainLoss": 0.5386654760156359,
+      "valLoss": 0.48278579115867615
+    },
+    {
+      "epoch": 13,
+      "trainLoss": 0.5280306058270591,
+      "valLoss": 0.5386488437652588
+    },
+    {
+      "epoch": 14,
+      "trainLoss": 0.5432486585208348,
+      "valLoss": 0.5373372435569763
+    },
+    {
+      "epoch": 15,
+      "trainLoss": 0.5492250118936811,
+      "valLoss": 0.4905399680137634
+    },
+    {
+      "epoch": 16,
+      "trainLoss": 0.5296992131641933,
+      "valLoss": 0.5083795785903931
+    },
+    {
+      "epoch": 17,
+      "trainLoss": 0.5352625974587032,
+      "valLoss": 0.4777682423591614
+    },
+    {
+      "epoch": 18,
+      "trainLoss": 0.5314163821084159,
+      "valLoss": 0.5536144375801086
+    },
+    {
+      "epoch": 19,
+      "trainLoss": 0.5475302645138331,
+      "valLoss": 0.6315696239471436
+    },
+    {
+      "epoch": 20,
+      "trainLoss": 0.5744588017463684,
+      "valLoss": 0.6158546209335327
+    }
+  ],
+  "testMetrics": {
+    "samples": 120,
+    "accuracy": 0.8416666666666667,
+    "macroF1": 0.5742993671703474,
+    "maeRiskScore": 0.09542507918344606
+  },
+  "validated": false,
+  "note": "Prototype data; independent real-world validation is required."
+}

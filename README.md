@@ -1,6 +1,6 @@
 # Navora — Neuromorphic Adaptive Navigation Using Cognitive Route Memory and Swarm Intelligence
 
-Navora is a research-oriented intelligent-navigation web platform that combines conventional road routing with an **additional adaptive safety layer**. It does **not** claim to replace or universally outperform Google Maps. The research contribution is the connected use of local visual perception, SNN risk processing, Cognitive Route Memory (CRM), Dynamic Time Warping (DTW), Exponential Moving Average (EMA) learning, verified community hazards/reputation, Ant Colony Optimization (ACO) and explainable route decisions.
+Navora is a research-oriented, camera-free intelligent-navigation web platform that combines conventional road routing with an adaptive route-risk layer. It does not claim to replace or universally outperform Google Maps. The connected research components are a custom NAVORA Route Risk prototype dataset, RiskSNN processing, Cognitive Route Memory (CRM), DTW, EMA, verified community hazards/reputation, ACO and explainable route decisions.
 
 ## What the application recommends
 
@@ -12,7 +12,7 @@ For a source and destination the orchestration layer obtains road-route candidat
 
 During an active journey:
 
-`GPS + optional explicit camera → detection metadata → SNN/fallback risk → hazard dedup/trust → route-corridor geofence → safety/traffic re-evaluation → ACO alternative → current-vs-alternative explanation → user-confirmed reroute → destination → CRM/EMA update → journey replay.`
+`GPS → route features → RiskSNN/RiskEngine → hazard trust → route-corridor geofence → CRM/DTW/EMA → ACO alternative → explanation → user-confirmed reroute → destination → CRM update → journey replay.`
 
 ## Technology stack
 
@@ -20,7 +20,7 @@ During an active journey:
 
 **Backend:** Node.js, Express 5, MongoDB/Mongoose, Socket.IO, JWT access tokens + rotating hashed refresh tokens, bcrypt, Helmet, CORS, rate limiting, express-validator, Winston/Morgan, Google identity verification and Brevo transactional-email architecture.
 
-**AI:** Python, FastAPI, PyTorch, snnTorch architecture, OpenCV, NumPy, SciPy, scikit-learn, Pydantic and Pytest.
+**AI:** Python, FastAPI, PyTorch, snnTorch RiskSNN, NumPy, scikit-learn, Pydantic and Pytest.
 
 ## Main implemented modules
 
@@ -32,7 +32,7 @@ During an active journey:
 - Journey start/pause/resume/complete, reroute cooldown and current-vs-alternative comparison.
 - Browser camera selection, Detection OFF by default, metadata-only backend path and no permanent raw-video recording.
 - Journey-scoped WebRTC mobile camera and optional documented Web Bluetooth GATT control/sensor reads; Bluetooth is not treated as video transport.
-- Object/road-damage detector service and SNN risk service with explicit development fallback when trained weights are unavailable.
+- Camera-free route-risk service using RiskSNN with an explicit unvalidated/research fallback.
 - CRM, DTW, EMA, ACO and WHY THIS ROUTE? explainability using calculated values.
 - Hazard deduplication, admin/community verification, proximity-limited confirmations, reputation and route-aware geofenced alerts.
 - Turn-by-turn instructions and Web Speech voice/language/volume/voice selection.
@@ -44,17 +44,15 @@ During an active journey:
 - Three.js landing + SNN/ACO/CRM research visualizations with single state/RAF lifecycle, disposal, reduced-motion and adaptive quality.
 - User/admin dashboards, live Mongo-backed history/memory/notifications/profile/devices and audit/system-health pages.
 
-## Datasets and models
+## Dataset and model
 
-- **BDD100K:** intended primary road-scene/object-detection source.
-- **RDD2022:** intended road-damage source (potholes/cracks/damage).
-- **Cityscapes:** optional semantic-segmentation source.
-- **OpenStreetMap:** geographic/road-network data, **not** an ML training dataset.
+- **NAVORA Route Risk Dataset:** 800 manually curated/generated prototype records, split 560/120/120, with 14 route-risk inputs and a continuous `route_risk_score` target. It is not a public or real-world benchmark.
+- **OpenStreetMap/OSRM:** geographic and routing data, not ML training data.
 - `datasets/demo-data/snn-risk-raw.csv`: synthetic/demo-only fixture with all master-prompt SNN risk fields.
 - `datasets/derived-risk-data/risk-training.csv`: normalized SNN training fixture.
 - `datasets/demo-data/crm-journeys.json`: synthetic/demo-only CRM journey fixture.
 
-Large public datasets and trained weights are intentionally not redistributed. `scripts/prepare_detection_data.py`, `scripts/train_detector.py` and `scripts/train_snn.py` provide preparation/training; `scripts/evaluate_detector.py` and `scripts/evaluate_snn.py` enforce held-out validation gates. Training never marks a model validated.
+Reproduce the dataset with `python scripts/create_navora_dataset.py --seed 42 --records 800`. Train RiskSNN with `python scripts/train_navora_snn.py`. Trained weights remain local and research-only until independent validation.
 
 ### SNN truthfulness rule
 

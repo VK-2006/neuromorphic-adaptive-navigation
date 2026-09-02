@@ -49,7 +49,7 @@ class RiskEngine:
         self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
-                candidate=RiskSNN()
+                candidate=RiskSNN(input_size=14)
                 candidate.load_state_dict(
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
@@ -59,13 +59,11 @@ class RiskEngine:
                     self.model=candidate
                     self.mode='snn-trained-weights-validated'
                 else:
-                    # Never expose unvalidated trained weights through the normal prediction API.
-                    # The file may remain on disk as research evidence, but runtime predictions
-                    # stay on the deterministic fail-safe development path until validation passes.
-                    self.model=None
+                    # Research weights may be observed explicitly, but remain unvalidated.
+                    self.model=candidate
                     self.validated=False
                     self.unvalidated_weights_present=True
-                    self.mode='development/heuristic-fallback-unvalidated-weights'
+                    self.mode='research/snn-trained-unvalidated'
             except Exception as e:
                 self.model=None
                 self.validated=False
@@ -82,14 +80,25 @@ class RiskEngine:
         speed=max(0,min(1,f.userSpeed/35))
         reports=max(0,min(1,f.verifiedReports/5))
         return np.array([
-            obj,f.confidence,dist,rel,speed,f.objectPersistence,
-            f.trafficDensity,f.hazardFrequency,1-f.visibility,
-            f.weatherRisk,max(f.roadCondition,reports)
-        ],dtype=np.float32)
+            min(1, (f.distanceKm if f.distanceKm is not None else f.estimatedDistance) / 24),
+            min(1, (f.travelTimeMin if f.travelTimeMin is not None else f.estimatedDistance * 2) / 100),
+            (f.trafficLevel / 2 if f.trafficLevel is not None else f.trafficDensity),
+            (f.roadCondition / 2 if f.roadCondition > 1 else f.roadCondition),
+            (f.potholeLevel / 3 if f.potholeLevel is not None else obj),
+            (f.roadDamageLevel / 3 if f.roadDamageLevel is not None else f.roadCondition),
+            (f.roadBlockageLevel / 3 if f.roadBlockageLevel is not None else obj),
+            f.weatherRisk,
+            (f.accidentRisk if f.accidentRisk is not None else f.hazardFrequency),
+            (f.pedestrianDensity if f.pedestrianDensity is not None else f.objectPersistence),
+            (f.vehicleDensity if f.vehicleDensity is not None else min(1, f.userSpeed / 35)),
+            max(0, 1 - (f.roadWidth if f.roadWidth is not None else 10) / 14),
+            (f.lightingCondition / 2 if f.lightingCondition is not None else 1 - f.visibility),
+            (f.historicalRisk if f.historicalRisk is not None else max(f.roadCondition, reports)),
+        ], dtype=np.float32)
 
     def heuristic(self,f):
         v=self.vector(f)
-        weights=np.array([.18,.08,.16,.10,.08,.07,.08,.07,.05,.05,.08],dtype=np.float32)
+        weights=np.array([.08,.10,.10,.08,.11,.10,.12,.08,.07,.04,.04,.03,.02,.03],dtype=np.float32)
         score=float(np.clip(np.dot(v,weights)/weights.sum()*1.35,0,1))
         idx=0 if score<.3 else 1 if score<.55 else 2 if score<.78 else 3
         confidence=float(np.clip(.55+.35*f.confidence,0,1))
@@ -104,9 +113,10 @@ class RiskEngine:
 
     def top_factors(self,f,v):
         names=[
-            'object class prior','detection confidence','proximity','relative speed',
-            'user speed','persistence','traffic density','hazard frequency',
-            'low visibility','weather risk','road/reports'
+            'distance','travel time','traffic','road condition','potholes',
+            'road damage','road blockage','weather','accident risk',
+            'pedestrian density','vehicle density','narrow road','lighting',
+            'historical risk'
         ]
         pairs=sorted(zip(names,v.tolist()),key=lambda x:x[1],reverse=True)
         return [{'factor':n,'normalizedValue':round(x,3)} for n,x in pairs[:4]]
