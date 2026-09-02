@@ -1,13 +1,24 @@
 (function(){
   'use strict';
   const root=document.documentElement,key='navora-theme',order=['system','light','dark'],label={system:'◐ System',light:'☀ Light',dark:'◒ Dark'};
-  const loadStyle=(href,marker)=>{
-    if(document.querySelector(`link[data-${marker}]`))return;
-    const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.dataset[marker.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='true';document.head.appendChild(link);
+  const loadStyle=(href,marker,selector)=>{
+    const lookup = selector || `link[data-${marker}]`;
+    if(document.querySelector(lookup))return;
+    const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.dataset[marker.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='true';
+    if(marker==='navora-media-v18') link.setAttribute('data-navora-media-v18','true');
+    if(marker==='navora-ui-layout-v23') link.setAttribute('data-navora-ui-layout-v23','true');
+    document.head.appendChild(link);
   };
-  loadStyle('/assets/css/media-frames-v18.css','navora-media-v18');
-  loadStyle('/assets/css/fixed-sidebar-v21.css','navora-fixed-sidebar-v21');
-  loadStyle('/assets/css/ui-layout-v23.css','navora-ui-layout-v23');
+  if(document.querySelector('link[data-navora-fixed-sidebar-v21]')){} else {
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='/assets/css/fixed-sidebar-v21.css';
+    link.dataset.navoraFixedSidebarV21='true';
+    link.setAttribute('data-navora-fixed-sidebar-v21','true');
+    document.head.appendChild(link);
+  }
+  loadStyle('/assets/css/media-frames-v18.css','navora-media-v18','link[data-navora-media-v18]');
+  loadStyle('/assets/css/ui-layout-v23.css','navora-ui-layout-v23','link[data-navora-ui-layout-v23]');
   const normalize=value=>order.includes(value)?value:'system';
   const media=()=>typeof window.matchMedia==='function'?window.matchMedia('(prefers-color-scheme: dark)'):null;
   function render(value){document.querySelectorAll('[data-theme-toggle]').forEach(button=>{button.textContent=label[value];button.setAttribute('aria-label',`Theme is ${value}. Activate to change theme.`);button.setAttribute('title',`Theme: ${value}`)})}

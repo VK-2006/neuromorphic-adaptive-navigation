@@ -38,7 +38,52 @@ async function test(browser,page,vp){
     const frames=[...document.querySelectorAll('.camera-pane,#map,#journey-map,.replay-map,#journey-detail-map,.three-shell,#three-hero,#three-research,.media-frame,.video-frame')];
     const grids=[...document.querySelectorAll('.grid,.grid-2,.grid-3,.grid-4,.journey-layout,.map-layout,.replay-grid,.chat-layout')];
     const overflow=[];
-    for(const el of [...document.querySelectorAll('body *')]){const r=el.getBoundingClientRect();const s=getComputedStyle(el);let hasTransformed=s.transform!=='none';if(!hasTransformed){let p=el.parentElement;while(p&&!hasTransformed){const ps=getComputedStyle(p);hasTransformed=ps.transform!=='none';if(!hasTransformed&&(ps.overflowX==='auto'||ps.overflowX==='scroll'||ps.overflowY==='auto'||ps.overflowY==='scroll'))hasTransformed=true;p=p.parentElement}}if((r.right>innerWidth+2||r.left<-2)&&!hasTransformed)overflow.push({tag:el.tagName,cls:String(el.className||'').slice(0,100),right:Math.round(r.right),left:Math.round(r.left)});if(overflow.length>8)break}
+    const isScrollableRegion=(el)=>{
+      let current=el;
+      while(current && current !== document.body){
+        if(current.tagName==='TABLE' && (current.classList.contains('pg-table-edge') || current.classList.contains('table-modern'))){
+          return true;
+        }
+        const className=typeof current.className==='string' ? current.className : '';
+        const isKnownScrollableWrapper=/\b(table-wrap|table-responsive|data-table-wrap|live-field-bar)\b/.test(className);
+        if(isKnownScrollableWrapper){
+          const style=getComputedStyle(current);
+          const overflowX=style.overflowX || style.overflow;
+          if(overflowX==='auto' || overflowX==='scroll' || overflowX==='overlay') return true;
+        }
+        current=current.parentElement;
+      }
+      return false;
+    };
+    const isClosedMobileNav=(el)=>{
+      const navEl=el.closest('.navora-nav');
+      if(!navEl) return false;
+      if(document.body.classList.contains('nav-open')) return false;
+      const style=getComputedStyle(navEl);
+      return style.transform !== 'none' || style.translate !== 'none';
+    };
+    const isClosedProfileDock=(el)=>{
+      const profile=el.closest('.navora-profile-global-v17');
+      if(!profile) return false;
+      if(document.body.classList.contains('nav-open')) return false;
+      const style=getComputedStyle(profile);
+      return style.transform !== 'none' || style.translate !== 'none' || style.opacity === '0';
+    };
+    const isMapToggleClosed=(el)=>{
+      const toggle=el.closest('.obs-map-sheet-toggle');
+      if(!toggle) return false;
+      return !document.body.classList.contains('obs-map-sheet-open');
+    };
+    for(const el of [...document.querySelectorAll('body *')]){
+      const r=el.getBoundingClientRect();
+      const isAmbient=el.closest('.ui-ambient, .ui-orb, [aria-hidden="true"]') !== null;
+      const isLeaflet=el.closest('.leaflet-pane, .leaflet-map-pane, .leaflet-control-container, .leaflet-control, .leaflet-proxy, .leaflet-zoom-animated, .leaflet-tile-pane, .leaflet-marker-pane, .leaflet-overlay-pane') !== null;
+      const liveBar=el.closest('.live-field-bar');
+      const liveBarScrollable=Boolean(liveBar && (getComputedStyle(liveBar).overflowX === 'auto' || getComputedStyle(liveBar).overflowX === 'scroll'));
+      const skip = isAmbient || isLeaflet || isClosedMobileNav(el) || isClosedProfileDock(el) || isMapToggleClosed(el) || liveBarScrollable || isScrollableRegion(el);
+      if((r.right>innerWidth+2||r.left<-2)&&!skip)overflow.push({tag:el.tagName,cls:String(el.className||'').slice(0,100),right:Math.round(r.right),left:Math.round(r.left)});
+      if(overflow.length>8)break
+    }
     return{
       width:innerWidth,scrollWidth,clientWidth,bodyClass:body.className,
       shell:Boolean(shell),nav:Boolean(nav),styleLoaded:Boolean(document.querySelector('link[data-navora-ui-layout-v23]')),
