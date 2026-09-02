@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from collections import Counter
@@ -24,6 +25,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_Weights,
     fasterrcnn_resnet50_fpn,
+    FasterRCNN_MobileNet_V3_Large_320_FPN_Weights,
+    fasterrcnn_mobilenet_v3_large_320_fpn,
 )
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms.functional import to_tensor
@@ -143,10 +146,25 @@ def _transfer_coco_predictor(model, weights, classes):
     return mapping, fresh
 
 
-def build_model(classes, from_scratch=False, head_only=False):
+def build_model(classes, from_scratch=False, head_only=False, architecture='resnet50'):
     if not classes:
         raise ValueError('at least one detector class is required')
-    if from_scratch:
+    if architecture == 'mobilenet320':
+        weights = None if from_scratch else FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
+        model = fasterrcnn_mobilenet_v3_large_320_fpn(
+            weights=weights,
+            weights_backbone=None if from_scratch else None,
+            min_size=320,
+            max_size=512,
+        )
+        if weights is None:
+            initialization = 'from-scratch'
+            mapping = []
+            fresh = list(classes)
+        else:
+            mapping, fresh = _transfer_coco_predictor(model, weights, classes)
+            initialization = 'torchvision-coco-pretrained+partial-class-head-transfer'
+    elif from_scratch:
         model = fasterrcnn_resnet50_fpn(
             weights=None,
             weights_backbone=None,
@@ -161,7 +179,7 @@ def build_model(classes, from_scratch=False, head_only=False):
         initialization = 'from-scratch'
         mapping = []
         fresh = list(classes)
-    else:
+    elif architecture == 'resnet50':
         weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
         model = fasterrcnn_resnet50_fpn(
             weights=weights,
@@ -170,6 +188,8 @@ def build_model(classes, from_scratch=False, head_only=False):
         )
         mapping, fresh = _transfer_coco_predictor(model, weights, classes)
         initialization = 'torchvision-coco-pretrained+partial-class-head-transfer'
+    else:
+        raise ValueError(f'unsupported architecture: {architecture}')
 
     if head_only:
         for p in model.parameters():
@@ -192,6 +212,20 @@ def main():
     ap.add_argument('--max-samples', type=int, default=0)
     ap.add_argument('--lr', type=float, default=1e-4)
     ap.add_argument(
+        '--architecture',
+        choices=('resnet50', 'mobilenet320'),
+        default='resnet50',
+        help='Detector backbone; mobilenet320 is a CPU-oriented Faster R-CNN variant.',
+    )
+    ap.add_argument('--seed', type=int, default=1337)
+    ap.add_argument('--num-workers', type=int, default=2)
+    ap.add_argument(
+        '--resume',
+        default=ROOT / 'ai-service/trained_models/detector-training-checkpoint.pt',
+        help='Epoch checkpoint to resume when it exists.',
+    )
+    ap.add_argument('--no-resume', action='store_true')
+    ap.add_argument(
         '--head-only',
         action='store_true',
         help='Freeze the pretrained detector and train only the dynamic box predictor.',
@@ -213,6 +247,14 @@ def main():
         raise SystemExit('CUDA requested but torch.cuda.is_available() is False')
     if args.max_samples and not args.smoke:
         raise SystemExit('--max-samples is smoke/development-only; validated-capable training must consume the complete gated training manifest')
+    if args.num_workers < 0:
+        raise SystemExit('--num-workers must be non-negative')
+
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    if args.device == 'cpu':
+        torch.set_num_threads(max(1, min(torch.get_num_threads(), os.cpu_count() or 1)))
 
     manifest_path = Path(args.manifest)
     ds = ManifestDataset(manifest_path, args.max_samples)
@@ -221,13 +263,16 @@ def main():
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate,
-        num_workers=0,
+        num_workers=args.num_workers,
+        pin_memory=args.device == 'cuda',
+        persistent_workers=args.num_workers > 0,
     )
 
     model, initialization, mapping, fresh = build_model(
         ds.classes,
         from_scratch=args.from_scratch,
         head_only=args.head_only,
+        architecture=args.architecture,
     )
     model.to(args.device)
 
@@ -239,6 +284,26 @@ def main():
         lr=args.lr,
         weight_decay=1e-4,
     )
+    scheduler = None
+
+    out = ROOT / 'ai-service/trained_models'
+    out.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = Path(args.resume)
+    start_epoch = 0
+    if not args.no_resume and checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=args.device)
+        if checkpoint.get('classes') != ds.classes:
+            raise SystemExit(
+                f'checkpoint classes do not match manifest: '
+                f'{checkpoint.get("classes")} != {ds.classes}'
+            )
+        model.load_state_dict(checkpoint['model_state'])
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+        if scheduler is not None and checkpoint.get('scheduler_state') is not None:
+            scheduler.load_state_dict(checkpoint['scheduler_state'])
+        start_epoch = int(checkpoint['epoch'])
+        if start_epoch >= args.epochs:
+            print(f'checkpoint already completed {start_epoch} epoch(s); skipping training')
 
     print('initialization =', initialization)
     print('device =', args.device)
@@ -248,7 +313,16 @@ def main():
     print('class_instances =', dict(ds.class_counts))
     print('head_only =', args.head_only)
     print('learning_rate =', args.lr)
-    print('internal_resize = min_size=384 max_size=640')
+    print('architecture =', args.architecture)
+    print('seed =', args.seed)
+    print('num_workers =', args.num_workers)
+    print('checkpoint =', checkpoint_path)
+    print(
+        'internal_resize =',
+        'min_size=320 max_size=512'
+        if args.architecture == 'mobilenet320'
+        else 'min_size=384 max_size=640',
+    )
     print('trainable_parameter_tensors =', len(trainable))
     if mapping:
         print(
@@ -261,7 +335,7 @@ def main():
     started = time.perf_counter()
     seen = 0
 
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total = 0.0
         epoch_started = time.perf_counter()
@@ -293,12 +367,41 @@ def main():
                     f'images_per_sec={rate:.4f}'
                 )
 
+        if scheduler is not None:
+            scheduler.step()
         epoch_s = time.perf_counter() - epoch_started
         print(
             f'epoch {epoch+1}/{args.epochs} '
             f'avg_loss={total/max(1, len(dl)):.4f} '
             f'seconds={epoch_s:.2f}'
         )
+        if not args.smoke:
+            torch.save(
+                {
+                    'model_state': model.state_dict(),
+                    'optimizer_state': optimizer.state_dict(),
+                    'scheduler_state': scheduler.state_dict() if scheduler is not None else None,
+                    'epoch': epoch + 1,
+                    'classes': ds.classes,
+                    'training_config': {
+                        'manifest': str(manifest_path),
+                        'epochs': args.epochs,
+                        'batch_size': args.batch_size,
+                        'learning_rate': args.lr,
+                        'device': args.device,
+                        'num_workers': args.num_workers,
+                        'internal_resize': (
+                            {'min_size': 320, 'max_size': 512}
+                            if args.architecture == 'mobilenet320'
+                            else {'min_size': 384, 'max_size': 640}
+                        ),
+                        'architecture': args.architecture,
+                    },
+                    'seed': args.seed,
+                },
+                checkpoint_path,
+            )
+            print('saved_epoch_checkpoint =', checkpoint_path)
 
     elapsed = time.perf_counter() - started
     rate = seen / max(1e-9, elapsed)
@@ -313,9 +416,6 @@ def main():
         print(f'ROUGH_FULL_EPOCH_SECONDS_AT_SMOKE_RATE={full_epoch_s:.2f}')
         print('CPU_SMOKE_TRAINING_PASS')
         return
-
-    out = ROOT / 'ai-service/trained_models'
-    out.mkdir(parents=True, exist_ok=True)
 
     state = out / 'detector_state.pt'
     torch.save(model.state_dict(), state)
