@@ -85,6 +85,30 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray):
     return accuracy, macro_f1, balanced_accuracy, matrix, per_class
 
 
+def class_policy_status(per_class, configured):
+    problems = []
+    class_status = {}
+    for label in LABELS:
+        metric = per_class.get(label, {})
+        precision = float(metric.get("precision", 0.0) or 0.0)
+        recall = float(metric.get("recall", 0.0) or 0.0)
+        f1 = float(metric.get("f1", 0.0) or 0.0)
+        support = int(metric.get("support", 0) or 0)
+        passed = f1 >= configured["minPerClassF1"]
+        if label in {'HIGH','CRITICAL'}:
+            passed = passed and recall >= configured["minHighRiskRecall"]
+        if not passed:
+            problems.append(f"{label} class policy failed: f1={f1:.6f}, recall={recall:.6f}")
+        class_status[label] = {
+            "precision": round(float(precision), 6),
+            "recall": round(float(recall), 6),
+            "f1": round(float(f1), 6),
+            "support": support,
+            "passed": bool(passed),
+        }
+    return {"passed": not problems, "problems": problems, "perClass": class_status}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk")
@@ -143,12 +167,17 @@ def main() -> None:
         problems.append(f"accuracy {accuracy:.6f} below policy minimum {min_accuracy}")
     if macro_f1 < min_macro_f1:
         problems.append(f"macroF1 {macro_f1:.6f} below policy minimum {min_macro_f1}")
+    class_policy = class_policy_status(per_class, {
+        "minPerClassF1": min_per_class_f1,
+        "minHighRiskRecall": min_high_risk_recall,
+    })
     for label in LABELS:
         metric = per_class[label]
         if metric["f1"] < min_per_class_f1:
             problems.append(f"{label} F1 {metric['f1']:.6f} below policy minimum {min_per_class_f1}")
-        if label in {"HIGH", "CRITICAL"} and metric["recall"] < min_high_risk_recall:
+        if label in {'HIGH','CRITICAL'} and metric["recall"] < min_high_risk_recall:
             problems.append(f"{label} recall {metric['recall']:.6f} below policy minimum {min_high_risk_recall}")
+    problems.extend(class_policy["problems"])
 
     # evalSha256 is bound externally by validation_evidence.py to the exact evaluation JSON.
     report = {
@@ -170,6 +199,8 @@ def main() -> None:
         "classSupport": counts,
         "confusionMatrix": matrix,
         "perClass": per_class,
+        "class_policy_status": class_policy,
+        "classPolicyPassed": class_policy["passed"],
         "thresholds": {
             "minSamples": min_samples,
             "minAccuracy": min_accuracy,

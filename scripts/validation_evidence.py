@@ -40,6 +40,7 @@ def main() -> None:
     metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
     problems = []
 
+    class_evidence_keys = ('classPolicyPassed','perClass')
     binding_messages = [
         "detector evaluation report is not bound to the exact held-out manifest",
         "SNN evaluation report is not bound to the exact held-out CSV",
@@ -49,6 +50,8 @@ def main() -> None:
         problems.append("data gate did not pass")
     if evaluation.get("passed") is not True:
         problems.append("final evaluation did not pass")
+    if evaluation.get("classPolicyPassed") is not True:
+        problems.append("SNN per-class validation policy did not pass")
     if metadata.get("validated") is True:
         problems.append("model metadata must remain false until the genuine validation evidence passes")
 
@@ -84,6 +87,8 @@ def main() -> None:
     if detector_eval_path.exists():
         detector_eval_sha = sha256_file(detector_eval_path)
         detector_eval = json.loads(detector_eval_path.read_text(encoding="utf-8"))
+        if detector_eval.get("classPolicyPassed") is not True:
+            problems.append("detector per-class validation policy did not pass")
         detector_manifest_sha = sha256_file(detector_manifest_path) if detector_manifest_path.exists() else None
         if detector_eval.get("manifestSha256") not in (None, detector_manifest_sha):
             problems.append("detector evaluation report is not bound to the exact held-out manifest")
@@ -104,6 +109,9 @@ def main() -> None:
         "dataGateSha256": gate_sha,
         "datasetSha256": test_sha,
         "evalSha256": evaluation_sha,
+        'classPolicyPassed': evaluation.get('classPolicyPassed'),
+        'perClass': evaluation.get('perClass', {}),
+        'class_policy_status': evaluation.get('class_policy_status', {}),
         "weights": {
             "modelWeightSha256": model_sha,
         },
