@@ -4,7 +4,14 @@
   const loadStyle=(href,marker,selector)=>{
     const lookup = selector || `link[data-${marker}]`;
     if(document.querySelector(lookup))return;
-    const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.dataset[marker.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='true';
+    const link=document.createElement('link');link.rel='stylesheet';
+    if(href==='/assets/css/media-frames-v18.css'){
+      link.href='/assets/css/media-frames-v18.css';
+      link.dataset.navoraMediaV18='true';
+    } else {
+      link.href=href;
+      link.dataset[marker.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='true';
+    }
     if(marker==='navora-media-v18') link.setAttribute('data-navora-media-v18','true');
     if(marker==='navora-ui-layout-v23') link.setAttribute('data-navora-ui-layout-v23','true');
     document.head.appendChild(link);
