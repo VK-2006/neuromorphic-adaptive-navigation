@@ -3,7 +3,7 @@ from ..schemas.risk import RiskRequest,BatchRiskRequest,RiskResponse
 from ..services.risk_service import engine
 router=APIRouter()
 @router.get('/model/info')
-def model_info():return {'riskModel':{'version':engine.version,'mode':engine.mode,'validated':engine.validated,'validationIssues':engine.validation_issues},'note':'NAVORA camera-free route-risk engine.'}
+def model_info():return {'riskModel':{'version':engine.version,'mode':engine.mode,'validated':engine.validated,'validationIssues':engine.validation_issues},'note':'Object detection subsystem has been removed. NAVORA camera-free route-risk engine.'}
 @router.post('/api/v1/risk/predict',response_model=RiskResponse)
 def risk(req:RiskRequest):return engine.predict(req.features)
 @router.post('/api/v1/risk/batch')

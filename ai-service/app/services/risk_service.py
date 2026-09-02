@@ -60,10 +60,12 @@ class RiskEngine:
                     self.mode='snn-trained-weights-validated'
                 else:
                     # Research weights may be observed explicitly, but remain unvalidated.
-                    self.model=candidate
+                    # They must never be used for normal inference; the service must
+                    # fail closed to the deterministic heuristic fallback.
+                    self.model=None
                     self.validated=False
                     self.unvalidated_weights_present=True
-                    self.mode='research/snn-trained-unvalidated'
+                    self.mode='development/heuristic-fallback-unvalidated-weights'
             except Exception as e:
                 self.model=None
                 self.validated=False

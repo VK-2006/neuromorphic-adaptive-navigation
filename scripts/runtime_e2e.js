@@ -96,7 +96,14 @@ async function aiSmoke(){
   const aiBase=process.env.AI_SERVICE_URL||'http://127.0.0.1:8000';
   try{
     const health=await fetch(aiBase+'/health');assert(health.ok,'AI /health failed');
-    const infoRes=await fetch(aiBase+'/model/info');if(infoRes.ok){const info=await infoRes.json();for(const model of [info.riskModel,info.detector])if(model&&String(model.mode).includes('fallback'))assert(model.validated===false,`${model.mode} must not be validated`)}
+    const infoRes=await fetch(aiBase+'/model/info');
+    if(infoRes.ok){
+      const info=await infoRes.json();
+      const riskModel=info?.riskModel;
+      assert(riskModel && typeof riskModel === 'object','AI /model/info missing riskModel metadata');
+      if(riskModel && String(riskModel.mode).includes('fallback'))assert(riskModel.validated===false,`${riskModel.mode} must not be validated`);
+      assert(!('detector' in info),'Legacy detector model metadata must not be present in the camera-free runtime contract');
+    }
     const risk=await fetch(aiBase+'/api/v1/risk/predict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({features:{objectClass:'road blockage',confidence:.95,estimatedDistance:3,relativeSpeed:10,userSpeed:12,objectPersistence:.9,trafficDensity:.8,hazardFrequency:.7,visibility:.4,weatherRisk:.4,roadCondition:.9,verifiedReports:4}})});
     assert(risk.ok,`AI risk HTTP ${risk.status}`);const j=await risk.json();assert(Number.isFinite(Number(j.score))&&j.level,'AI risk response invalid');if(String(j.mode).includes('fallback'))assert(j.validated===false,'Fallback risk response claimed validation');return true;
   }catch(e){console.warn('AI direct smoke WARNING:',e.message);return false}
