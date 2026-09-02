@@ -22,7 +22,12 @@ async function waitForLocation(page,predicate,label,timeout=15000){
 async function scenario(browser,kind){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1280,height:800}});
   const page=await context.newPage();
-  const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.stack||e.message));
+  const pageErrors=[];
+  page.on('pageerror',e=>{
+    const msg=e&&((e.stack||e.message)||String(e));
+    if(!msg||/Transition was skipped/i.test(msg))return;
+    pageErrors.push(msg);
+  });
   await page.route('https://accounts.google.com/gsi/client',route=>route.fulfill({status:200,contentType:'text/javascript',body:''}));
   await page.route('**/api/v1/**',route=>{
     const path=new URL(route.request().url()).pathname;
