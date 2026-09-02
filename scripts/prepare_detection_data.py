@@ -41,18 +41,26 @@ def rdd_rows(root:Path):
         image=next((p for p in candidates if p.exists()),None)
         if not image: continue
         boxes=[]
+        has_quarantined=False
         for obj in tree.findall('object'):
             raw=(obj.findtext('name') or '').strip()
             cls=raw if raw in RDD_CLASSES else None
+            has_quarantined = has_quarantined or raw in QUARANTINED_CLASSES
             bb=obj.find('bndbox')
             if not cls or bb is None: continue
             try: coords=[float(bb.findtext(k)) for k in ('xmin','ymin','xmax','ymax')]
             except (TypeError,ValueError): continue
             boxes.append({'class':cls,'box':coords})
-        if boxes:
-            yield {'image':str(image),'source':'RDD2022','boxes':boxes}
-        elif any((obj.findtext('name') or '').strip() in QUARANTINED_CLASSES for obj in tree.findall('object')):
+        if has_quarantined and not boxes:
             quarantined.append(xml.stem)
+            continue
+        yield {
+            'image':str(image),
+            'source':'RDD2022',
+            'annotation':str(xml),
+            'boxes':boxes,
+            'background':not boxes,
+        }
     if quarantined:
         print(f'RDD2022 quarantine exclusions: {len(quarantined)} image(s): {", ".join(quarantined)}')
 

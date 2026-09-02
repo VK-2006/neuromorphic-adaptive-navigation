@@ -53,8 +53,8 @@ class ManifestDataset(Dataset):
         for n, row in enumerate(self.rows, 1):
             source = str(row.get('source') or '')
             boxes = row.get('boxes')
-            if not isinstance(boxes, list) or not boxes:
-                raise ValueError(f'{self.path}:{n}: boxes must be non-empty')
+            if not isinstance(boxes, list):
+                raise ValueError(f'{self.path}:{n}: boxes must be a list')
             for ann in boxes:
                 class_name = str(ann.get('class') or '')
                 validate_source_class(source, class_name)
@@ -90,7 +90,7 @@ class ManifestDataset(Dataset):
             labels.append(self.c2i[ann['class']])
 
         target = {
-            'boxes': torch.tensor(boxes, dtype=torch.float32),
+            'boxes': torch.tensor(boxes, dtype=torch.float32).reshape(-1, 4),
             'labels': torch.tensor(labels, dtype=torch.int64),
             'image_id': torch.tensor([i]),
         }
