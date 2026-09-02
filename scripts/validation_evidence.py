@@ -1,4 +1,4 @@
-﻿"""Build the NAVORA RiskSNN validation evidence for the final prototype-v2 pipeline."""
+"""Build the NAVORA RiskSNN validation evidence for the final prototype-v2 pipeline."""
 from __future__ import annotations
 
 import argparse
@@ -40,12 +40,25 @@ def main() -> None:
     metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
     problems = []
 
+    binding_messages = [
+        "detector evaluation report is not bound to the exact held-out manifest",
+        "SNN evaluation report is not bound to the exact held-out CSV",
+    ]
+
     if gate.get("passed") is not True:
         problems.append("data gate did not pass")
     if evaluation.get("passed") is not True:
         problems.append("final evaluation did not pass")
     if metadata.get("validated") is True:
         problems.append("model metadata must remain false until the genuine validation evidence passes")
+
+    train_sha = sha256_file(args.train)
+    val_sha = sha256_file(args.val)
+    test_sha = sha256_file(args.test)
+    model_sha = sha256_file(args.weights)
+    evaluation_sha = sha256_file(args.evaluation)
+    gate_sha = sha256_file(args.gate)
+    metadata_sha = sha256_file(args.metadata)
 
     for key, path in {
         "trainCsvSha256": args.train,
@@ -55,15 +68,30 @@ def main() -> None:
         "evaluationReportSha256": args.evaluation,
         "gateReportSha256": args.gate,
     }.items():
-        if key == "modelWeightSha256":
-            expected = sha256_file(path)
-        else:
-            expected = sha256_file(path)
-        if not expected:
+        if not sha256_file(path):
             problems.append(f"missing hash for {key}")
 
+    if evaluation.get("testCsvSha256") not in (None, test_sha):
+        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
+    if evaluation.get("datasetSha256") not in (None, test_sha):
+        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
+    if evaluation.get("evalSha256") not in (None, evaluation_sha):
+        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
+
+    detector_eval_path = ROOT / "ai-service" / "trained_models" / "detector-evaluation.json"
+    detector_manifest_path = ROOT / "ai-service" / "trained_models" / "detector_manifest.jsonl"
+    detector_eval_sha = None
+    if detector_eval_path.exists():
+        detector_eval_sha = sha256_file(detector_eval_path)
+        detector_eval = json.loads(detector_eval_path.read_text(encoding="utf-8"))
+        detector_manifest_sha = sha256_file(detector_manifest_path) if detector_manifest_path.exists() else None
+        if detector_eval.get("manifestSha256") not in (None, detector_manifest_sha):
+            problems.append("detector evaluation report is not bound to the exact held-out manifest")
+
     evidence = {
-        "schemaVersion": 3,
+        'schemaVersion':3,
+        'detectorEvaluationSha256': detector_eval_sha,
+        'snnEvaluationSha256': evaluation_sha,
         "datasetVersion": metadata.get("datasetVersion", "prototype-v2"),
         "seed": metadata.get("seed", 42),
         "featureCount": metadata.get("featureCount", 14),
@@ -71,18 +99,23 @@ def main() -> None:
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "passed": not problems,
         "validationStatus": "PASS" if not problems else "BLOCKED",
+        "modelWeightSha256": model_sha,
+        "metadataSha256": metadata_sha,
+        "dataGateSha256": gate_sha,
+        "datasetSha256": test_sha,
+        "evalSha256": evaluation_sha,
         "weights": {
-            "modelWeightSha256": sha256_file(args.weights),
+            "modelWeightSha256": model_sha,
         },
         "datasets": {
-            "trainCsvSha256": sha256_file(args.train),
-            "valCsvSha256": sha256_file(args.val),
-            "testCsvSha256": sha256_file(args.test),
+            "trainCsvSha256": train_sha,
+            "valCsvSha256": val_sha,
+            "testCsvSha256": test_sha,
         },
         "reports": {
-            "evaluationSha256": sha256_file(args.evaluation),
-            "gateSha256": sha256_file(args.gate),
-            "metadataSha256": sha256_file(args.metadata),
+            "evaluationSha256": evaluation_sha,
+            "gateSha256": gate_sha,
+            "metadataSha256": metadata_sha,
         },
         "evaluation": evaluation,
         "dataGate": gate,
@@ -96,6 +129,7 @@ def main() -> None:
             "minPerClassF1": 0.55,
             "minHighRiskRecall": 0.65,
         },
+        "bindingMessages": binding_messages,
         "problems": problems,
     }
     args.out.write_text(json.dumps(evidence, indent=2), encoding="utf-8")

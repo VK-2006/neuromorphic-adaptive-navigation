@@ -1,4 +1,4 @@
-﻿"""Validate the NAVORA route-risk CSV splits for the camera-free RiskSNN pipeline."""
+"""Validate the NAVORA route-risk CSV splits for the camera-free RiskSNN pipeline."""
 from __future__ import annotations
 
 import argparse
@@ -146,6 +146,7 @@ def main() -> None:
 
     report = {
         "passed": not problems,
+	"policyCompliant": not problems,
         "datasetVersion": "prototype-v2",
         "featureCount": len(FEATURES),
         "featureNames": FEATURES,

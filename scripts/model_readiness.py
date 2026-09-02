@@ -1,4 +1,4 @@
-﻿"""Report whether the NAVORA RiskSNN is genuinely ready for validation."""
+"""Report whether the NAVORA RiskSNN is genuinely ready for validation."""
 from __future__ import annotations
 
 import json
@@ -6,7 +6,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_DIR = ROOT / "ai-service" / "trained_models"
+AI_ROOT = ROOT / "ai-service"
+if str(AI_ROOT) not in sys.path:
+    sys.path.insert(0, str(AI_ROOT))
+
+from app.model_validation import model_validation_status
+
+MODEL_DIR = AI_ROOT / "trained_models"
 MODEL_PATH = MODEL_DIR / "navora-risk-snn.pt"
 METADATA_PATH = MODEL_DIR / "navora-risk-snn-metadata.json"
 EVIDENCE_PATH = MODEL_DIR / "navora-risk-validation-evidence.json"
@@ -28,6 +34,9 @@ def main() -> None:
     validated = bool(metadata.get("validated", False))
     risk_validated = bool(metadata.get("riskValidated", False))
 
+    detector_status = model_validation_status('detector', MODEL_PATH, METADATA_PATH)
+    risk_status = model_validation_status('risk', MODEL_PATH, METADATA_PATH)
+
     if validated or risk_validated:
         if not model_exists:
             print("MODEL_READINESS FAIL: NAVORA RiskSNN weights are missing")
@@ -44,6 +53,8 @@ def main() -> None:
     print(f"- NAVORA RiskSNN weights present: {model_exists}")
     print(f"- metadata validated flag: {validated}")
     print(f"- metadata riskValidated flag: {risk_validated}")
+    print(f"- detector validation status: {detector_status.get('passed', False)}")
+    print(f"- risk validation status: {risk_status.get('passed', False)}")
     return 0
 
 

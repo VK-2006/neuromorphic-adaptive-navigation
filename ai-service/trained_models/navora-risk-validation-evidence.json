@@ -1,5 +1,7 @@
 {
   "schemaVersion": 3,
+  "detectorEvaluationSha256": null,
+  "snnEvaluationSha256": "e036eb9179d12543cb9bc5c7c7d0225a3bc3c820f21a8523bfbf90465893286e",
   "datasetVersion": "prototype-v2",
   "seed": 42,
   "featureCount": 14,
@@ -19,9 +21,14 @@
     "lighting_condition",
     "historical_risk"
   ],
-  "createdAt": "2026-09-02T12:45:34.019783+00:00",
+  "createdAt": "2026-09-02T13:21:15.119641+00:00",
   "passed": true,
   "validationStatus": "PASS",
+  "modelWeightSha256": "1997cacacb127c6bca86d469f1ef6712f4e299aa85566cf637b646d25d80bd3e",
+  "metadataSha256": "a92deb668a03f86cf634810ce66cd8326b1fef9e5352ae0d0b4a6644e51143b2",
+  "dataGateSha256": "6bbb3c7ba3f06af512b5f4ebddea634ec84b51d52d0baf0d96fc72e413873a61",
+  "datasetSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2",
+  "evalSha256": "e036eb9179d12543cb9bc5c7c7d0225a3bc3c820f21a8523bfbf90465893286e",
   "weights": {
     "modelWeightSha256": "1997cacacb127c6bca86d469f1ef6712f4e299aa85566cf637b646d25d80bd3e"
   },
@@ -31,8 +38,8 @@
     "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2"
   },
   "reports": {
-    "evaluationSha256": "75c2eb3115774048bb5cf308b77dbda31d016295e22c17d5b8e7b1f0a67d4f4b",
-    "gateSha256": "1260777d8241f85c6f3627df3803c4d4e18140a1f9d393f96ac19cddb04b9c83",
+    "evaluationSha256": "e036eb9179d12543cb9bc5c7c7d0225a3bc3c820f21a8523bfbf90465893286e",
+    "gateSha256": "6bbb3c7ba3f06af512b5f4ebddea634ec84b51d52d0baf0d96fc72e413873a61",
     "metadataSha256": "a92deb668a03f86cf634810ce66cd8326b1fef9e5352ae0d0b4a6644e51143b2"
   },
   "evaluation": {
@@ -58,6 +65,7 @@
     ],
     "dataset": "C:\\Users\\kitty\\Main Project\\neuromorphic-adaptive-navigation\\ai-service\\datasets\\navora_route_risk\\test.csv",
     "testCsvSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2",
+    "datasetSha256": "85afcbd0ad3656a5575b44cbc8ed1a2d08d414b292d88d7c74e5d8ceba4392f2",
     "modelWeightSha256": "1997cacacb127c6bca86d469f1ef6712f4e299aa85566cf637b646d25d80bd3e",
     "samples": 200,
     "labels": [
@@ -136,11 +144,13 @@
       "minHighRiskRecall": 0.65
     },
     "policyPassed": true,
+    "validationEligible": true,
     "passed": true,
     "problems": []
   },
   "dataGate": {
     "passed": true,
+    "policyCompliant": true,
     "datasetVersion": "prototype-v2",
     "featureCount": 14,
     "featureNames": [
@@ -475,5 +485,9 @@
     "minPerClassF1": 0.55,
     "minHighRiskRecall": 0.65
   },
+  "bindingMessages": [
+    "detector evaluation report is not bound to the exact held-out manifest",
+    "SNN evaluation report is not bound to the exact held-out CSV"
+  ],
   "problems": []
 }

@@ -1,5 +1,6 @@
 {
   "passed": true,
+  "policyCompliant": true,
   "datasetVersion": "prototype-v2",
   "featureCount": 14,
   "featureNames": [

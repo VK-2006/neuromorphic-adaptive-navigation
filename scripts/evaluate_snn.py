@@ -1,4 +1,4 @@
-﻿"""Evaluate the NAVORA RiskSNN on the final 200-row held-out test set."""
+"""Evaluate the NAVORA RiskSNN on the final 200-row held-out test set."""
 from __future__ import annotations
 
 import argparse
@@ -150,6 +150,7 @@ def main() -> None:
         if label in {"HIGH", "CRITICAL"} and metric["recall"] < min_high_risk_recall:
             problems.append(f"{label} recall {metric['recall']:.6f} below policy minimum {min_high_risk_recall}")
 
+    # evalSha256 is bound externally by validation_evidence.py to the exact evaluation JSON.
     report = {
         "datasetVersion": metadata.get("datasetVersion", "prototype-v2"),
         "seed": metadata.get("seed", args.seed),
@@ -158,6 +159,7 @@ def main() -> None:
         "featureNames": FEATURES,
         "dataset": str(dataset_path),
         "testCsvSha256": sha256_file(dataset_path),
+        "datasetSha256": sha256_file(dataset_path),
         "modelWeightSha256": sha256_file(args.weights),
         "samples": len(rows),
         "labels": LABELS,
@@ -176,6 +178,7 @@ def main() -> None:
             "minHighRiskRecall": min_high_risk_recall,
         },
         "policyPassed": not problems,
+        "validationEligible": not problems,
         "passed": not problems,
         "problems": problems,
     }
