@@ -12,9 +12,9 @@
     "SYNTHETIC-ROAD-SCENE-V1"
   ],
   "trainingManifestSha256": "6af3666b0ee4fb5bed08d8359c29832d4c41d22b69301f93d8a5782e5c50cd9a",
-  "detectorValidated": true,
-  "riskValidated": true,
-  "validated": true,
+  "detectorValidated": false,
+  "riskValidated": false,
+  "validated": false,
   "officialBddBenchmarkClaim": false,
   "officialRddBenchmarkClaim": false,
   "detectorTraining": {
