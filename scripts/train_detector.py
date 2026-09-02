@@ -38,8 +38,9 @@ from app.model_validation import sha256_file
 
 
 class ManifestDataset(Dataset):
-    def __init__(self, path, max_samples=0):
+    def __init__(self, path, max_samples=0, dataset_root=None):
         self.path = Path(path)
+        self.dataset_root = Path(dataset_root) if dataset_root else ROOT
         all_rows = [
             json.loads(x)
             for x in self.path.read_text(encoding='utf-8').splitlines()
@@ -81,9 +82,12 @@ class ManifestDataset(Dataset):
 
     def __getitem__(self, i):
         row = self.rows[i]
-        image = cv2.imread(row['image'])
+        image_path = Path(row['image'])
+        if not image_path.is_absolute():
+            image_path = self.dataset_root / image_path
+        image = cv2.imread(str(image_path))
         if image is None:
-            raise FileNotFoundError(row['image'])
+            raise FileNotFoundError(str(image_path))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         boxes = []
@@ -206,6 +210,8 @@ def main():
         '--manifest',
         default=ROOT / 'datasets/derived-risk-data/detection-train.jsonl',
     )
+    ap.add_argument('--dataset-root', default=ROOT,
+                    help='Root used to resolve relative image paths in the manifest.')
     ap.add_argument('--epochs', type=int, default=5)
     ap.add_argument('--batch-size', type=int, default=2)
     ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
@@ -225,6 +231,8 @@ def main():
         help='Epoch checkpoint to resume when it exists.',
     )
     ap.add_argument('--no-resume', action='store_true')
+    ap.add_argument('--amp', action='store_true',
+                    help='Use CUDA automatic mixed precision (ignored on CPU).')
     ap.add_argument(
         '--head-only',
         action='store_true',
@@ -257,7 +265,10 @@ def main():
         torch.set_num_threads(max(1, min(torch.get_num_threads(), os.cpu_count() or 1)))
 
     manifest_path = Path(args.manifest)
-    ds = ManifestDataset(manifest_path, args.max_samples)
+    dataset_root = Path(args.dataset_root)
+    ds = ManifestDataset(manifest_path, args.max_samples, dataset_root)
+    use_amp = bool(args.amp and args.device == 'cuda')
+    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
     dl = DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -297,6 +308,8 @@ def main():
                 f'checkpoint classes do not match manifest: '
                 f'{checkpoint.get("classes")} != {ds.classes}'
             )
+        if checkpoint.get('architecture', 'resnet50') != args.architecture:
+            raise SystemExit('checkpoint architecture does not match requested architecture')
         model.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optimizer_state'])
         if scheduler is not None and checkpoint.get('scheduler_state') is not None:
@@ -307,6 +320,9 @@ def main():
 
     print('initialization =', initialization)
     print('device =', args.device)
+    if args.device == 'cuda':
+        print('gpu_name =', torch.cuda.get_device_name(torch.cuda.current_device()))
+        print('gpu_memory_gib =', round(torch.cuda.get_device_properties(0).total_memory / 2**30, 2))
     print('images =', len(ds))
     print('sources =', dict(ds.source_counts))
     print('classes =', ds.classes)
@@ -316,6 +332,8 @@ def main():
     print('architecture =', args.architecture)
     print('seed =', args.seed)
     print('num_workers =', args.num_workers)
+    print('dataset_root =', dataset_root)
+    print('amp =', use_amp)
     print('checkpoint =', checkpoint_path)
     print(
         'internal_resize =',
@@ -347,12 +365,18 @@ def main():
                 for t in targets
             ]
 
-            losses = model(images, targets)
+            with torch.autocast(
+                device_type='cuda',
+                dtype=torch.float16,
+                enabled=use_amp,
+            ):
+                losses = model(images, targets)
             loss = sum(losses.values())
 
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             total += float(loss.detach())
             seen += len(images)
@@ -385,6 +409,7 @@ def main():
                     'classes': ds.classes,
                     'training_config': {
                         'manifest': str(manifest_path),
+                        'dataset_root': str(dataset_root),
                         'epochs': args.epochs,
                         'batch_size': args.batch_size,
                         'learning_rate': args.lr,
@@ -396,8 +421,10 @@ def main():
                             else {'min_size': 384, 'max_size': 640}
                         ),
                         'architecture': args.architecture,
+                        'amp': use_amp,
                     },
                     'seed': args.seed,
+                    'architecture': args.architecture,
                 },
                 checkpoint_path,
             )
@@ -468,7 +495,13 @@ def main():
         'cocoClassHeadTransfer': [x[0] for x in mapping],
         'freshHeadClasses': fresh,
         'headOnlyTraining': bool(args.head_only),
-        'internalResize': {'minSize': 384, 'maxSize': 640},
+        'internalResize': (
+            {'minSize': 320, 'maxSize': 512}
+            if args.architecture == 'mobilenet320'
+            else {'minSize': 384, 'maxSize': 640}
+        ),
+        'architecture': args.architecture,
+        'amp': use_amp,
         'trainingManifest': str(manifest_path),
         'trainingManifestSha256': sha256_file(manifest_path),
         'dataProvenance': {
