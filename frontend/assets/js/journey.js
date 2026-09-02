@@ -4,6 +4,7 @@ let gpsWatch=null;
 let map,userMarker,routeLine,coveredLine,remainingLine,socket,headingLine=null;
 let route=[],routeDoc=null,journey=null,progress=0,lastSpoken='',pendingReroute=null,rerouteBusy=false,voiceEnabled=false,lastPosition=null;
 let wakeLock=null,trackingInFlight=false,pendingTracking=null,trackingTimer=null,lastTrackingSentAt=0,lastTrackingPosition=null;
+let adaptiveTimer=null,simulationTimer=null;
 let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=false;
 let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true};
 const jid=()=>sessionStorage.getItem('journeyId');
