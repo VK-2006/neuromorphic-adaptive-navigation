@@ -309,7 +309,7 @@ def main():
         print("External validation / optional-integration notes:")
         for w in warnings:
             print(" -", w)
-    print("Physical phone GPS/camera/Bluetooth/WebRTC and held-out ML validation are not fabricated by this test.")
+    print("Physical phone GPS/camera/WebRTC and held-out ML validation are not fabricated by this test.")
     return 0
 
 

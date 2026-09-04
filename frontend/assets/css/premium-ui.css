@@ -1099,24 +1099,8 @@ body[data-ui-page="dashboard"] canvas {
 }
 
 /* =========================================================
-   10. DEVICES / MEMORY / HISTORY / SETTINGS / PROFILE
+   10. MEMORY / HISTORY / SETTINGS / PROFILE
    ========================================================= */
-body[data-ui-page="devices"] .grid-3 > .card {
-  min-height: 250px;
-}
-body[data-ui-page="devices"] [data-bluetooth-pair] {
-  border-color: color-mix(in srgb, var(--ui-premium) 38%, var(--ui-border-strong)) !important;
-}
-body[data-ui-page="devices"] [data-bluetooth-pair].ui-device-searching::after {
-  content: "";
-  width: 10px;
-  height: 10px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--ui-premium);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ui-premium) 40%, transparent);
-  animation: uiSearchPulse 1.2s ease-out infinite;
-}
 
 .research-stages {
   display: flex;

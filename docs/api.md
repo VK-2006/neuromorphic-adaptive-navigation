@@ -33,15 +33,14 @@ Routing adapters support OSRM, GraphHopper, Valhalla and a clearly labelled deve
 
 `/api/v1/hazards` supports camera detection, nearby hazards, community reports and proximity-limited confirmations. Repeated camera detections are deduplicated geographically/temporally rather than creating one document per frame. Community confirmation requires the confirmer to be within 500 m and does not persist the confirmer's supplied location.
 
-## Devices, memory, notifications and profile
+## Memory, notifications and profile
 
 - `/api/v1/users/me`, `/api/v1/users/dashboard`
-- `/api/v1/devices`
 - `/api/v1/memory`
 - `/api/v1/notifications`
 - `/api/v1/trusted-contacts`
 
-All are authenticated and ownership-scoped. Device/contact update fields use allowlists so clients cannot overwrite ownership fields.
+All are authenticated and ownership-scoped. Contact update fields use allowlists so clients cannot overwrite ownership fields.
 
 ## World Chat
 
@@ -72,4 +71,4 @@ If validated weights are absent, responses explicitly identify development/fallb
 
 ## Socket.IO room model
 
-Authenticated sockets may join authorized `user:{userId}`, `journey:{journeyId}`, `device:{deviceId}`, `route:{routeId}`, `chat:{roomId}` and `admin` rooms. WebRTC signaling is additionally journey-scoped. Live journey position, hazard, SNN, route, device and notification events stay in private/authorized rooms; exact GPS is not globally broadcast.
+Authenticated sockets may join authorized `user:{userId}`, `journey:{journeyId}`, `route:{routeId}`, `chat:{roomId}` and `admin` rooms. WebRTC signaling is additionally journey-scoped. Live journey position, hazard, SNN, route and notification events stay in private/authorized rooms; exact GPS is not globally broadcast.

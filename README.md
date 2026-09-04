@@ -16,7 +16,7 @@ During an active journey:
 
 ## Technology stack
 
-**Frontend:** HTML5, CSS3, ES6+, Bootstrap 5, Leaflet/OpenStreetMap, Chart.js, Three.js, GSAP, AOS/Lottie where useful, Socket.IO client, Web Speech, Geolocation, optional Web Bluetooth, Service Worker/PWA.
+**Frontend:** HTML5, CSS3, ES6+, Bootstrap 5, Leaflet/OpenStreetMap, Chart.js, Three.js, GSAP, AOS/Lottie where useful, Socket.IO client, Web Speech, Geolocation, Service Worker/PWA.
 
 **Backend:** Node.js, Express 5, MongoDB/Mongoose, Socket.IO, JWT access tokens + rotating hashed refresh tokens, bcrypt, Helmet, CORS, rate limiting, express-validator, Winston/Morgan, Google identity verification and Brevo transactional-email architecture.
 
@@ -141,7 +141,7 @@ The user's Git working repository already preserves `backend/package-lock.json`;
 
 ## Limitations / validation boundary
 
-No fabricated SNN validation is claimed. The custom 800-record dataset and reported metrics are prototype/held-out research results, not production evidence. Geolocation, Screen Wake Lock, Bluetooth and passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
+No fabricated SNN validation is claimed. The custom 800-record dataset and reported metrics are prototype/held-out research results, not production evidence. Geolocation, Screen Wake Lock and passkeys depend on HTTPS, browser support and physical permissions. Public OSRM does not provide live traffic. Real emergency-service dispatch is not claimed. Production Google/Brevo/TomTom/Atlas behavior requires real user-owned credentials.
 
 The source contains training/evaluation/runtime-validation tooling so those gates can be completed without redesigning the application.
 
@@ -161,7 +161,7 @@ python .\scripts\production_smoke.py `
   --expected-commit (git rev-parse HEAD)
 ```
 
-The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS/Bluetooth testing remain explicit external gates.
+The smoke verifier does not print secrets. It checks backend/Mongo health, frontend/PWA assets, non-secret Google/Brevo/WebAuthn configuration, routing, geocoding, real TomTom route annotation, Socket.IO, AI health/model metadata and AI risk inference. Actual Google browser sign-in, delivered Brevo email receipt, trained held-out model validation and physical GPS testing remain explicit external gates.
 
 
 ### Production geocoding policy

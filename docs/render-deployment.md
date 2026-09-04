@@ -84,7 +84,7 @@ V35 smoke verifies:
 - AI model metadata and risk inference
 - V33 rule that an unvalidated trained model cannot serve normal trained inference
 
-Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone GPS/camera/Bluetooth/WebRTC remain separate evidence gates and must not be fabricated.
+Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone GPS/camera/WebRTC remain separate evidence gates and must not be fabricated.
 
 ## V35 automatic release watch
 

@@ -8,14 +8,12 @@ The runtime enhancer assigns animated purple/gold border roles to detected contr
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | admin-audit.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin-chat.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
-| admin-devices.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin-hazards.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin-health.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin-users.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin.html | 1 | 0 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | camera-share.html | 3 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 1 | 2 | 0 |
 | dashboard.html | 1 | 4 | 9 | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
-| devices.html | 7 | 2 | 4 | 0 | 0 | 0 | 0 | 0 | 3 | 3 | 0 |
 | forgot-password.html | 2 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 0 |
 | history.html | 1 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | index.html | 1 | 2 | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 |
@@ -37,10 +35,10 @@ The runtime enhancer assigns animated purple/gold border roles to detected contr
 
 ## Totals
 
-- Pages audited: **28**
-- Native buttons: **78**
-- Button-style links: **12**
-- Card-like surfaces: **52**
+- Pages audited: **25**
+- Native buttons: **71**
+- Button-style links: **10**
+- Card-like surfaces: **48**
 - Route/reroute surfaces: **1**
 - Panel/pane surfaces: **5**
 - Form fields: **44**

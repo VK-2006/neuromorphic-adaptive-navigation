@@ -14,13 +14,13 @@ pages=re.findall(r"'([^']+\.html)'",m.group(1))
 expected=[
     'index.html','register.html','verify-email.html','login.html','forgot-password.html',
     'verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html',
-    'world-chat.html','devices.html','memory.html','journey-replay.html','history.html',
+    'world-chat.html','memory.html','journey-replay.html','history.html',
     'notifications.html','profile.html','settings.html','shared-journey.html',
-    'offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html',
+    'offline.html','admin.html','admin-users.html','admin-hazards.html',
     'admin-chat.html','admin-health.html','admin-audit.html'
 ]
-assert len(pages)==27, f'expected 27 pages, found {len(pages)}'
-assert len(set(pages))==27, 'duplicate page exists in browser sweep'
+assert len(pages)==25, f'expected 25 pages, found {len(pages)}'
+assert len(set(pages))==25, 'duplicate page exists in browser sweep'
 assert pages==expected, f'page sweep differs from expected list: {pages}'
 for signal in [
     'initial-load',
@@ -48,10 +48,9 @@ replay=read('frontend/assets/js/replay.js')
 assert 'leafletReady' in replay
 assert 'Map unavailable' in replay
 
-camera=read('frontend/assets/js/devices.js')
-assert 'navigator.bluetooth' in camera
-assert 'window.isSecureContext' in camera
-assert 'Stream sensor' in camera
+camera = read('frontend/assets/js/journey.js') if (ROOT / 'frontend/assets/js/devices.js').exists() == False else read('frontend/assets/js/devices.js')
+assert 'navigator.bluetooth' not in camera
+assert 'watchPosition(' in camera
 
 dashboard=read('frontend/assets/js/dashboard.js')
 assert 'Array.isArray' in dashboard
@@ -62,9 +61,7 @@ assert 'encodeURIComponent(b.dataset.deleteContact)' in account
 data=read('frontend/assets/js/data-pages.js')
 assert 'temporarily unavailable' in data
 
-devices=read('frontend/assets/js/devices.js')
-assert 'GATT' in devices
-assert 'START_STOP' in devices or 'Stream sensor' in devices
+assert not (ROOT / 'frontend/assets/js/devices.js').exists(), 'Device controller script must be removed from the browser surface'
 
 theme=read('frontend/assets/js/theme.js')
 assert "typeof window.matchMedia==='function'" in theme
@@ -86,4 +83,4 @@ for signal in [
 ]:
     assert signal in runner, f'local runner missing {signal}'
 
-print('V8.3_RUNTIME_AUDIT PASS: exact 27-page contract + runtime hardening + isolated local browser harness are valid')
+print('V8.3_RUNTIME_AUDIT PASS: exact 25-page camera-free contract + runtime hardening + isolated local browser harness are valid')

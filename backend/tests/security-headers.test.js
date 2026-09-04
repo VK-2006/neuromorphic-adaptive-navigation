@@ -27,7 +27,6 @@ describe('browser security headers',()=>{
     expect(r.headers['x-content-type-options']).toBe('nosniff');
     expect(r.headers['permissions-policy']).toContain('geolocation=(self)');
     expect(r.headers['permissions-policy']).toContain('microphone=()');
-    expect(r.headers['permissions-policy']).toContain('bluetooth=()');
     expect(r.headers['permissions-policy']).not.toContain('camera=');
   });
 

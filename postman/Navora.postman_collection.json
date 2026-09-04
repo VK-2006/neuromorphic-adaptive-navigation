@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c0895c51-4caa-4071-ab4d-0a1dd9bb646a",
     "name": "Navora \u2014 Neuromorphic Adaptive Navigation API",
-    "description": "Comprehensive development collection for the master-prompt REST + FastAPI contracts. Browser-only WebAuthn, Google Identity Services, WebRTC, Bluetooth, Geolocation and camera permission flows are represented by their server contracts; they must be exercised in the browser for true end-to-end validation. Simulation data is explicitly labelled and is not live traffic.",
+    "description": "Comprehensive development collection for the master-prompt REST + FastAPI contracts. Browser-only WebAuthn, Google Identity Services, WebRTC, Geolocation and camera permission flows are represented by their server contracts; they must be exercised in the browser for true end-to-end validation. Simulation data is explicitly labelled and is not live traffic.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -52,10 +52,6 @@
     },
     {
       "key": "hazardId",
-      "value": ""
-    },
-    {
-      "key": "deviceId",
       "value": ""
     },
     {
@@ -1487,117 +1483,6 @@
                 "api",
                 "v1",
                 "memory"
-              ]
-            },
-            "description": ""
-          }
-        }
-      ]
-    },
-    {
-      "name": "Devices",
-      "item": [
-        {
-          "name": "List devices",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/devices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "devices"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Create device",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/devices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "devices"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Demo sensor\",\n  \"deviceType\": \"BLUETOOTH_SENSOR\",\n  \"externalId\": \"demo-device\",\n  \"battery\": 85,\n  \"capabilities\": [\n    \"battery\",\n    \"control\",\n    \"sensor-metadata\"\n  ],\n  \"enabled\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Update device",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/devices/{{deviceId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "devices",
-                "{{deviceId}}"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"battery\": 80,\n  \"enabled\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Delete device",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/devices/{{deviceId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "devices",
-                "{{deviceId}}"
               ]
             },
             "description": ""

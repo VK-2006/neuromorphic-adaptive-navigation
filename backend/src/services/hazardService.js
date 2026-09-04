@@ -75,7 +75,7 @@ async function findDedupeCandidate({ type, journeyId, location, metadata }) {
     : { hazard: null, similarity: bestSimilarity >= 0 ? bestSimilarity : null };
 }
 
-async function dedupeAndUpsert({ userId, journeyId, deviceId, type, location, confidence, snnRiskScore, snnRiskLevel, metadata }) {
+async function dedupeAndUpsert({ userId, journeyId, type, location, confidence, snnRiskScore, snnRiskLevel, metadata }) {
   if (!location || mongoose.connection.readyState !== 1) return null;
   const { hazard: near, similarity } = await findDedupeCandidate({ type, journeyId, location, metadata });
   const rep = userId ? await Reputation.findOne({ userId }) : null;
@@ -106,7 +106,7 @@ async function dedupeAndUpsert({ userId, journeyId, deviceId, type, location, co
     return near;
   }
   const created = await Hazard.create({
-    userId, journeyId, deviceId, type,
+    userId, journeyId, type,
     location: { type: 'Point', coordinates: [location.lng, location.lat] },
     confidence, snnRiskScore, snnRiskLevel,
     reporterReputation: reputation,

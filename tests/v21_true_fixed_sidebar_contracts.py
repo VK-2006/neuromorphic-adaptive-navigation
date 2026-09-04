@@ -9,7 +9,7 @@ MOTION = ROOT / 'frontend' / 'assets' / 'css' / 'obsidian-motion.css'
 SW = ROOT / 'frontend' / 'service-worker.js'
 
 pages = sorted(PUBLIC.glob('*.html'))
-assert len(pages) == 27, f'expected 27 pages, found {len(pages)}'
+assert len(pages) == 25, f'expected 25 pages, found {len(pages)}'
 for page in pages:
     text = page.read_text(encoding='utf-8')
     assert '/assets/js/theme.js' in text, f'{page.name}: theme bootstrap missing'
@@ -83,4 +83,4 @@ assert '"/assets/css/fixed-sidebar-v21.css"' in sw
 without_comments = re.sub(r'/\*.*?\*/', '', fix, flags=re.S)
 assert without_comments.count('{') == without_comments.count('}'), 'V21 CSS braces are unbalanced'
 
-print('V21_TRUE_FIXED_SIDEBAR_CONTRACTS PASS: page-enter containing-block regression is neutralized and all 27 NAVORA rails stay viewport-fixed while content scrolls')
+print('V21_TRUE_FIXED_SIDEBAR_CONTRACTS PASS: page-enter containing-block regression is neutralized and all 25 NAVORA rails stay viewport-fixed while content scrolls')

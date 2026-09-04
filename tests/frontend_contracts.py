@@ -48,15 +48,14 @@ import json
 express_spec=json.loads(read('backend/package.json'))['dependencies']['express']
 assert express_spec.lstrip('^~>= ').split('.')[0]=='5', 'Express 5 is required for async promise error propagation'
 
-require('backend/src/sockets/index.js','journey:join','device:join','route:join','chat:join','webrtc:join')
+require('backend/src/sockets/index.js','journey:join','route:join','chat:join','webrtc:join')
 require('backend/src/services/aiClient.js','/api/v1/risk/predict','degraded')
 
 
-# Device/Bluetooth and simulation/digital-twin contracts.
-device=read('frontend/assets/js/devices.js')+read('frontend/public/devices.html')
-for signal in ['navigator.bluetooth','optionalServices','START_STOP','sensor']:
-    assert signal in device, f'device connectivity missing {signal}'
-assert 'DETECTION_ON' not in device and 'DETECTION_OFF' not in device, 'detection control commands were removed from the current device contract'
+# Simulation/digital-twin and camera-free navigation contracts.
+asset_js = read('frontend/assets/js/devices.js') if (ROOT / 'frontend/assets/js/devices.js').exists() else ''
+assert 'navigator.bluetooth' not in asset_js, 'device-controller hooks should be removed from the current runtime'
+assert 'devices.html' not in read('frontend/service-worker.js'), 'device pages should not remain in the offline shell'
 require('backend/src/services/simulationService.js','SCENARIO','predictRisk','dedupeAndUpsert')
 require('backend/src/routes/simulationRoutes.js',"post('/step'",'authenticate','simulationStep')
 require('frontend/assets/js/journey.js','/simulation/step','automaticSimulation:true','completeJourney','SIMULATION')
@@ -79,10 +78,10 @@ require('backend/src/services/webauthnService.js','CHALLENGE_TTL_MS','putChallen
 require('backend/src/services/otpService.js','return rec')
 require('backend/src/services/routeService.js','route_intelligence','snnHazardRisk','dtwSimilarity')
 
-print('FRONTEND_CONTRACTS PASS: map/providers, camera-free journey/privacy/reroute, device/Bluetooth, chat, simulation/replay, PWA, themes/Three.js, auth/socket/AI/database-degraded contracts')
+print('FRONTEND_CONTRACTS PASS: map/providers, camera-free journey/privacy/reroute, chat, simulation/replay, PWA, themes/Three.js, auth/socket/AI/database-degraded contracts')
 
 # Admin navigation and Render/source compliance.
-require('frontend/public/admin-health.html','NAVORA ADMIN','admin-users.html','admin-hazards.html','admin-chat.html','admin-devices.html','admin-audit.html')
+require('frontend/public/admin-health.html','NAVORA ADMIN','admin-users.html','admin-hazards.html','admin-chat.html','admin-audit.html')
 require('backend/src/server.js','const PORT = process.env.PORT || 5000;','server.listen(PORT')
 require('backend/src/routes/adminRoutes.js','adminValidators','authorize(\'ADMIN\')')
 print('ADMIN/RENDER CONTRACTS PASS')

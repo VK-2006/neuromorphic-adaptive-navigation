@@ -129,7 +129,7 @@
   enhanceReveal();
 
   const listIds=[
-    'recent-journeys','recent-memories','device-list','memory-list',
+    'recent-journeys','recent-memories','memory-list',
     'notification-list','blocked-list','hazard-list','room-list'
   ];
   for(const id of listIds){
@@ -165,14 +165,6 @@
     }
   });
   document.querySelectorAll('.metric,.admin-stat').forEach(el=>metricObserver.observe(el,{childList:true,characterData:true,subtree:true}));
-
-  document.addEventListener('click',e=>{
-    const bluetooth=e.target.closest?.('[data-bluetooth-pair]');
-    if(bluetooth){
-      bluetooth.classList.add('ui-device-searching');
-      setTimeout(()=>bluetooth.classList.remove('ui-device-searching'),6000);
-    }
-  });
 
   function eligibleInternalLink(a,e){
     if(!a||e.defaultPrevented||e.button!==0)return false;

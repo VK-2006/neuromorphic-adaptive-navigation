@@ -13,12 +13,12 @@ const ASSETS=path.join(FRONT,'assets');
 const PORT=Number(process.env.NAVORA_UI_AUDIT_PORT||5097);
 const BASE=`http://127.0.0.1:${PORT}`;
 
-const pages=['index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
-if(pages.length!==27)throw new Error(`UI sweep expected 27 pages, found ${pages.length}`);
+const pages=['index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
+if(pages.length!==26)throw new Error(`UI sweep expected 26 pages, found ${pages.length}`);
 
 const auth=new Set(['register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html']);
 const publicPages=new Set(['index.html','shared-journey.html','offline.html',...auth]);
-const adminPages=new Set(['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);
+const adminPages=new Set(['admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);
 
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'};
 
@@ -72,9 +72,9 @@ function mock(pathname,method,page){
   if(pathname==='/api/v1/users/dashboard')return{status:200,data:{metrics:{safetyTrend:84,routeMemories:6,successfulJourneys:8,verifiedHazardsAvoided:2,unreadNotifications:1},trend:[{label:'A',safety:71},{label:'B',safety:84}],recentJourneys:[],recentMemories:[]}};
   if(pathname==='/api/v1/journeys')return{status:200,data:[]};
   if(pathname.startsWith('/api/v1/journeys/shared/'))return{status:200,data:{status:'ACTIVE',destination:{label:'Audit destination'},distanceCovered:100,distanceRemaining:900,updatedAt:new Date().toISOString(),emergencyActive:false,lastKnownPosition:{lat:17.38,lng:78.48}}};
-  if(['/api/v1/memory','/api/v1/notifications','/api/v1/devices','/api/v1/trusted-contacts'].includes(pathname))return{status:200,data:[]};
+  if(['/api/v1/memory','/api/v1/notifications','/api/v1/trusted-contacts'].includes(pathname))return{status:200,data:[]};
   if(pathname==='/api/v1/admin/overview'||pathname==='/api/v1/admin/health')return{status:200,data:{}};
-  if(['/api/v1/admin/users','/api/v1/admin/devices','/api/v1/admin/hazards','/api/v1/admin/chat/reports','/api/v1/admin/audit'].includes(pathname))return{status:200,data:[]};
+  if(['/api/v1/admin/users','/api/v1/admin/hazards','/api/v1/admin/chat/reports','/api/v1/admin/audit'].includes(pathname))return{status:200,data:[]};
   if(pathname.startsWith('/api/v1/chat/rooms')||pathname==='/api/v1/chat/blocks')return{status:200,data:[]};
   if(pathname==='/api/v1/geocoding/status')return{status:200,data:{effective:'nominatim',typeahead:false}};
   if(pathname.startsWith('/api/v1/geocoding/reverse'))return{status:200,data:{label:'Audit point',name:'Audit point',lat:17.38,lng:78.48}};
@@ -146,7 +146,7 @@ async function main(){
       }
     }
 
-    const critical=['index.html','login.html','dashboard.html','map.html','journey.html','devices.html','memory.html','world-chat.html','admin.html'];
+    const critical=['index.html','login.html','dashboard.html','map.html','journey.html','memory.html','world-chat.html','admin.html'];
     for(const page of critical){
       for(const theme of ['light','dark']){
         for(const width of [1200,1024,768,480,320]){

@@ -184,7 +184,7 @@ if errorlevel 1 (
 rem --------------------------------------------------------------------------
 rem The remaining gates require a human/device/provider. Open the real pages and
 rem record explicit evidence. A BAT cannot click Google consent, read your inbox,
-rem or manufacture Bluetooth/GPS/TURN field behavior.
+rem or manufacture GPS/TURN field behavior.
 rem --------------------------------------------------------------------------
 echo.
 echo Google gate: complete REAL Google Signup with your account.
@@ -201,9 +201,8 @@ if errorlevel 2 (set "OTP_GATE=PENDING"& set /a PENDING+=1) else set "OTP_GATE=P
 echo.
 echo Hardware gate: test on a physical HTTPS-capable phone/device.
 start "" "%BACKEND_URL%/journey.html"
-start "" "%BACKEND_URL%/devices.html"
 start "" "%BACKEND_URL%/journey.html"
-choice /C YN /N /M "Did physical GPS + camera + Bluetooth + WebRTC work on the real device? [Y/N] "
+choice /C YN /N /M "Did physical GPS + camera + WebRTC work on the real device? [Y/N] "
 if errorlevel 2 (set "HARDWARE_GATE=PENDING"& set /a PENDING+=1) else set "HARDWARE_GATE=PASS"
 
 echo.
@@ -226,7 +225,7 @@ set "REPORT=%REPO%\logs\V10_EXTERNAL_GATE_RESULT.txt"
   echo AI=%AI_URL%
   echo GoogleRealConsent=%GOOGLE_GATE%
   echo RealOtpMailbox=%OTP_GATE%
-  echo PhysicalGpsCameraBluetoothWebRTC=%HARDWARE_GATE%
+  echo PhysicalGpsCameraWebRTC=%HARDWARE_GATE%
   echo TurnCrossNetworkRelay=%TURN_GATE%
   echo HeldOutValidatedDetectorAndSNN=%MODEL_GATE%
   echo PendingCount=%PENDING%

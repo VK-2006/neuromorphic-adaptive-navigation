@@ -51,6 +51,6 @@ These are not hidden as PASS:
 - Brevo production delivery requires credentials and verified sender configuration.
 - TomTom live traffic requires credentials if that provider is selected.
 - Validated camera/SNN safety AI requires real held-out evaluation of trained weights. The repository deliberately remains **research/development fallback** until both detector and SNN validation gates pass.
-- Physical phone GPS/camera/Screen Wake Lock/Web Bluetooth behavior requires secure HTTPS and real hardware/browser permission testing.
+- Physical phone GPS/camera/Screen Wake Lock behavior requires secure HTTPS and real hardware/browser permission testing.
 
 - Verifier-context fixture portability: PASS (clean fixture excludes local runtime env/caches; strict mode still rejects injected env files; working-tree mode accepts only ignored/untracked env files).

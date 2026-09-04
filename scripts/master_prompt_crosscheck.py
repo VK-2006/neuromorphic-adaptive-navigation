@@ -12,9 +12,9 @@ def need(name, cond, detail=''):
 def text(rel): return (ROOT/rel).read_text(encoding='utf-8',errors='ignore')
 def exists(rel): return (ROOT/rel).exists()
 
-required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','admin-devices.html','shared-journey.html','offline.html']
+required_pages=['index.html','login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','memory.html','history.html','journey-replay.html','notifications.html','profile.html','settings.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html','shared-journey.html','offline.html']
 for p in required_pages: need(f'page:{p}', exists(f'frontend/public/{p}'))
-required_models=['User','RefreshToken','OtpVerification','PasskeyCredential','TrustedContact','Device','Route','Journey','JourneyLocationPoint','Hazard','HazardConfirmation','RouteMemory','Notification','ChatRoom','ChatMessage','ChatReaction','ChatReport','BlockedUser','UserReputation','AuditLog']
+required_models=['User','RefreshToken','OtpVerification','PasskeyCredential','TrustedContact','Route','Journey','JourneyLocationPoint','Hazard','HazardConfirmation','RouteMemory','Notification','ChatRoom','ChatMessage','ChatReaction','ChatReport','BlockedUser','UserReputation','AuditLog']
 for m in required_models: need(f'model:{m}', exists(f'backend/src/models/{m}.js'))
 for p in ['frontend/manifest.json','frontend/service-worker.js','frontend/public/offline.html','frontend/assets/icons/navora-192.png','frontend/assets/icons/navora-512.png']:
     need(p,exists(p))
@@ -64,10 +64,10 @@ for key in ['temporal','validated','fallback','membrane','spike']:
     need(f'risk-service:{key}',key in risk.lower())
 
 socket=text('backend/src/sockets/index.js')
-for room in ['user:','journey:','device:','route:','chat:','admin']:
+for room in ['user:','journey:','route:','chat:','admin']:
     need(f'socket-room:{room}',room in socket)
 need('no global GPS broadcast', "io.emit('gps" not in socket and 'io.emit("gps' not in socket)
-for ev in ['journey:location','device:updated','snn:risk','route:updated','notification:new']:
+for ev in ['journey:location','snn:risk','route:updated','notification:new']:
     corpus=socket+''.join(x.read_text(encoding='utf-8',errors='ignore') for x in (ROOT/'backend/src/controllers').glob('*.js'))
     need(f'socket-event:{ev}',ev in corpus)
 

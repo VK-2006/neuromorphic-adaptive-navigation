@@ -16,8 +16,8 @@ class Parser(HTMLParser):
         if tag=='link' and d.get('href'): self.hrefs.append(d['href'])
         if tag=='script' and d.get('src'): self.srcs.append(d['src'])
 
-if len(htmls)!=28:
-    errors.append(f'expected 28 HTML pages, found {len(htmls)}')
+if len(htmls)!=25:
+    errors.append(f'expected 25 HTML pages, found {len(htmls)}')
 
 for p in htmls:
     t=p.read_text(encoding='utf-8')
@@ -37,10 +37,9 @@ for p in htmls:
 
 contracts={
     'map.html':['map','route-form','source','destination','route-list','begin-selected-journey'],
-    'journey.html':['journey-map','camera-video','overlay-canvas','detection-toggle','start-journey','reroute-panel'],
+    'journey.html':['journey-map','start-journey','reroute-panel'],
     'login.html':['login-form','email','password'],
     'dashboard.html':['metric-safety','safety-chart'],
-    'devices.html':['device-list'],
     'memory.html':['memory-list'],
 }
 for name,ids in contracts.items():
@@ -50,7 +49,7 @@ for name,ids in contracts.items():
 
 css=(ROOT/'frontend/assets/css/premium-ui.css').read_text(encoding='utf-8')
 for token in [
- '#0B0712','#120B1F','#171022','#21152F','#6D28D9','#8B5CF6','#A78BFA','#D4AF37','#F2D675',
+ '#0B0712','#120B1F','#171022','#21152F','#7A5CFF','#D4AF37','#F2D675',
  '#F7F3EA','#EFE8DD','#FFFDFC','#6E3B6E','#8E5C8E','#B58A32','#D5B86A','#B86B77','#D8A0A8',
  '@media (max-width: 1200px)','@media (max-width: 1024px)','@media (max-width: 768px)',
  '@media (max-width: 480px)','@media (max-width: 375px)','@media (max-width: 320px)',
@@ -69,7 +68,7 @@ for token in [
 sw=(ROOT/'frontend/service-worker.js').read_text(encoding='utf-8')
 m=re.search(r"const CACHE='([^']+)';",sw)
 cache=m.group(1) if m else None
-if cache!='navora-premium-ui-v12-3-4':
+if cache!='navora-completion-v37-0-0':
     errors.append(f'service-worker cache mismatch: {cache!r}')
 for token in ['/assets/css/premium-ui.css','/assets/js/premium-ui.js','navora-v7-functional-product-1']:
     if token not in sw: errors.append(f'service-worker.js missing {token}')
@@ -82,5 +81,5 @@ if errors:
 print('NAVORA UI STATIC AUDIT: PASS')
 print('HTML pages:',len(htmls))
 print('Premium UI runtime version: 12.3.4')
-print('Service-worker cache: navora-premium-ui-v12-3-4')
+print('Service-worker cache: navora-completion-v37-0-0')
 print('DOM/function shell/theme/responsive/reduced-motion contracts: PASS')

@@ -1,10 +1,10 @@
 import {api,toast} from './api.js';
 const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
 const authPages=new Set(['login.html','register.html','verify-email.html','forgot-password.html','verify-otp.html','reset-password.html']);
-const protectedPages=new Set(['dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html']);
-const adminPages=new Set(['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);
-const userLinks=[['dashboard.html','Dashboard','⌂'],['map.html','Navigate','⌖'],['journey.html','Live Journey','▶'],['world-chat.html','World Chat','◉'],['devices.html','Devices','⌁'],['memory.html','Route Memory','◇'],['history.html','History','◷'],['notifications.html','Notifications','•'],['settings.html','Settings','⚙']];
-const adminLinks=[['admin.html','Overview','▦'],['admin-users.html','Users','◌'],['admin-hazards.html','Hazards','△'],['admin-devices.html','Devices','⌁'],['admin-chat.html','Chat reports','◉'],['admin-health.html','System health','＋'],['admin-audit.html','Audit log','≡']];
+const protectedPages=new Set(['dashboard.html','map.html','journey.html','world-chat.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html']);
+const adminPages=new Set(['admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html']);
+const userLinks=[['dashboard.html','Dashboard','⌂'],['map.html','Navigate','⌖'],['journey.html','Live Journey','▶'],['world-chat.html','World Chat','◉'],['memory.html','Route Memory','◇'],['history.html','History','◷'],['notifications.html','Notifications','•'],['settings.html','Settings','⚙']];
+const adminLinks=[['admin.html','Overview','▦'],['admin-users.html','Users','◌'],['admin-hazards.html','Hazards','△'],['admin-chat.html','Chat reports','◉'],['admin-health.html','System health','＋'],['admin-audit.html','Audit log','≡']];
 const publicPage=!authPages.has(page)&&!protectedPages.has(page)&&!adminPages.has(page);
 if(publicPage)document.body.classList.add('navora-public');
 else document.body.classList.add('navora-booting');
@@ -50,7 +50,6 @@ function buildPublicNav(user){
     ['index.html','Home'],
     ['map.html','Navigate'],
     ['journey.html','Live Journey'],
-    ['devices.html','Devices'],
     ['memory.html','Memory']
   ];
   for(const [href,label] of items){

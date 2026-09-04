@@ -1,5 +1,4 @@
 
-const Device=require('../models/Device');
 const RouteMemory=require('../models/RouteMemory');
 const Notification=require('../models/Notification');
 const TrustedContact=require('../models/TrustedContact');
@@ -8,10 +7,6 @@ const Journey=require('../models/Journey');
 const {ok}=require('../utils/response');
 
 const pick=(obj,keys)=>Object.fromEntries(keys.filter(k=>obj?.[k]!==undefined).map(k=>[k,obj[k]]));
-const DEVICE_FIELDS=[
-  'name','deviceType','externalId','battery','capabilities','enabled','connectionStatus',
-  'serviceUuid','controlCharacteristicUuid','sensorCharacteristicUuid','lastCommand','lastCommandAt','lastSensorValue','lastSensorAt'
-];
 const CONTACT_FIELDS=['name','phone','email','relationship','sharePermission'];
 const PROFILE_FIELDS=['name','phone','city','country','preferredLanguage'];
 const PREF_FIELDS=['safety','traffic','familiarity','theme','units','voiceLanguage','detectionMode','highAccuracyGps'];
@@ -26,17 +21,16 @@ exports.profile=async(req,res)=>ok(res,{
 
 exports.profileSummary=async(req,res)=>{
   const uid=req.user._id;
-  const [journeys,completed,active,routeMemories,devices,trustedContacts,unreadNotifications,lastJourney]=await Promise.all([
+  const [journeys,completed,active,routeMemories,trustedContacts,unreadNotifications,lastJourney]=await Promise.all([
     Journey.countDocuments({userId:uid}),
     Journey.countDocuments({userId:uid,status:'COMPLETED'}),
     Journey.countDocuments({userId:uid,status:{$in:['ACTIVE','PAUSED']}}),
     RouteMemory.countDocuments({userId:uid}),
-    Device.countDocuments({userId:uid}),
     TrustedContact.countDocuments({userId:uid}),
     Notification.countDocuments({userId:uid,readAt:null}),
     Journey.findOne({userId:uid}).sort({createdAt:-1}).select('status mode createdAt completedAt selectedRouteSnapshot').lean()
   ]);
-  ok(res,{journeys,completedJourneys:completed,activeJourneys:active,routeMemories,devices,trustedContacts,unreadNotifications,lastJourney});
+  ok(res,{journeys,completedJourneys:completed,activeJourneys:active,routeMemories,trustedContacts,unreadNotifications,lastJourney});
 };
 
 exports.updateProfile=async(req,res)=>{
@@ -72,36 +66,6 @@ exports.dashboard=async(req,res)=>{
   },trend:completed.slice(0,12).reverse().map((j,i)=>({
     label:`J-${i+1}`,safety:Math.round(100*(1-(j.averageRisk||0))),risk:j.averageRisk||0,date:j.completedAt||j.updatedAt
   })),recentJourneys:journeys.slice(0,5),recentMemories:memories.slice(0,5)});
-};
-
-exports.devices=async(req,res)=>ok(res,await Device.find({userId:req.user._id}).sort({updatedAt:-1}));
-exports.addDevice=async(req,res)=>{
-  const body=pick(req.body,DEVICE_FIELDS);
-  const data={...body,userId:req.user._id,lastSeenAt:new Date()};
-  if(body.lastCommand&&!body.lastCommandAt)data.lastCommandAt=new Date();
-  if(body.lastSensorValue&&!body.lastSensorAt)data.lastSensorAt=new Date();
-  let d;
-  if(body.externalId){
-    d=await Device.findOneAndUpdate({userId:req.user._id,externalId:body.externalId},{$set:data},{upsert:true,new:true,setDefaultsOnInsert:true});
-  }else d=await Device.create(data);
-  req.app.get('io')?.to(`user:${req.user._id}`).emit('device:updated',d);
-  ok(res,d,'Device saved',201);
-};
-exports.updateDevice=async(req,res)=>{
-  const patch=pick(req.body,DEVICE_FIELDS);
-  patch.lastSeenAt=new Date();
-  if(patch.lastCommand&&!patch.lastCommandAt)patch.lastCommandAt=new Date();
-  if(patch.lastSensorValue&&!patch.lastSensorAt)patch.lastSensorAt=new Date();
-  const d=await Device.findOneAndUpdate({_id:req.params.id,userId:req.user._id},{$set:patch},{new:true});
-  if(!d)return res.status(404).json({success:false,message:'Device not found'});
-  req.app.get('io')?.to(`user:${req.user._id}`).emit('device:updated',d);
-  req.app.get('io')?.to(`device:${d._id}`).emit('device:updated',d);
-  ok(res,d);
-};
-exports.deleteDevice=async(req,res)=>{
-  const d=await Device.findOneAndDelete({_id:req.params.id,userId:req.user._id});
-  if(d)req.app.get('io')?.to(`user:${req.user._id}`).emit('device:deleted',{deviceId:String(d._id)});
-  ok(res,{deleted:!!d});
 };
 
 exports.memory=async(req,res)=>ok(res,await RouteMemory.find({userId:req.user._id}).sort({lastTravelledAt:-1}));

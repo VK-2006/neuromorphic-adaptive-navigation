@@ -7,7 +7,6 @@ const User=require('../models/User');
 const Journey=require('../models/Journey');
 const ChatMessage=require('../models/ChatMessage');
 const Notification=require('../models/Notification');
-const Device=require('../models/Device');
 const reputation=require('../services/reputationService');
 const hazardService=require('../services/hazardService');
 const aiHealth=async()=>{try{const r=await fetch(env.aiServiceUrl+'/health',{signal:AbortSignal.timeout(1500)});return {status:r.ok?'ok':'warning',detail:`HTTP ${r.status}`}}catch{return {status:'warning',detail:'AI unavailable / degraded mode'}}};
@@ -32,4 +31,3 @@ exports.updateUser=async(req,res)=>{
   const u=await User.findByIdAndUpdate(target._id,{$set:patch},{new:true}).select('-passwordHash');const auditResult={};if(patch.role!==undefined)auditResult.role=patch.role;if(req.body.disabled!==undefined)auditResult.disabled=req.body.disabled;await AuditLog.create({actorId:req.user._id,action:'USER_ADMIN_UPDATE',targetType:'User',targetId:req.params.id,result:JSON.stringify(auditResult)});res.json({success:true,data:u});
 };
 exports.audit=async(req,res)=>res.json({success:true,data:await AuditLog.find().sort({createdAt:-1}).limit(200).populate('actorId','name email')});
-exports.devices=async(req,res)=>res.json({success:true,data:await Device.find().sort({updatedAt:-1}).limit(300).populate('userId','name email')});

@@ -5,7 +5,6 @@ const ChatMessage=require('../models/ChatMessage');
 const Blocked=require('../models/BlockedUser');
 const User=require('../models/User');
 const Journey=require('../models/Journey');
-const Device=require('../models/Device');
 const Route=require('../models/Route');
 async function canJoinChat(user,room){if(!room||!room.active)return false;if(['GLOBAL','REGION','NEARBY'].includes(room.type))return true;if(room.type==='JOURNEY')return !!await Journey.exists({_id:room.journeyId,userId:user._id});if(room.type==='ROUTE')return !!await Route.exists({_id:room.routeId,userId:user._id});return false}
 async function getRoom(roomId){if(roomId==='global')return ChatRoom.findOneAndUpdate({type:'GLOBAL',name:'Global'},{$setOnInsert:{active:true}},{upsert:true,new:true});return ChatRoom.findById(roomId)}
@@ -16,7 +15,6 @@ function init(io){
   io.on('connection',socket=>{
     const uid=String(socket.user._id);socket.join(`user:${uid}`);socket.join('authenticated');if(socket.user.role==='ADMIN')socket.join('admin');const wasOffline=!presence.has(uid);presence.set(uid,(presence.get(uid)||0)+1);socket.emit('presence:snapshot',{userIds:[...presence.keys()]});io.to('authenticated').emit('presence:count',{onlineUsers:presence.size});if(wasOffline)io.to('authenticated').emit('presence:user',{userId:uid,online:true});let lastMessageAt=0;
     socket.on('journey:join',async({journeyId},ack)=>{try{const allowed=journeyId&&await Journey.exists({_id:journeyId,userId:socket.user._id});if(allowed)socket.join(`journey:${journeyId}`);ack?.({ok:!!allowed})}catch{ack?.({ok:false})}});
-    socket.on('device:join',async({deviceId},ack)=>{try{const allowed=deviceId&&await Device.exists({_id:deviceId,userId:socket.user._id});if(allowed)socket.join(`device:${deviceId}`);ack?.({ok:!!allowed})}catch{ack?.({ok:false})}});
     socket.on('route:join',async({routeId},ack)=>{try{const allowed=routeId&&await Route.exists({_id:routeId,userId:socket.user._id});if(allowed)socket.join(`route:${routeId}`);ack?.({ok:!!allowed})}catch{ack?.({ok:false})}});
     socket.on('webrtc:join',async({journeyId},ack)=>{try{const allowed=journeyId&&await Journey.exists({_id:journeyId,userId:socket.user._id});if(allowed){socket.join(`webrtc:${journeyId}`);socket.data.webrtcJourney=String(journeyId)}ack?.({ok:!!allowed})}catch{ack?.({ok:false})}});
     socket.on('webrtc:receiver-ready',({journeyId})=>{if(socket.rooms.has(`webrtc:${journeyId}`))socket.to(`webrtc:${journeyId}`).emit('webrtc:receiver-ready',{journeyId,receiverId:socket.id})});

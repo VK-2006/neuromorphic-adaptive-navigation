@@ -75,7 +75,7 @@ function createApp(){
   }));
   app.use(cors({origin:env.frontendUrl,credentials:true}));
   app.use((req,res,next)=>{
-    res.setHeader('Permissions-Policy','geolocation=(self), microphone=(), screen-wake-lock=(self), bluetooth=()');
+    res.setHeader('Permissions-Policy','geolocation=(self), microphone=(), screen-wake-lock=(self)');
     next();
   });
   app.use(express.json({limit:'2mb'}));
@@ -122,7 +122,6 @@ function createApp(){
   app.use('/api/v1/hazards',require('./routes/hazardRoutes'));
   const g=require('./routes/genericRoutes');
   app.use('/api/v1/users',g.users);
-  app.use('/api/v1/devices',g.devices);
   app.use('/api/v1/memory',g.memory);
   app.use('/api/v1/notifications',g.notifications);
   app.use('/api/v1/trusted-contacts',g.contacts);

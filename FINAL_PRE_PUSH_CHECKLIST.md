@@ -57,7 +57,7 @@ Never force-add real `.env`, `.venv`, `node_modules`, trained `.pt` weights or g
 
 ## External gates after Git
 
-Production deployment and real field use still require real environments: HTTPS deployment, MongoDB Atlas, production OAuth/Brevo/traffic credentials, held-out model evaluation and physical phone GPS/camera/Bluetooth testing. Those are not source-code errors and must not be fabricated.
+Production deployment and real field use still require real environments: HTTPS deployment, MongoDB Atlas, production OAuth/Brevo/traffic credentials, held-out model evaluation and physical phone GPS/camera testing. Those are not source-code errors and must not be fabricated.
 
 
 ## v7.2 verifier behavior

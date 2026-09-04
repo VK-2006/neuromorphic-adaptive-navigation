@@ -3,7 +3,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 pages=sorted((ROOT/'frontend'/'public').glob('*.html'))
 errors=[]
-if len(pages)!=27:errors.append(f'expected 27 pages, found {len(pages)}')
+if len(pages)!=25:errors.append(f'expected 25 pages, found {len(pages)}')
 styles=['/assets/css/obsidian.css','/assets/css/obsidian-motion.css','/assets/css/purple-gold-border-motion.css']
 scripts=['/assets/js/obsidian-ui.js','/assets/js/obsidian-motion.js','/assets/js/purple-gold-border-motion.js']
 for p in pages:
@@ -37,5 +37,5 @@ if errors:
     print('FRONTEND_REPAIR_CONTRACTS FAIL')
     for e in errors:print('-',e)
     sys.exit(1)
-print(f'FRONTEND_REPAIR_CONTRACTS PASS: {len(pages)}/27 pages')
+print(f'FRONTEND_REPAIR_CONTRACTS PASS: {len(pages)}/25 pages')
 for name,_ in checks:print('-',name)

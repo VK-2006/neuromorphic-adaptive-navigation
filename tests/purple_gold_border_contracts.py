@@ -8,7 +8,7 @@ JS = ROOT / "frontend" / "assets" / "js" / "purple-gold-border-motion.js"
 REPORT = ROOT / "docs" / "PURPLE_GOLD_PAGE_BY_PAGE_AUDIT.md"
 
 pages = sorted(PUBLIC.glob("*.html"))
-assert len(pages) == 27, f"Expected exactly 27 frontend pages, found {len(pages)}"
+assert len(pages) == 25, f"Expected exactly 25 frontend pages, found {len(pages)}"
 
 css = CSS.read_text(encoding="utf-8")
 js = JS.read_text(encoding="utf-8")
@@ -55,5 +55,5 @@ for signal in [
 assert "leaflet-control" in js, "Leaflet controls must be excluded from generic border decoration"
 assert "prefers-reduced-motion" in js, "Reduced-motion runtime awareness missing"
 
-print(f"PURPLE_GOLD_BORDER_CONTRACTS PASS: {len(pages)}/27 pages")
+print(f"PURPLE_GOLD_BORDER_CONTRACTS PASS: {len(pages)}/25 pages")
 print("PASS: page-aware roles, purple/gold keyframes, viewport pausing, dynamic DOM support, Leaflet safety, reduced-motion")

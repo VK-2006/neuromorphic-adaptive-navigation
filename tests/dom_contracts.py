@@ -8,9 +8,6 @@ EXPECTED={
   "admin-chat.html": [
     "admin-chat-data"
   ],
-  "admin-devices.html": [
-    "admin-devices-data"
-  ],
   "admin-hazards.html": [
     "admin-hazards-data"
   ],
@@ -32,13 +29,6 @@ EXPECTED={
     "recent-memories",
     "safety-chart",
     "trend-empty"
-  ],
-  "devices.html": [
-    "bt-control",
-    "bt-sensor",
-    "bt-sensor-output",
-    "bt-service",
-    "device-list"
   ],
   "forgot-password.html": [
     "email",

@@ -12,7 +12,6 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Route deviation | IMPLEMENTED / VERIFIED static | Distance + accuracy + heading + speed + time-outside corridor |
 | Journey lifecycle | IMPLEMENTED | Plan/start/pause/resume/reroute/complete + CRM update |
 | Camera privacy | IMPLEMENTED / VERIFIED static | Explicit Detection OFF default; no inference/hazard creation while off; no MediaRecorder storage |
-| Device connectivity | IMPLEMENTED | MediaDevices, WebRTC P2P camera, optional documented Web Bluetooth GATT control/sensor reads |
 | Object / road-damage detection | IMPLEMENTED / DATASET GATE | BDD100K/RDD2022 prep/train/evaluate path; independent detectorValidated gate; explicit OpenCV fallback |
 | SNN | IMPLEMENTED / AI tests VERIFIED fallback / DATASET GATE | snnTorch LIF, temporal encoding, spike/membrane decode, train/evaluate path, independent riskValidated gate |
 | CRM + DTW + EMA | IMPLEMENTED / VERIFIED algorithms | Completed journeys update memory; future route scoring uses history and route similarity |
@@ -32,9 +31,9 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Google auth | IMPLEMENTED / CREDENTIAL | Google Identity Services frontend → backend verified ID token; credentials required |
 | Brevo OTP/reset | IMPLEMENTED / CREDENTIAL | Hashed/expiring/attempt-limited OTP + cooldown; Brevo transactional email; credentials required |
 | Passkeys | IMPLEMENTED / ENV | SimpleWebAuthn + browser credentials; secure-context/browser support required |
-| MongoDB models | IMPLEMENTED | All 20 prompt models with ownership/index/TTL/geospatial rules where applicable |
-| Socket.IO | IMPLEMENTED | Authenticated rooms, ownership checks, journey/GPS/device/hazard/SNN/route/chat/notification events |
-| Admin | IMPLEMENTED | Dashboard, users/RBAC, hazard verification, chat moderation, devices, health, audit |
+| MongoDB models | IMPLEMENTED | All 19 active prompt models with ownership/index/TTL/geospatial rules where applicable; device-controller persistence was removed |
+| Socket.IO | IMPLEMENTED | Authenticated rooms, ownership checks, journey/GPS/hazard/SNN/route/chat/notification events |
+| Admin | IMPLEMENTED | Dashboard, users/RBAC, hazard verification, chat moderation, health, audit |
 | Security | IMPLEMENTED / VERIFIED static | Helmet/CORS/rate limits/validation/RBAC/ownership, no committed real secrets, private-location rules |
 | Tests | GENERATED / VERIFIED LOCALLY | Windows Jest 9/9 suites, 25/25 tests; AI Pytest 6/6; static/algorithm/compliance suites; consolidated runtime E2E + CI included |
 | Docker | GENERATED / ENV | Compose + backend/AI Dockerfiles; Docker daemon unavailable in sandbox |

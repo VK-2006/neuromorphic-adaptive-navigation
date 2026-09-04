@@ -1,7 +1,7 @@
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];P=ROOT/'frontend/public'
 CSS=(ROOT/'frontend/assets/css/navora-v7.css').read_text(encoding='utf-8');S=(ROOT/'frontend/assets/js/app-shell.js').read_text(encoding='utf-8');A=(ROOT/'frontend/assets/js/api.js').read_text(encoding='utf-8');AUTH=(ROOT/'frontend/assets/js/auth.js').read_text(encoding='utf-8');SW=(ROOT/'frontend/service-worker.js').read_text(encoding='utf-8')
-pages=sorted(P.glob('*.html'));assert len(pages)==27
+pages=sorted(P.glob('*.html'));assert len(pages)==25
 for p in pages:
     t=p.read_text(encoding='utf-8')
     assert '/assets/css/navora-v7.css' in t,f'{p.name}: V7 css missing'

@@ -29,15 +29,14 @@
   body.classList.add('wc-app');
 
   const userNav=[
-    ['dashboard.html','Dashboard','⌂'],['map.html','Navigate','↗'],['journey.html','Journey','◉'],['world-chat.html','Community','◎'],
-    ['devices.html','Devices','⌁'],['memory.html','Memory','◇'],['history.html','History','◷'],['settings.html','Settings','⚙']
+    ['dashboard.html','Dashboard','⌂'],['map.html','Navigate','↗'],['journey.html','Journey','◉'],['world-chat.html','Community','◎'],['memory.html','Memory','◇'],['history.html','History','◷'],['settings.html','Settings','⚙']
   ];
   const adminNav=[
-    ['admin.html','Overview','▦'],['admin-users.html','Users','◌'],['admin-hazards.html','Hazards','△'],['admin-devices.html','Devices','⌁'],['admin-health.html','Health','◉']
+    ['admin.html','Overview','▦'],['admin-users.html','Users','◌'],['admin-hazards.html','Hazards','△'],['admin-health.html','Health','◉']
   ];
 
   function pageIndex(){
-    const files=[...authPages,'index','dashboard','map','journey','journey-replay','devices','memory','history','notifications','profile','settings','world-chat','offline','admin','admin-users','admin-devices','admin-hazards','admin-chat','admin-health','admin-audit'];
+    const files=[...authPages,'index','dashboard','map','journey','journey-replay','memory','history','notifications','profile','settings','world-chat','offline','admin','admin-users','admin-hazards','admin-chat','admin-health','admin-audit'];
     const i=Math.max(0,files.indexOf(page)); return `NAVORA / ${String(i+1).padStart(2,'0')}`;
   }
 
@@ -171,7 +170,7 @@
   function mobileBottom(){
     if(authPages.has(page)||isAdmin||$('.wc-mobile-bottom'))return;
     const nav=node('nav','wc-mobile-bottom',{'aria-label':'Primary mobile navigation'});
-    const picks=[['dashboard.html','⌂','Home'],['map.html','↗','Navigate'],['journey.html','◉','Journey'],['devices.html','⌁','Devices'],['memory.html','◇','Memory']];
+    const picks=[['dashboard.html','⌂','Home'],['map.html','↗','Navigate'],['journey.html','◉','Journey'],['memory.html','◇','Memory']];
     picks.forEach(([href,icon,label])=>{const a=node('a','',{href,'aria-label':label,html:`<span aria-hidden="true">${icon}</span>${label}`});if(href===pageFile)a.classList.add('active');nav.append(a)});body.append(nav);
   }
 
@@ -216,7 +215,6 @@
       'hazard-list':'No nearby community hazards are currently listed.',
       'memory-list':'No route memories yet. Completed journeys can build familiarity over time.',
       'notification-list':'No notifications right now.',
-      'device-list':'No connected devices yet. Pair a compatible device when you are ready.',
       'recent-journeys':'No completed journeys yet.',
       'recent-memories':'No route memories yet.',
       'message-list':'No messages in this room yet.',
@@ -258,14 +256,6 @@
     if(page!=='memory')return;
     const stages=$('.research-stages');if(stages&&!stages.querySelector('.wc-neural-strip'))stages.append(node('div','wc-neural-strip',{'aria-hidden':'true'}));
     $('#three-research')?.setAttribute('aria-label','Three-dimensional neuromorphic, route-memory and swarm-intelligence visualization');
-  }
-
-  function deviceExperience(){
-    if(page!=='devices')return;
-    const card=$('#device-list')?.closest('.card');if(card&&!card.querySelector('.wc-connection-state')){
-      const state=node('span','wc-connection-state',{text:'DEVICE STATE / READY'});card.querySelector('h3')?.after(state);
-      const list=$('#device-list');if(list){const sync=()=>state.classList.toggle('connected',list.children.length>0);sync();const mo=new MutationObserver(sync);watch(mo,list,{childList:true,subtree:true})}
-    }
   }
 
   function dynamicAccessibility(){
@@ -335,7 +325,7 @@
   }
 
   function init(){
-    globalAtmosphere();networkCanvas();themeMeta();enhanceHeadings();heroPipeline();authVisual();passwordToggles();commandPalette();mobileBottom();interactionLayer();reveals();metricStates();emptyStates();networkState();mapExperience();journeyExperience();memoryExperience();deviceExperience();dynamicAccessibility();navWatcher();bootstrapIntegration();gsapMotion();aosMotion();lottieMotion();
+    globalAtmosphere();networkCanvas();themeMeta();enhanceHeadings();heroPipeline();authVisual();passwordToggles();commandPalette();mobileBottom();interactionLayer();reveals();metricStates();emptyStates();networkState();mapExperience();journeyExperience();memoryExperience();dynamicAccessibility();navWatcher();bootstrapIntegration();gsapMotion();aosMotion();lottieMotion();
   }
 
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',init,{once:true,signal});else init();

@@ -14,7 +14,7 @@ This report separates **source readiness**, **locally verified behavior**, and *
 | Routing | **PASS source/algorithm** | OSRM/GraphHopper/Valhalla/mock; shortest/fastest/safest/familiar/adaptive pipeline |
 | Traffic | **PASS source / NEEDS CREDENTIALS for live TomTom** | Explicit UNKNOWN/degraded/simulation labeling |
 | GPS / journey | **PASS source/contracts** | Single watcher, map matching, distance/ETA/progress/deviation/arrival/reroute |
-| Camera / WebRTC / Bluetooth | **PASS source / HARDWARE VALIDATION REQUIRED** | Explicit opt-in camera; no raw recording; WebRTC and appropriate GATT use |
+| Camera / WebRTC | **PASS source / HARDWARE VALIDATION REQUIRED** | Explicit opt-in camera; no raw recording; WebRTC use is separate from device control |
 | Detector | **PASS architecture / DATASET VALIDATION REQUIRED** | BDD100K/RDD2022 preparation/training/evaluation scripts; unvalidated output cannot drive live safety |
 | SNN | **PASS architecture / DATASET VALIDATION REQUIRED** | snnTorch LIF + train/evaluate scripts; separate `riskValidated` gate |
 | CRM / DTW / EMA / ACO / XAI | **PASS** | Connected route scoring and journey-completion learning; pure tests pass |

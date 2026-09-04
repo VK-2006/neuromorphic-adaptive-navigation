@@ -9,7 +9,7 @@ SHELL = ROOT / 'frontend' / 'assets' / 'js' / 'app-shell.js'
 SW = ROOT / 'frontend' / 'service-worker.js'
 
 pages = sorted(PUBLIC.glob('*.html'))
-assert len(pages) == 27, f'expected 27 pages, found {len(pages)}'
+assert len(pages) == 25, f'expected 25 pages, found {len(pages)}'
 for page in pages:
     text = page.read_text(encoding='utf-8')
     assert 'class="navora-nav' in text, f'{page.name}: navora navbar shell missing'
@@ -73,4 +73,4 @@ assert "navora-sidebar-light-v19-0-0" in sw, 'V19 cache lineage marker must rema
 without_comments = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
 assert without_comments.count('{') == without_comments.count('}'), 'V20 navbar CSS braces are unbalanced'
 
-print('V20_UNIVERSAL_LEFT_NAVBAR_CONTRACTS PASS: all 27 pages use a fixed desktop left rail with universal mobile drawer behavior and cache-safe delivery')
+print('V20_UNIVERSAL_LEFT_NAVBAR_CONTRACTS PASS: all 25 pages use a fixed desktop left rail with universal mobile drawer behavior and cache-safe delivery')

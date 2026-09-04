@@ -1,9 +1,9 @@
 const {chromium}=require('../backend/node_modules/playwright');
 
 const BASE=(process.argv[2]||'http://127.0.0.1:5000').replace(/\/$/,'');
-const APP_PAGES=['dashboard.html','map.html','journey.html','world-chat.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html'];
-const ADMIN_PAGES=['admin.html','admin-users.html','admin-devices.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
-const SHELL_PAGES=new Set(['dashboard.html','devices.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html',...ADMIN_PAGES]);
+const APP_PAGES=['dashboard.html','map.html','journey.html','world-chat.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html'];
+const ADMIN_PAGES=['admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
+const SHELL_PAGES=new Set(['dashboard.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html',...ADMIN_PAGES]);
 const assert=(value,message)=>{if(!value)throw new Error(message)};
 const reply=(route,data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify({success:status<400,data})});
 const ghaError=message=>console.error(`::error title=V22 browser E2E::${String(message).replace(/\r?\n/g,'%0A')}`);
@@ -14,7 +14,7 @@ function apiMock(path,page){
   if(path==='/api/v1/auth/config')return{status:200,data:{google:{enabled:false,clientId:null}}};
   if(path==='/api/v1/users/dashboard')return{status:200,data:{metrics:{safetyTrend:null,routeMemories:0,successfulJourneys:0,verifiedHazardsAvoided:0,unreadNotifications:0},trend:[],recentJourneys:[],recentMemories:[]}};
   if(path==='/api/v1/journeys')return{status:200,data:[]};
-  if(path==='/api/v1/memory'||path==='/api/v1/notifications'||path==='/api/v1/devices'||path==='/api/v1/trusted-contacts')return{status:200,data:[]};
+  if(path==='/api/v1/memory'||path==='/api/v1/notifications'||path==='/api/v1/trusted-contacts')return{status:200,data:[]};
   if(path==='/api/v1/admin/overview'||path==='/api/v1/admin/health')return{status:200,data:{}};
   if(['/api/v1/admin/users','/api/v1/admin/devices','/api/v1/admin/hazards','/api/v1/admin/chat/reports','/api/v1/admin/audit'].includes(path))return{status:200,data:[]};
   if(path.startsWith('/api/v1/chat/rooms'))return{status:200,data:[]};

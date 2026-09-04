@@ -363,11 +363,10 @@ if errorlevel 2 (
 )
 
 echo.
-echo Test GPS/camera/Bluetooth/WebRTC on the actual phone/device.
+echo Test GPS/camera/WebRTC on the actual phone/device.
 start "" "%BACKEND_URL%/journey.html"
-start "" "%BACKEND_URL%/devices.html"
 start "" "%BACKEND_URL%/journey.html"
-choice /C YN /N /M "Did physical GPS + camera + Bluetooth + WebRTC work? [Y/N] "
+choice /C YN /N /M "Did physical GPS + camera + WebRTC work? [Y/N] "
 if errorlevel 2 (
   set "HARDWARE_GATE=PENDING"
   set /a PENDING+=1
@@ -394,7 +393,7 @@ set "REPORT=%REPO%\logs\V10_1_EXTERNAL_GATE_RESULT.txt"
 >>"%REPORT%" echo AI=%AI_URL%
 >>"%REPORT%" echo GoogleRealLogin=!GOOGLE_GATE!
 >>"%REPORT%" echo RealOtpMailbox=!OTP_GATE!
->>"%REPORT%" echo PhysicalGpsCameraBluetoothWebRTC=!HARDWARE_GATE!
+>>"%REPORT%" echo PhysicalGpsCameraWebRTC=!HARDWARE_GATE!
 >>"%REPORT%" echo TurnCrossNetworkRelay=!TURN_GATE!
 >>"%REPORT%" echo HeldOutValidatedDetectorAndSNN=!MODEL_GATE!
 >>"%REPORT%" echo PendingCount=!PENDING!
@@ -412,7 +411,7 @@ echo ===========================================================================
 echo Commit: !COMMIT!
 echo Google real login:            !GOOGLE_GATE!
 echo Real OTP mailbox:             !OTP_GATE!
-echo Physical GPS/camera/BLE/RTC:  !HARDWARE_GATE!
+echo Physical GPS/camera/WebRTC: !HARDWARE_GATE!
 echo TURN cross-network relay:     !TURN_GATE!
 echo Validated detector + SNN:     !MODEL_GATE!
 echo Pending external gates:       !PENDING!

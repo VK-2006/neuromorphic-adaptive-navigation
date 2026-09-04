@@ -15,12 +15,6 @@ exports.users=(()=>{
   r.get('/dashboard',c.dashboard);
   return r;
 })();
-exports.devices=(()=>{
-  const r=router();
-  r.get('/',c.devices);r.post('/',v.deviceCreate,validate,c.addDevice);
-  r.patch('/:id',v.devicePatch,validate,c.updateDevice);r.delete('/:id',v.mongoIdParam,validate,c.deleteDevice);
-  return r;
-})();
 exports.memory=(()=>{
   const r=router();
   r.get('/summary',c.memorySummary);

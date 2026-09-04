@@ -9,7 +9,7 @@ class P(HTMLParser):
         d=dict(a)
         if t=='link' and d.get('href'):self.hrefs.append(d['href'])
         if t=='script' and d.get('src'):self.srcs.append(d['src'])
-pages=sorted(PUB.glob('*.html'));assert len(pages)==27
+pages=sorted(PUB.glob('*.html'));assert len(pages)==25
 for p in pages:
     x=P();x.feed(p.read_text(encoding='utf-8'))
     if p.name!='offline.html':
@@ -23,4 +23,4 @@ for p in pages:
 for s in ['--nav-sidebar','.map-layout','.journey-layout','.chat-layout','.auth-shell',':focus-visible','prefers-reduced-motion']:assert s in CSS,s
 for s in ['protectedPages','adminPages','navora:returnTo','navora:auth-required','buildAppNav','serviceWorker.register']:assert s in SHELL,s
 assert 'navora-v7-functional-product-1' in SW and '/assets/css/navora-v7.css' in SW
-print('FRONTEND_STACK_CONTRACTS PASS: 27 online pages keep Bootstrap, offline shell is CDN-independent, V7 product shell/protected navigation/cache contracts present')
+print('FRONTEND_STACK_CONTRACTS PASS: 25 online pages keep Bootstrap, offline shell is CDN-independent, V7 product shell/protected navigation/cache contracts present')

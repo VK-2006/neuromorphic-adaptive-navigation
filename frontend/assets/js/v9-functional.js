@@ -13,9 +13,6 @@ function capabilityGuards(){
       b.title='Enter your account email first, then use your passkey.';
     }
   });
-  if(page==='devices.html'&&!navigator.bluetooth){
-    const b=$('[data-bluetooth-pair]');if(b){b.disabled=true;b.title='Web Bluetooth is unavailable in this browser.'}
-  }
 }
 
 function historyGuard(){

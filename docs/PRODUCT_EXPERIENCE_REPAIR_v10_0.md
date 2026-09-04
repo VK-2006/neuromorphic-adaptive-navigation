@@ -7,7 +7,7 @@ This release addresses screenshot-confirmed UX failures and the backend/data gap
 - Protected/admin sidebar uses a three-row layout so the account/profile/logout/theme block stays anchored to the bottom while only navigation scrolls.
 - Live Journey camera controls, detection controls and privacy note are grouped into one dock; HUD stays at the top; journey stats no longer overlay the map.
 - Live Journey without an active journey now shows a guided setup state instead of a confusing blank camera cockpit.
-- Devices now explains the GATT control flow, shows secure-context/browser/connection status, persists controller UUID/capability/status/last command/latest sensor metadata, and renders saved devices more clearly.
+- Route and safety views now emphasize secure camera/WebRTC boundaries and live GPS telemetry rather than device-controller metadata.
 - Route Memory now shows summary metrics and full CRM fields: familiarity, historical safety, reliability, average/max risk, hazards, reroutes, feedback and last journey.
 - History now opens a full on-screen journey detail dialog using the existing replay endpoint, including route map, timestamps, risk, hazards, reroutes and decision-event timeline.
 - Profile now includes richer personal/account information and navigation-activity summary.
@@ -17,7 +17,7 @@ This release addresses screenshot-confirmed UX failures and the backend/data gap
 ## Backend additions
 - User optional profile fields + richer preferences.
 - `/users/me/summary`.
-- Device connection/GATT/telemetry metadata.
+- Device-controller telemetry is intentionally removed from the navigation product surface.
 - `/memory/summary`.
 - RouteMemory route label/source/destination/provider/distance/lastJourney metadata.
 

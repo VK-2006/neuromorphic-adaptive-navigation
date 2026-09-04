@@ -4,7 +4,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]
 pages=sorted((ROOT/'frontend/public').glob('*.html'))
-if len(pages)!=27:errors.append(f'expected 27 pages, found {len(pages)}')
+if len(pages)!=25:errors.append(f'expected 25 pages, found {len(pages)}')
 for p in pages:
     t=p.read_text(encoding='utf-8')
     for asset in ('/assets/css/product-repair-v10.css','/assets/js/product-repair-v10.js'):
@@ -14,8 +14,6 @@ checks={
 'sidebar fixed bottom': 'grid-template-rows:auto minmax(0,1fr) auto' in (ROOT/'frontend/assets/css/product-repair-v10.css').read_text(encoding='utf-8'),
 'journey dock': 'journey-camera-dock' in (ROOT/'frontend/assets/js/product-repair-v10.js').read_text(encoding='utf-8'),
 'journey no-active state': 'journey-no-active' in (ROOT/'frontend/assets/js/product-repair-v10.js').read_text(encoding='utf-8'),
-'device guidance': 'device-how' in (ROOT/'frontend/public/devices.html').read_text(encoding='utf-8'),
-'device telemetry persistence': 'lastSensorValue' in (ROOT/'frontend/assets/js/devices.js').read_text(encoding='utf-8'),
 'memory summary': '/memory/summary' in (ROOT/'frontend/assets/js/data-pages.js').read_text(encoding='utf-8'),
 'history modal replay': '/replay' in (ROOT/'frontend/assets/js/data-pages.js').read_text(encoding='utf-8') and 'journey-detail-dialog' in (ROOT/'frontend/public/history.html').read_text(encoding='utf-8'),
 'profile summary': '/users/me/summary' in (ROOT/'frontend/assets/js/account.js').read_text(encoding='utf-8'),
@@ -23,7 +21,6 @@ checks={
 'settings richer fields': 'pref-detection-mode' in (ROOT/'frontend/public/settings.html').read_text(encoding='utf-8'),
 'backend profile summary route': "r.get('/me/summary',c.profileSummary)" in (ROOT/'backend/src/routes/genericRoutes.js').read_text(encoding='utf-8'),
 'backend memory summary route': "r.get('/summary',c.memorySummary)" in (ROOT/'backend/src/routes/genericRoutes.js').read_text(encoding='utf-8'),
-'backend device telemetry': 'lastSensorValue' in (ROOT/'backend/src/models/Device.js').read_text(encoding='utf-8'),
 'backend route-memory metadata': 'lastJourneyId' in (ROOT/'backend/src/models/RouteMemory.js').read_text(encoding='utf-8'),
 'backend settings prefs': 'highAccuracyGps' in (ROOT/'backend/src/models/User.js').read_text(encoding='utf-8'),
 }

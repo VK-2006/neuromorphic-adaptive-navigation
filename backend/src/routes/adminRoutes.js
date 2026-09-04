@@ -9,7 +9,6 @@ r.use(authenticate,authorize('ADMIN'));
 r.get('/overview',c.overview);
 r.get('/health',c.health);
 r.get('/users',g.users);
-r.get('/devices',c.devices);
 r.patch('/users/:id',v.userUpdate,validate,safe.updateUser);
 r.get('/hazards',c.hazards);
 r.post('/hazards/:id/verify',v.hazardReview,validate,c.verifyHazard);
