@@ -32,6 +32,8 @@ require('frontend/service-worker.js','offline.html','caches.open','/api/')
 require('frontend/assets/js/app-shell.js','beforeinstallprompt','serviceWorker.register')
 require('frontend/assets/js/three-scenes.js','requestAnimationFrame','dispose','prefers-reduced-motion')
 require('frontend/assets/js/three-research.js','requestAnimationFrame','dispose','forceContextLoss','prefers-reduced-motion')
+for page in ['frontend/public/index.html','frontend/public/memory.html']:
+    require(page,'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js')
 css=read('frontend/assets/css/main.css')
 for signal in [':root','data-theme="dark"','prefers-reduced-motion',':focus-visible']:
     assert signal in css, f'theme/accessibility CSS missing {signal}'
