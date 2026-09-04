@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/VK-2006/neuromorphic-adaptive-navigation/field-validation/evidence.schema.json",
+  "title": "Navora field validation evidence",
+  "type": "object",
+  "required": ["schemaVersion", "releaseCommit", "evidenceQuality", "fieldSurface", "source", "gates", "profiles"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "releaseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "recordedAt": { "type": ["string", "null"], "format": "date-time" },
+    "evidenceQuality": {
+      "enum": ["legacy-local-log-import", "github-field-issue"]
+    },
+    "fieldSurface": {
+      "type": "object",
+      "required": ["paths", "sha256"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["runner", "resultLog", "runLog", "note"],
+      "properties": {
+        "runner": { "type": "string", "minLength": 1 },
+        "resultLog": { "type": "string", "minLength": 1 },
+        "runLog": { "type": "string", "minLength": 1 },
+        "issueUrl": { "type": ["string", "null"] },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "required": [
+        "realOtpMailbox",
+        "physicalGpsCameraBluetoothWebrtc",
+        "turnCrossNetworkRelay",
+        "googleRealLogin",
+        "heldOutValidatedDetectorAndSnn"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "note"],
+        "properties": {
+          "status": { "enum": ["PASS", "FAIL", "PENDING", "OUT_OF_SCOPE"] },
+          "note": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "profiles": {
+      "type": "object",
+      "required": ["field", "allExternal"],
+      "properties": {
+        "field": { "enum": ["PASS", "BLOCKED"] },
+        "allExternal": { "enum": ["PASS", "BLOCKED"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

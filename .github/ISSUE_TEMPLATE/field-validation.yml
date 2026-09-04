@@ -1,0 +1,65 @@
+name: Field validation record
+description: Record a privacy-safe Navora physical-device or external-integration validation run.
+title: "field: validate <release SHA> on <device/browser>"
+labels:
+  - validation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste credentials, OTP values, mailbox contents, precise GPS traces, private journey IDs, or unredacted device identifiers.
+  - type: input
+    id: release_sha
+    attributes:
+      label: Release commit SHA
+      description: The exact 40-character commit deployed during the test.
+      placeholder: 0123456789abcdef0123456789abcdef01234567
+    validations:
+      required: true
+  - type: input
+    id: tested_at
+    attributes:
+      label: Test time (UTC)
+      placeholder: 2026-08-16T15:30:00Z
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device, OS, and browser
+      placeholder: Android device / Android version / Chrome version
+    validations:
+      required: true
+  - type: checkboxes
+    id: gates
+    attributes:
+      label: Passed gates
+      options:
+        - label: Real OTP arrived in the mailbox; OTP value and mailbox content are not attached.
+        - label: Physical GPS tracking and reroute behavior passed.
+        - label: Camera opt-in, stop, and privacy behavior passed.
+        - label: Bluetooth GATT behavior passed on a supported browser/device.
+        - label: Journey-scoped WebRTC passed.
+        - label: Cross-network WebRTC used the configured TURN relay successfully.
+        - label: Real Google browser sign-in passed.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Privacy-safe evidence
+      description: Add redacted screenshots, browser/network summaries, and relevant GitHub Actions or deployment links.
+    validations:
+      required: true
+  - type: textarea
+    id: failures
+    attributes:
+      label: Failures or exclusions
+      description: Record every failed, skipped, unsupported, or out-of-scope item.
+    validations:
+      required: true
+  - type: checkboxes
+    id: attestation
+    attributes:
+      label: Attestation
+      options:
+        - label: I tested the exact stated release and did not include secrets or sensitive personal data.
+          required: true

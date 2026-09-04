@@ -1,0 +1,3 @@
+# Repository governance owner. Branch protection should require this file's
+# owner for changes to release, security, and field-validation policy.
+* @VK-2006
