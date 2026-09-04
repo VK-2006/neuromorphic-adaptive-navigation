@@ -31,7 +31,7 @@
     const mobile=innerWidth<700, w=host.clientWidth, h=host.clientHeight;
     const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-5.5,5.5,2.35,-1.55,.1,40);camera.position.z=12;
     renderer.setPixelRatio(Math.min(q===3?1.5:1.05,devicePixelRatio));renderer.setSize(w,h,false);renderer.setClearColor(0x000000,0);host.appendChild(renderer.domElement);
-    const p=palette(),t=telemetry(),samples=(t.samples||[]).slice(0,q===1?4:8);
+    const p=palette(),t=telemetry(),samples=(Array.isArray(t.samples)?t.samples:[]).slice(0,q===1?4:8),hasCrmTelemetry=samples.length>0||Number(t.routeMemories)>0;
     const groups={snn:new THREE.Group(),crm:new THREE.Group(),aco:new THREE.Group(),signals:new THREE.Group()};Object.values(groups).forEach(g=>scene.add(g));
     const materials=[],disposables=[];
     const mat=(color,opacity=1)=>{const m=new THREE.LineBasicMaterial({color,transparent:opacity<1,opacity});materials.push(m);return m};
@@ -42,8 +42,8 @@
     const title=(text,x,y)=>makeLabel(host,text,'research-title',x,y);
     const caption=(text,x,y)=>makeLabel(host,text,'research-caption',x,y);
     host.querySelectorAll('.research-label').forEach(e=>e.remove());
-    title('SNN · conceptual risk flow',3,6);title('CRM · learned experience',38,6);title('ACO · route competition',70,6);
-    caption('telemetry-driven representation',3,13);caption('real route-memory samples',38,13);caption('candidate paths · not pheromone tensors',70,13);
+    title('SNN · conceptual risk flow',3,6);title(hasCrmTelemetry?'CRM · learned experience':'CRM · awaiting route memory',38,6);title('ACO · route competition',70,6);
+    caption('telemetry-driven representation',3,13);caption(hasCrmTelemetry?'real route-memory samples':'no stored route traces yet',38,13);caption('candidate paths · not pheromone tensors',70,13);
     const sx=mobile?-3.7:-4.65, sy=mobile?1.2:1.25;
     const stageX=[sx,sx+1.05,sx+2.1,sx+3.15], stageY=[sy,sy-.05,sy+.05,sy];
     const stageColors=[p.gold,p.neural,p.neural,p.gold], stageNodes=[];
@@ -77,7 +77,7 @@
     line([links[0],links[1]],mat(p.gold,.38),groups.signals);line([links[1],new THREE.Vector3(routeStart.x,routeStart.y,0)],mat(p.crm,.38),groups.signals);
     line([new THREE.Vector3(2.6,-.8,0),links[2]],mat(p.crm,.38),groups.signals);line([links[2],acoBase],mat(p.gold,.38),groups.signals);
     const pulseCount=q===1?5:q===2?8:12,pulses=[];
-    for(let i=0;i<pulseCount;i++){const n=sphere(0,0,.045,i%2?p.gold:p.ink,groups.signals);n.userData={path:i%2?crmRoutes[i%crmRoutes.length].userData.curve:null,offset:i/pulseCount,kind:i%2?'crm':'pipeline'};pulses.push(n)}
+    for(let i=0;i<pulseCount;i++){const n=sphere(0,0,.045,i%2?p.gold:p.ink,groups.signals);const path=crmRoutes.length&&i%2?crmRoutes[i%crmRoutes.length].userData.curve:null;n.userData={path,offset:i/pulseCount,kind:path?'crm':'pipeline'};pulses.push(n)}
     const ants=[],antCount=q===1?3:q===2?5:8;
     for(let i=0;i<antCount;i++){const n=sphere(0,0,.055,p.gold,groups.signals);n.userData={curve:acoRoutes[i%acoRoutes.length].userData.curve,offset:i/antCount};ants.push(n)}
     let raf=0,last=0,running=true,visible=true;
