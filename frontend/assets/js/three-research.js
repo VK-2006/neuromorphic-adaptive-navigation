@@ -81,16 +81,18 @@
     const ants=[],antCount=q===1?3:q===2?5:8;
     for(let i=0;i<antCount;i++){const n=sphere(0,0,.055,p.gold,groups.signals);n.userData={curve:acoRoutes[i%acoRoutes.length].userData.curve,offset:i/antCount};ants.push(n)}
     let raf=0,last=0,running=true,visible=true;
+    function start(){if(running&&!raf&&visible&&!document.hidden)raf=requestAnimationFrame(frame)}
     function sync(){const np=palette();materials.forEach(m=>{if(m.color.equals(new THREE.Color(p.gold)))m.color.setHex(np.gold)});host.querySelectorAll('.research-title').forEach(el=>el.style.color=`#${np.gold.toString(16).padStart(6,'0')}`)}
-    function frame(ms){if(!running)return;raf=requestAnimationFrame(frame);if(!visible||document.hidden)return;const interval=q===1?42:22;if(ms-last<interval)return;last=ms;const nt=telemetry(),speed=.00012+.00016*clamp(nt.familiarity);
+    function frame(ms){raf=0;if(!running||!visible||document.hidden)return;const interval=q===1?42:22;if(ms-last<interval){start();return}last=ms;const nt=telemetry(),speed=.00012+.00016*clamp(nt.familiarity);
       pulses.forEach((n,i)=>{const u=(ms*speed+n.userData.offset)%1;if(n.userData.path)n.position.copy(n.userData.path.getPointAt(u));else{const x=-4.1+u*3.2;n.position.set(x,stageY[Math.min(3,Math.floor(u*4))]+Math.sin(u*18+i)*.12,.1)}});
       ants.forEach((n,i)=>n.position.copy(n.userData.curve.getPointAt((ms*(.00018+.00012*clamp(nt.historicalSafety))+n.userData.offset)%1)));
-      stageNodes.flat().forEach((n,i)=>{const pulse=1+.22*Math.max(0,Math.sin(ms*.004+i));n.scale.setScalar(pulse)});renderer.render(scene,camera);
+      stageNodes.flat().forEach((n,i)=>{const pulse=1+.22*Math.max(0,Math.sin(ms*.004+i));n.scale.setScalar(pulse)});renderer.render(scene,camera);start();
     }
     function resize(){const width=host.clientWidth,height=host.clientHeight;if(!width||!height)return;renderer.setSize(width,height,false);camera.updateProjectionMatrix()}
     addEventListener('resize',resize,{passive:true});addEventListener('navora:theme',sync);addEventListener('navora:research-telemetry',sync);
-    const io='IntersectionObserver'in window?new IntersectionObserver(e=>{visible=e[0]?.isIntersecting??true},{threshold:.02}):null;io?.observe(host);frame(0);
-    state={dispose(){running=false;cancelAnimationFrame(raf);io?.disconnect();removeEventListener('resize',resize);removeEventListener('navora:theme',sync);removeEventListener('navora:research-telemetry',sync);disposables.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();renderer.forceContextLoss?.();renderer.domElement.remove();host.querySelectorAll('.research-label').forEach(e=>e.remove());state=null}};
+    const onVisibility=()=>{if(!document.hidden)start()};addEventListener('visibilitychange',onVisibility);
+    const io='IntersectionObserver'in window?new IntersectionObserver(e=>{visible=e[0]?.isIntersecting??true;if(visible)start()},{threshold:.02}):null;io?.observe(host);start();
+    state={dispose(){running=false;cancelAnimationFrame(raf);raf=0;io?.disconnect();removeEventListener('resize',resize);removeEventListener('visibilitychange',onVisibility);removeEventListener('navora:theme',sync);removeEventListener('navora:research-telemetry',sync);disposables.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();renderer.forceContextLoss?.();renderer.domElement.remove();host.querySelectorAll('.research-label').forEach(e=>e.remove());state=null}};
   }
   document.readyState==='loading'?addEventListener('DOMContentLoaded',init,{once:true}):init();addEventListener('pagehide',()=>state?.dispose(),{once:true});
 })();

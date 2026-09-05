@@ -62,23 +62,26 @@
     const ctx=canvas.getContext('2d',{alpha:true,desynchronized:true}); if(!ctx){canvas.remove();return}
     const count=innerWidth>1500?32:26;
     const pts=Array.from({length:count},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.00012,vy:(Math.random()-.5)*.00009,p:.4+Math.random()*.8}));
-    let w=0,h=0,dpr=1,raf=0,last=0,visible=true;
+    let w=0,h=0,dpr=1,raf=0,last=0,visible=true,running=true;
+    const start=()=>{if(running&&!raf&&visible&&!d.hidden)raf=requestAnimationFrame(frame)};
     const resize=()=>{dpr=Math.min(devicePixelRatio||1,1.35);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0)};
     const colors=()=>root.dataset.theme==='dark'?{node:'rgba(246,196,83,.25)',line:'rgba(192,132,252,.075)',hot:'rgba(246,196,83,.44)'}:{node:'rgba(6,27,70,.16)',line:'rgba(7,143,87,.06)',hot:'rgba(255,122,0,.29)'};
     const frame=t=>{
-      raf=requestAnimationFrame(frame);
-      if(!visible||d.hidden||t-last<32)return; last=t; ctx.clearRect(0,0,w,h);const c=colors();
+      raf=0;
+      if(!running||!visible||d.hidden)return;
+      if(t-last<32){start();return} last=t; ctx.clearRect(0,0,w,h);const c=colors();
       pts.forEach(p=>{p.x=(p.x+p.vx+1)%1;p.y=(p.y+p.vy+1)%1});
       for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
         const a=pts[i],b=pts[j],dx=(a.x-b.x)*w,dy=(a.y-b.y)*h,dist=Math.hypot(dx,dy);
         if(dist<175){ctx.globalAlpha=(1-dist/175)*.6;ctx.strokeStyle=c.line;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(a.x*w,a.y*h);ctx.lineTo(b.x*w,b.y*h);ctx.stroke()}
       }
-      ctx.globalAlpha=1;pts.forEach((p,i)=>{const pulse=.7+.3*Math.sin(t*.0015+i);ctx.fillStyle=i%8===0?c.hot:c.node;ctx.beginPath();ctx.arc(p.x*w,p.y*h,1.1+p.p+pulse*.55,0,Math.PI*2);ctx.fill()});
+      ctx.globalAlpha=1;pts.forEach((p,i)=>{const pulse=.7+.3*Math.sin(t*.0015+i);ctx.fillStyle=i%8===0?c.hot:c.node;ctx.beginPath();ctx.arc(p.x*w,p.y*h,1.1+p.p+pulse*.55,0,Math.PI*2);ctx.fill()});start();
     };
     resize();on(window,'resize',resize,{passive:true});
-    if('IntersectionObserver'in window){const io=new IntersectionObserver(entries=>visible=entries[0]?.isIntersecting??true,{threshold:0});watch(io,body)}
-    frame(0);
-    on(window,'pagehide',()=>{cancelAnimationFrame(raf);canvas.remove()},{once:true});
+    if('IntersectionObserver'in window){const io=new IntersectionObserver(entries=>{visible=entries[0]?.isIntersecting??true;if(visible)start()},{threshold:0});watch(io,body)}
+    on(window,'visibilitychange',()=>{if(!d.hidden)start()});
+    start();
+    on(window,'pagehide',()=>{running=false;cancelAnimationFrame(raf);raf=0;canvas.remove()},{once:true});
   }
 
   function enhanceHeadings(){
