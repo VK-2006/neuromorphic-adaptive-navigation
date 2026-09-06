@@ -650,6 +650,10 @@ def main():
                         help="Run a short RDD2022 dry-run instead of the full production training schedule.")
     parser.add_argument("--output-dir", default=str(TRAINED),
                         help="Directory for RDD2022 smoke checkpoint and metadata artifacts.")
+    parser.add_argument("--resume", type=str, default=None,
+                        help="Resume full training from a complete checkpoint file.")
+    parser.add_argument("--checkpoint-dir", type=str, default=None,
+                        help="Directory for automatic recovery checkpoints.")
     args = parser.parse_args()
 
     # Validate RDD2022 availability if requested
@@ -690,22 +694,150 @@ def main():
         model.to(device)
         weights_tensor = weights_tensor.to(device)
         epochs = max(1, args.epochs if not args.dry_run else min(args.epochs, 2))
-        print(f"[INFO] Training RDD2022 on {len(train_ds)} train images and {len(val_ds)} validation images")
-        print(f"[INFO] Dry-run mode: {args.dry_run} | epochs={epochs} | batch={args.batch_size}")
-        for epoch in range(1, epochs + 1):
+
+        # ------------------------------------------------------
+        # RDD2022 resumable training / automatic recovery
+        # ------------------------------------------------------
+        checkpoint_dir = Path(
+            args.checkpoint_dir
+            if args.checkpoint_dir
+            else os.environ.get(
+                "NAVORA_CHECKPOINT_DIR",
+                str(TRAINED / "checkpoints" / "rdd2022")
+            )
+        )
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        latest_checkpoint = checkpoint_dir / "latest.pt"
+        resume_path = Path(args.resume) if args.resume else None
+
+        start_epoch = 1
+        best_train_loss = float("inf")
+        best_state_dict = None
+
+        if resume_path is not None:
+            if not resume_path.exists():
+                sys.exit(f"[ERROR] Requested resume checkpoint does not exist: {resume_path}")
+
+            print(f"[INFO] Resuming RDD2022 training from: {resume_path}")
+
+            checkpoint = torch.load(
+                resume_path,
+                map_location=device,
+                weights_only=False
+            )
+
+            required_keys = {
+                "checkpoint_version",
+                "epoch",
+                "model_state_dict",
+                "optimizer_state_dict",
+            }
+            missing = required_keys - set(checkpoint.keys())
+            if missing:
+                sys.exit(
+                    "[ERROR] Resume checkpoint is incomplete. "
+                    f"Missing keys: {sorted(missing)}"
+                )
+
+            if checkpoint.get("class_names") != list(CLASSES):
+                sys.exit(
+                    "[ERROR] Resume checkpoint class taxonomy does not match "
+                    "current RDD2022 taxonomy."
+                )
+
+            model.load_state_dict(checkpoint["model_state_dict"])
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+            completed_epoch = int(checkpoint["epoch"])
+            start_epoch = completed_epoch + 1
+
+            best_train_loss = float(
+                checkpoint.get("best_train_loss", float("inf"))
+            )
+
+            if checkpoint.get("best_state_dict") is not None:
+                best_state_dict = checkpoint["best_state_dict"]
+
+            print(f"[INFO] Completed epoch: {completed_epoch}/{epochs}")
+            print(f"[INFO] Next epoch: {start_epoch}/{epochs}")
+
+        else:
+            print("[INFO] Starting fresh RDD2022 training.")
+            print(f"[INFO] Recovery checkpoint: {latest_checkpoint}")
+
+        print(
+            f"[INFO] Training RDD2022 on {len(train_ds)} train images "
+            f"and {len(val_ds)} validation images"
+        )
+        print(
+            f"[INFO] Dry-run mode: {args.dry_run} | "
+            f"epochs={epochs} | batch={args.batch_size}"
+        )
+
+        for epoch in range(start_epoch, epochs + 1):
             model.train()
             running_loss = 0.0
+
             for imgs, targets, _ in train_loader:
                 imgs = imgs.to(device)
                 targets = targets.to(device)
+
                 optimizer.zero_grad()
                 pred = model(imgs)
-                loss, _ = detection_loss(pred, targets, class_weights=weights_tensor)
+                loss, _ = detection_loss(
+                    pred,
+                    targets,
+                    class_weights=weights_tensor
+                )
                 loss.backward()
                 optimizer.step()
+
                 running_loss += float(loss.item()) * len(imgs)
+
             running_loss /= max(1, len(train_ds))
-            print(f"Epoch {epoch}/{epochs}  train_loss={running_loss:.4f}")
+
+            if running_loss < best_train_loss:
+                best_train_loss = running_loss
+                best_state_dict = {
+                    k: v.detach().cpu().clone()
+                    for k, v in model.state_dict().items()
+                }
+
+            print(
+                f"Epoch {epoch}/{epochs}  "
+                f"train_loss={running_loss:.4f}"
+            )
+
+            recovery_checkpoint = {
+                "checkpoint_version": 1,
+                "epoch": epoch,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "best_train_loss": best_train_loss,
+                "best_state_dict": best_state_dict,
+                "class_names": list(CLASSES),
+                "input_shape": [3, IMG_H, IMG_W],
+                "output_shape": [GRID_H, GRID_W, 5 + NUM_CLS],
+                "training_config": {
+                    "dataset": "RDD2022",
+                    "epochs": epochs,
+                    "batch_size": args.batch_size,
+                    "device": str(device),
+                    "class_weights": class_weights,
+                    "resume_supported": True,
+                },
+            }
+
+            tmp_checkpoint = checkpoint_dir / "latest.pt.tmp"
+            torch.save(recovery_checkpoint, tmp_checkpoint)
+            tmp_checkpoint.replace(latest_checkpoint)
+
+            print(
+                f"[CHECKPOINT] Saved recovery checkpoint: "
+                f"{latest_checkpoint}"
+            )
+
         model.eval()
         tp, fp, fn, n_images = evaluate(model, val_loader, conf_th=0.30)
         per_class_m, avg_prec, avg_rec, avg_f1, macro_f1 = compute_metrics(tp, fp, fn)
