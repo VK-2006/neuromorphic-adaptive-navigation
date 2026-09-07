@@ -446,11 +446,25 @@ def detection_loss(pred: torch.Tensor, target: torch.Tensor, class_weights: torc
     obj_mask = target[:, :, :, 0]          # [B,GH,GW]
     noobj    = 1 - obj_mask
 
-    # Objectness BCE
+    # Objectness BCE — Exp F
+    # Normalize positive and negative cells independently so the large
+    # number of background cells does not dilute the positive signal.
     obj_logit = pred[:, :, :, 0]
     obj_tgt   = target[:, :, :, 0]
-    l_obj  = F.binary_cross_entropy_with_logits(obj_logit, obj_tgt, reduction='none')
-    l_obj  = (5.0 * obj_mask * l_obj + 0.5 * noobj * l_obj).mean()
+
+    obj_bce = F.binary_cross_entropy_with_logits(
+        obj_logit,
+        obj_tgt,
+        reduction='none'
+    )
+
+    pos_count = obj_mask.sum().clamp(min=1.0)
+    neg_count = noobj.sum().clamp(min=1.0)
+
+    l_pos = (obj_mask * obj_bce).sum() / pos_count
+    l_neg = (noobj * obj_bce).sum() / neg_count
+
+    l_obj = 5.0 * l_pos + 0.5 * l_neg
 
     # Box regression on positive cells
     mask   = obj_mask.bool()
@@ -474,7 +488,8 @@ def detection_loss(pred: torch.Tensor, target: torch.Tensor, class_weights: torc
     else:
         l_cls = torch.zeros(1, device=pred.device).squeeze()
 
-    return l_obj + 5.0 * l_box + l_cls, {
+    # Exp F keeps Exp E's box-loss weight.
+    return l_obj + 2.0 * l_box + l_cls, {
         'obj': float(l_obj), 'box': float(l_box), 'cls': float(l_cls)
     }
 
