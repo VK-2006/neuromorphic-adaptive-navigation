@@ -464,7 +464,7 @@ def detection_loss(pred: torch.Tensor, target: torch.Tensor, class_weights: torc
     l_pos = (obj_mask * obj_bce).sum() / pos_count
     l_neg = (noobj * obj_bce).sum() / neg_count
 
-    l_obj = 5.0 * l_pos + 0.5 * l_neg
+    l_obj = 3.0 * l_pos + 0.75 * l_neg
 
     # Box regression on positive cells
     mask   = obj_mask.bool()
