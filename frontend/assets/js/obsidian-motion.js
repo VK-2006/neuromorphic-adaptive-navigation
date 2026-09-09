@@ -91,19 +91,6 @@
     },{passive:true});
   }
 
-  const videoSeen=new WeakSet();
-  function bindVideo(video){
-    if(videoSeen.has(video)) return;
-    videoSeen.add(video);
-    const sync=()=>{
-      const container=video.closest('.camera-frame,.camera-shell,.video-shell,.camera-pane');
-      if(!container)return;
-      container.classList.toggle('motion-camera-live',!video.paused&&video.readyState>=2);
-    };
-    ['playing','pause','ended','loadeddata','emptied'].forEach(type=>video.addEventListener(type,sync));
-    sync();
-  }
-
   function drawPaths(scope){
     if(reduce)return;
     nodes(scope,'svg[data-motion-draw] path,svg.motion-draw path').forEach(path=>{
@@ -121,7 +108,6 @@
     nodes(scope,revealSelector).forEach(addReveal);
     nodes(scope,'button,.btn-navora,.icon-btn,[role="button"]').forEach(addShine);
     nodes(scope,'.card,.route-card,.auth-card,.stat-card,.metric-card,.dashboard-card').forEach(addTilt);
-    nodes(scope,'video').forEach(bindVideo);
     drawPaths(scope);
     nodes(scope,'.hero h1,.auth-card h1,.page-title').forEach(el=>el.classList.add('motion-clip-reveal'));
     nodes(scope,'.hero,.hero-visual,.three-stage,[data-three-scene]').forEach(el=>el.classList.add('motion-parallax-soft'));

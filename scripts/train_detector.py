@@ -1,10 +1,7 @@
-"""Train Navora's Faster R-CNN detector from BDD100K and/or RDD2022 manifests.
+"""Train Navora's Faster R-CNN detector from an RDD2022 manifest.
 
 Supported source/class pairs are centralized in ``app.detector_taxonomy``. The model head is
-built dynamically from the classes actually present in the training manifest. COCO-overlap
-rows keep their pretrained classifier/regressor initialization; Navora-specific road classes
-such as ``road damage`` and ``pothole`` start with fresh head rows and must be learned from
-real RDD2022 samples.
+built dynamically from the RDD2022 classes present in the training manifest.
 
 Training never implies validation. The untouched held-out manifest must still pass the V28+
 data/evaluation/evidence chain before detectorValidated can become true.
@@ -461,23 +458,8 @@ def main():
     except Exception:
         meta = {}
 
-    bdd_provenance_path = ROOT / 'datasets/derived-risk-data/bdd100k-hf-provenance.json'
-    bdd_provenance = {}
-    if bdd_provenance_path.exists():
-        try:
-            bdd_provenance = json.loads(bdd_provenance_path.read_text(encoding='utf-8'))
-        except Exception:
-            bdd_provenance = {}
-
     sources = sorted(ds.source_counts)
-    combined = 'BDD100K' in sources and 'RDD2022' in sources
-    version = (
-        'bdd100k-rdd2022-fasterrcnn-resnet50-fpn-v5'
-        if combined
-        else 'rdd2022-fasterrcnn-resnet50-fpn-v5'
-        if sources == ['RDD2022']
-        else 'bdd100k-fasterrcnn-resnet50-fpn-v5'
-    )
+    version = 'rdd2022-fasterrcnn-resnet50-fpn-v5'
     meta.update({
         'detectorModelVersion': version,
         'detectorClasses': ds.classes,
@@ -486,10 +468,9 @@ def main():
         'trainingSourceImageCounts': dict(ds.source_counts),
         'trainingClassInstances': dict(ds.class_counts),
         'detectorTrainingProtocol': (
-            'V29 source-aware BDD100K/RDD2022 training; validation requires a '
-            'separate leakage-free held-out manifest through the V28 evidence chain.'
+            'RDD2022 training; validation requires a separate leakage-free held-out '
+            'manifest through the V28 evidence chain.'
         ),
-        'officialBddBenchmarkClaim': False,
         'officialRddBenchmarkClaim': False,
         'initialization': initialization,
         'cocoClassHeadTransfer': [x[0] for x in mapping],
@@ -505,11 +486,7 @@ def main():
         'trainingManifest': str(manifest_path),
         'trainingManifestSha256': sha256_file(manifest_path),
         'dataProvenance': {
-            'BDD100K': bdd_provenance if 'BDD100K' in sources else None,
-            'RDD2022': (
-                'local upstream RDD2022 files; repository does not redistribute dataset'
-                if 'RDD2022' in sources else None
-            ),
+            'RDD2022': 'local upstream RDD2022 files; repository does not redistribute dataset',
         },
         'note': (
             'Training never implies validation. New road-damage/pothole head rows are '
@@ -525,7 +502,6 @@ def main():
     print('saved', out / 'detector.pt')
     print('training manifest SHA-256 =', meta['trainingManifestSha256'])
     print('detectorValidated = FALSE')
-    print('official BDD100K benchmark claim = FALSE')
     print('official RDD2022 benchmark claim = FALSE')
 
 

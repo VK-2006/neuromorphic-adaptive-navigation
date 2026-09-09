@@ -32,8 +32,7 @@ need('readiness never exposes secret values','publicReadiness(readiness)' in app
 for token in [
     'AI_REQUEST_TIMEOUT_MS=8000','AI_COLD_START_TIMEOUT_MS=45000',
     'ROUTING_API_URL=https://router.project-osrm.org','GEOCODING_API_KEY=',
-    'TRAFFIC_PROVIDER=tomtom','OPENWEATHER_API_KEY=',
-    'WEBRTC_TURN_URL='
+    'TRAFFIC_PROVIDER=tomtom','OPENWEATHER_API_KEY='
 ]:
     need(f'production-env:{token}',token in env)
 need('production template no real secrets','mongodb+srv://' not in env and 'sk-' not in env)

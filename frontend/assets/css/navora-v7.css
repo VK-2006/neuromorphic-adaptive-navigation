@@ -85,9 +85,9 @@ body.navora-auth{background:linear-gradient(180deg,var(--nav-bg),var(--nav-surfa
 /* journey */
 .live-field-bar{min-height:44px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--nav-line);background:var(--nav-surface)}
 .sim-banner{padding:8px 12px;background:#7c2d12;color:#fff;font-weight:800;text-align:center}.journey-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:calc(100dvh - 44px)}
-.camera-pane,.navigation-pane{position:relative;min-height:620px;background:#050b14}.navigation-pane{background:var(--nav-bg)}.camera-pane video,.camera-pane canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hud{position:absolute;z-index:8;top:12px;left:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap}.camera-controls{position:absolute;z-index:8;left:12px;right:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap;padding:10px;border-radius:10px;background:rgba(5,11,20,.86);backdrop-filter:blur(10px)}
-.camera-controls .btn-navora.btn-ghost,.camera-controls .select{background:#111827;color:#f8fafc;border-color:#334155}#journey-map{height:100%;min-height:620px}
+.navigation-pane{position:relative;min-height:620px;background:var(--nav-bg)}
+.hud{position:absolute;z-index:8;top:12px;left:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap}
+#journey-map{height:100%;min-height:620px}
 .journey-stats{position:absolute;z-index:600;right:14px;top:14px;width:min(390px,calc(100% - 28px));max-height:calc(100% - 28px);overflow:auto;padding:16px;box-shadow:var(--nav-shadow)}
 .progress{height:8px;border-radius:999px;background:var(--nav-line);overflow:hidden}.progress span{display:block;height:100%;width:0;background:var(--nav-primary)}.voice-settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.voice-settings .full{grid-column:1/-1}
 .share-box{padding-top:12px;margin-top:12px;border-top:1px solid var(--nav-line)}.share-url{font-size:.78rem;word-break:break-all;color:var(--nav-muted);margin-top:8px}
@@ -113,7 +113,7 @@ body.navora-auth{background:linear-gradient(180deg,var(--nav-bg),var(--nav-surfa
 .toast-stack{position:fixed;right:16px;bottom:16px;z-index:2400;display:grid;gap:8px;width:min(390px,calc(100vw - 32px))}.toastx{position:relative;display:grid;grid-template-columns:26px 1fr 28px;align-items:start;gap:8px;padding:12px;border:1px solid var(--nav-line);border-radius:10px;background:var(--nav-surface);box-shadow:var(--nav-shadow);overflow:hidden}
 .toast-icon{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--nav-surface-2);font-weight:800}.toast-close{border:0;background:transparent;color:var(--nav-muted);font-size:1.1rem}.toast-progress{position:absolute;left:0;bottom:0;height:2px;width:100%;background:var(--nav-primary);transform-origin:left;animation:toastLife 4.5s linear forwards}@keyframes toastLife{to{transform:scaleX(0)}}
 
-@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.chat-layout{grid-template-columns:210px minmax(0,1fr)}.people{display:none}.journey-layout{grid-template-columns:1fr}.camera-pane{min-height:52dvh}.navigation-pane,#journey-map{min-height:70dvh}}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.chat-layout{grid-template-columns:210px minmax(0,1fr)}.people{display:none}.journey-layout{grid-template-columns:1fr}.navigation-pane,#journey-map{min-height:70dvh}}
 @media(max-width:820px){
   :root{--nav-sidebar-w:0px}body.navora-app>main,body.navora-admin>main{margin-left:0}body.navora-app>.live-field-bar,body.navora-app>.sim-banner{margin-left:0}
   body.navora-app .navora-nav,body.navora-admin .navora-nav{transform:translateX(-100%);width:264px;transition:transform .2s ease;box-shadow:20px 0 50px rgba(0,0,0,.24)}

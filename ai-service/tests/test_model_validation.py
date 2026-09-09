@@ -18,10 +18,10 @@ def write_json(path: Path, value: dict) -> None:
 
 def detector_per_class():
     return {
-        'person': {'tp': 40, 'fp': 8, 'fn': 10, 'support': 50, 'precision': 0.833333, 'recall': 0.8, 'f1': 0.816327},
-        'car': {'tp': 70, 'fp': 15, 'fn': 20, 'support': 90, 'precision': 0.823529, 'recall': 0.777778, 'f1': 0.8},
-        'road damage': {'tp': 35, 'fp': 10, 'fn': 15, 'support': 50, 'precision': 0.777778, 'recall': 0.7, 'f1': 0.736842},
-        'pothole': {'tp': 30, 'fp': 10, 'fn': 20, 'support': 50, 'precision': 0.75, 'recall': 0.6, 'f1': 0.666667},
+        'D00': {'tp': 40, 'fp': 8, 'fn': 10, 'support': 50, 'precision': 0.833333, 'recall': 0.8, 'f1': 0.816327},
+        'D01': {'tp': 70, 'fp': 15, 'fn': 20, 'support': 90, 'precision': 0.823529, 'recall': 0.777778, 'f1': 0.8},
+        'D10': {'tp': 35, 'fp': 10, 'fn': 15, 'support': 50, 'precision': 0.777778, 'recall': 0.7, 'f1': 0.736842},
+        'D11': {'tp': 30, 'fp': 10, 'fn': 20, 'support': 50, 'precision': 0.75, 'recall': 0.6, 'f1': 0.666667},
     }
 
 
@@ -45,8 +45,8 @@ def coherent_bundle(tmp_path: Path):
 
     detector.write_bytes(b'detector-weight-v30')
     snn.write_bytes(b'snn-weight-v30')
-    detector_classes = ['person', 'car', 'road damage', 'pothole']
-    training_sources = ['BDD100K', 'RDD2022']
+    detector_classes = ['D00', 'D01', 'D10', 'D11']
+    training_sources = ['RDD2022']
 
     gate = {
         'passed': True,
@@ -58,8 +58,8 @@ def coherent_bundle(tmp_path: Path):
             'evalSha256': 'det-eval-sha',
             'trainClasses': detector_classes,
             'evalClasses': detector_classes,
-            'trainSources': {'BDD100K': 400, 'RDD2022': 250},
-            'evalSources': {'BDD100K': 150, 'RDD2022': 100},
+            'trainSources': {'RDD2022': 250},
+            'evalSources': {'RDD2022': 100},
         },
         'snn': {
             'trainEvalRowOverlap': 0,
@@ -316,10 +316,10 @@ def test_policy_floor_cannot_be_weakened_after_evidence(tmp_path):
     assert any('threshold minAccuracy is below policy floor' in reason for reason in status['reasons'])
 
 
-def test_aggregate_detector_metrics_cannot_hide_weak_pothole_class(tmp_path):
+def test_aggregate_detector_metrics_cannot_hide_weak_rdd_class(tmp_path):
     p = coherent_bundle(tmp_path)
     report = json.loads(p['detector_eval'].read_text(encoding='utf-8'))
-    report['perClass']['pothole'].update({'precision': 0.2, 'recall': 0.1, 'f1': 0.133333})
+    report['perClass']['D11'].update({'precision': 0.2, 'recall': 0.1, 'f1': 0.133333})
     report['classPolicyPassed'] = False
     report['validationEligible'] = False
     write_json(p['detector_eval'], report)
@@ -355,7 +355,7 @@ def test_detector_class_order_mismatch_revokes_validation(tmp_path):
 def test_detector_training_source_mismatch_revokes_validation(tmp_path):
     p = coherent_bundle(tmp_path)
     meta = json.loads(p['metadata'].read_text(encoding='utf-8'))
-    meta['trainingSources'] = ['BDD100K']
+    meta['trainingSources'] = ['UNKNOWN']
     write_json(p['metadata'], meta)
     status = model_validation_status('detector', p['detector'], p['metadata'])
     assert status['passed'] is False

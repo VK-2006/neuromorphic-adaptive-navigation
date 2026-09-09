@@ -13,11 +13,7 @@ Training always leaves validation false. Evaluation may set the per-model flags 
 
 Even then, live service startup does **not** trust the flags alone. The V28+ guard re-checks the passing data gate, policy floors, evaluation eligibility, report/dataset fingerprints, evidence schema and exact `.pt` SHA-256. V29 also binds detector class order, training sources and the exact training-manifest SHA-256 to the data gate before exposing `validated: true`.
 
-V29 can train a dynamic detector head from:
-
-- BDD100K: `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, `barrier`.
-- RDD2022: `road damage`, `pothole`.
-
-COCO-overlap classes may receive pretrained head rows. Road-specific classes such as `road damage` and `pothole` start fresh and require real RDD2022 training. Supporting those classes in code does not mean a validated pothole model is already bundled.
+V29 can train a dynamic detector head from RDD2022's nine canonical classes:
+`D00`, `D01`, `D10`, `D11`, `D20`, `D40`, `D43`, `D44`, `D50`.
 
 Without a complete evidence chain the service explicitly reports research/development fallback or unvalidated trained mode and does not present the output as validated safety AI.

@@ -36,38 +36,6 @@
     setTimeout(()=>{if(host.querySelector('canvas'))badge.textContent='LIVE 3D + ROUTE GRAPH'},1000);
   }
 
-  function journeyDock(){
-    if(page!=='journey.html') return;
-    const pane=$('.camera-pane'); if(!pane) return;
-    if(!pane.querySelector('.journey-camera-dock')){
-      const dock=d.createElement('div');dock.className='journey-camera-dock';
-      [...pane.querySelectorAll(':scope > .camera-controls'),pane.querySelector(':scope > #perception-mode-note')]
-        .filter(Boolean).forEach(el=>dock.appendChild(el));
-      pane.appendChild(dock);
-    }
-
-    const syncNoJourney=()=>{
-      const state=$('.navigation-pane .navora-state-panel');
-      const noJourney=Boolean(state && /No active journey/i.test(state.textContent||''));
-      body.classList.toggle('journey-no-active',noJourney);
-      let empty=pane.querySelector('.journey-camera-empty');
-      if(noJourney && !empty){
-        empty=d.createElement('div');empty.className='journey-camera-empty';
-        empty.innerHTML=`<div><span class="chip">Journey setup</span><h2>Plan a route before starting perception</h2>
-          <p class="muted">Camera, local detection, GPS tracking and adaptive rerouting are enabled only after a saved journey exists.</p>
-          <div class="px-steps"><span>1 · Plan and compare routes</span><span>2 · Select and save a route</span><span>3 · Open Live Journey</span></div>
-          <a class="btn-navora" href="map.html" style="margin-top:18px">Plan a route</a></div>`;
-        pane.appendChild(empty);
-      }
-      if(!noJourney) empty?.remove();
-      setTimeout(()=>window.dispatchEvent(new Event('resize')),60);
-    };
-    syncNoJourney();
-    const mo=new MutationObserver(syncNoJourney);
-    const nav=$('.navigation-pane'); if(nav)mo.observe(nav,{childList:true,subtree:true});
-    addEventListener('pagehide',()=>mo.disconnect(),{once:true});
-  }
-
   function dashboardZeroState(){
     if(page!=='dashboard.html')return;
     const empty=$('#trend-empty');
@@ -86,6 +54,6 @@
     });
   }
 
-  function init(){routeNetworkBackdrop();journeyDock();dashboardZeroState();historyDialogClose()}
+  function init(){routeNetworkBackdrop();dashboardZeroState();historyDialogClose()}
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

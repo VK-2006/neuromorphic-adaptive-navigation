@@ -19,7 +19,6 @@ const schema=new mongoose.Schema({
     theme:{type:String,enum:['LIGHT','DARK','SYSTEM'],default:'SYSTEM'},
     units:{type:String,enum:['METRIC','IMPERIAL'],default:'METRIC'},
     voiceLanguage:{type:String,enum:['en-IN','en-US','te-IN','hi-IN'],default:'en-IN'},
-    detectionMode:{type:String,enum:['LOCAL','CLOUD'],default:'LOCAL'},
     highAccuracyGps:{type:Boolean,default:true}
   },
   disabledAt:Date,

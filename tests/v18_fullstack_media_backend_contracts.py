@@ -17,7 +17,7 @@ for page in pages:
     assert 'worldclass.css' not in text,f'{page.name}: retired showcase stylesheet must stay retired'
 
 media=read(Path('frontend/assets/css/media-frames-v18.css'))
-for token in ['.camera-pane','#map','#journey-map','.replay-map','#journey-detail-map','.three-shell','@media (pointer:coarse)','@media (max-width:820px)','@media (max-width:640px)','orientation:landscape','env(safe-area-inset-left)']:
+for token in ['#map','#journey-map','.replay-map','#journey-detail-map','.three-shell','@media (pointer:coarse)','@media (max-width:820px)','@media (max-width:640px)','orientation:landscape','env(safe-area-inset-left)']:
     assert token in media,token
 assert 'min-height:44px' in media
 assert 'overscroll-behavior-inline:contain' in media
@@ -83,4 +83,4 @@ risk=read(Path('ai-service/app/services/risk_service.py'))
 assert 'if self.model is None:\n            self.validated=False' in risk
 assert "self.mode='development/heuristic-fallback-runtime'" in risk
 
-print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 25-page media UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')
+print('V18_FULLSTACK_MEDIA_BACKEND_CONTRACTS PASS: 25-page map UI + journey/RBAC/auth/chat/hazard/AI safety invariants are present')

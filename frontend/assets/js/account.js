@@ -37,7 +37,7 @@ async function loadProfile(){
     if($('profile-stat-journeys')){
       const s=await api('/users/me/summary');
       setText('profile-stat-journeys',s?.journeys??0);setText('profile-stat-completed',s?.completedJourneys??0);
-      setText('profile-stat-memory',s?.routeMemories??0);setText('profile-stat-devices',s?.devices??0);
+      setText('profile-stat-memory',s?.routeMemories??0);
       setText('profile-stat-contacts',s?.trustedContacts??0);setText('profile-stat-unread',s?.unreadNotifications??0);
       setText('profile-last-journey',s?.lastJourney?`${s.lastJourney.status||'—'} · ${when(s.lastJourney.createdAt)}`:'No journeys yet');
     }

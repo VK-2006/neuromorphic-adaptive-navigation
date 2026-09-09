@@ -1,4 +1,4 @@
-"""Evaluate detector.pt against a held-out BDD100K/RDD2022 manifest.
+"""Evaluate detector.pt against a held-out RDD2022 manifest.
 
 Metrics use class-aware greedy IoU matching. Diagnostic evaluation reports aggregate and
 per-class quality. Safety validation is stricter: the data gate must pass, policy floors

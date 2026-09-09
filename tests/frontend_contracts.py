@@ -50,7 +50,8 @@ import json
 express_spec=json.loads(read('backend/package.json'))['dependencies']['express']
 assert express_spec.lstrip('^~>= ').split('.')[0]=='5', 'Express 5 is required for async promise error propagation'
 
-require('backend/src/sockets/index.js','journey:join','route:join','chat:join','webrtc:join')
+require('backend/src/sockets/index.js','journey:join','route:join','chat:join')
+assert 'webrtc:' not in read('backend/src/sockets/index.js'), 'WebRTC signaling must not remain in the active socket layer'
 require('backend/src/services/aiClient.js','/api/v1/risk/predict','degraded')
 
 
@@ -70,7 +71,6 @@ require('backend/src/config/db.js','startDatabaseRecovery','database_retry_faile
 
 
 # Security/correctness edge contracts added during final hardening.
-require('backend/src/sockets/index.js',"target?.rooms?.has(room)")
 require('backend/src/models/Journey.js','distanceOffset')
 require('backend/src/controllers/trackingController.js','routeDistanceCovered','offset+proj.distanceAlong')
 require('frontend/assets/js/journey.js','routeDistanceCovered??r.distanceCovered')

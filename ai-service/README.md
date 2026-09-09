@@ -24,19 +24,16 @@ If any link is missing or changes, the service reports an unvalidated trained mo
 
 ## Detector training / evaluation
 
-Create a unified local manifest from licensed BDD100K and/or RDD2022 files, then produce an internal leakage-free split:
+Create a local RDD2022 manifest, then produce an internal leakage-free split:
 
 ```bash
-python scripts/prepare_detection_data.py --bdd-labels <bdd-labels.json> --bdd-images <bdd-images-dir> --rdd-root <rdd-root> --out datasets/derived-risk-data/detection-manifest.jsonl
+python scripts/prepare_detection_data.py --rdd-root <rdd-root> --out datasets/derived-risk-data/detection-manifest.jsonl
 python scripts/split_detection_manifest.py --manifest datasets/derived-risk-data/detection-manifest.jsonl
 ```
 
-V29 supports these source/class pairs:
+V29 supports RDD2022's nine canonical classes: `D00`, `D01`, `D10`, `D11`, `D20`, `D40`, `D43`, `D44`, `D50`.
 
-- BDD100K: `person`, `bicycle`, `motorcycle`, `car`, `bus`, `truck`, `traffic cone`, `barrier`.
-- RDD2022: `road damage`, `pothole`.
-
-The Faster R-CNN head is created dynamically from classes actually present in the training manifest. COCO-overlap classes reuse pretrained head rows; `road damage` and `pothole` are fresh rows that must learn from real RDD2022 samples.
+The Faster R-CNN head is created dynamically from the canonical classes present in the training manifest.
 
 Then run the data gate, training and detector held-out evaluation:
 
@@ -55,4 +52,4 @@ python scripts/validation_evidence.py --det-train datasets/derived-risk-data/det
 python scripts/model_readiness.py
 ```
 
-The repository does **not** ship a real validated pothole detector merely because V29 can train one. Large upstream datasets, generated `.pt` weights, evaluation reports, metadata and evidence are intentionally not committed. The generated split is an internal development/validation split, not an official BDD100K or RDD2022 benchmark.
+The repository does **not** ship a real validated RDD2022 detector merely because V29 can train one. Large upstream datasets, generated `.pt` weights, evaluation reports, metadata and evidence are intentionally not committed. The generated split is an internal development/validation split, not an official upstream benchmark.

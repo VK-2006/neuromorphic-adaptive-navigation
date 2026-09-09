@@ -59,7 +59,7 @@ async function findDedupeCandidate({ type, journeyId, location, metadata }) {
 
   // Community/manual reports have no per-frame visual evidence, so the original
   // type + proximity + time + journey dedupe rule remains appropriate for them.
-  if (metadata?.source !== 'camera') return { hazard: candidates[0], similarity: null };
+  if (metadata?.source !== 'detector') return { hazard: candidates[0], similarity: null };
 
   let best = null;
   let bestSimilarity = -1;
@@ -92,11 +92,11 @@ async function dedupeAndUpsert({ userId, journeyId, type, location, confidence, 
       ...(near.metadata || {}),
       ...(metadata || {}),
       dedupe: {
-        strategy: metadata?.source === 'camera'
+        strategy: metadata?.source === 'detector'
           ? 'type+geography+time+journey+detection-similarity'
           : 'type+geography+time+journey',
         similarity,
-        threshold: metadata?.source === 'camera' ? DETECTION_SIMILARITY_THRESHOLD : null,
+        threshold: metadata?.source === 'detector' ? DETECTION_SIMILARITY_THRESHOLD : null,
         mergedAt: new Date().toISOString(),
       },
     };
@@ -114,11 +114,11 @@ async function dedupeAndUpsert({ userId, journeyId, type, location, confidence, 
     metadata: {
       ...(metadata || {}),
       dedupe: {
-        strategy: metadata?.source === 'camera'
+        strategy: metadata?.source === 'detector'
           ? 'type+geography+time+journey+detection-similarity'
           : 'type+geography+time+journey',
         similarity: null,
-        threshold: metadata?.source === 'camera' ? DETECTION_SIMILARITY_THRESHOLD : null,
+        threshold: metadata?.source === 'detector' ? DETECTION_SIMILARITY_THRESHOLD : null,
       },
     },
     expiresAt: new Date(Date.now() + 24 * 3600 * 1000),

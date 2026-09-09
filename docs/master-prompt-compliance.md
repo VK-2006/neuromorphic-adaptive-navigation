@@ -22,8 +22,7 @@ The repository is checked against the locked Navora master prompt rather than a 
 
 - No real secrets are committed; only `.env.example` templates belong in source.
 - OTPs, reset grants and refresh tokens are hashed at rest.
-- Camera processing is explicit opt-in; raw camera footage is not permanently stored by default.
-- Camera and WebRTC flows are explicitly treated as separate from route telemetry; no device-controller assumptions are used for core navigation.
+- Navigation is camera-independent and does not request camera or device-controller access.
 - Simulation/mock traffic and routing remain visibly labelled.
 - Exact private GPS is not globally broadcast.
 - Single-state GPS/camera/Socket/Three.js lifecycle avoids duplicate watchers/streams/listeners/RAF loops.

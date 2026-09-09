@@ -18,8 +18,7 @@ const env={
   otpExpiryMinutes:num(process.env.OTP_EXPIRY_MINUTES,10),otpResendCooldownSeconds:num(process.env.OTP_RESEND_COOLDOWN_SECONDS,60),otpMaxAttempts:num(process.env.OTP_MAX_ATTEMPTS,5),
   logLevel:process.env.LOG_LEVEL||'info',emaAlpha:num(process.env.EMA_ALPHA,.3),acoAnts:num(process.env.ACO_ANTS,30),acoIterations:num(process.env.ACO_ITERATIONS,45),acoEvaporation:num(process.env.ACO_EVAPORATION,.35),
   rerouteCooldownSeconds:num(process.env.REROUTE_COOLDOWN_SECONDS,45),weatherCacheTtlSeconds:num(process.env.WEATHER_CACHE_TTL_SECONDS,300),weatherRouteRiskWeight:num(process.env.WEATHER_ROUTE_RISK_WEIGHT,.15),simulationMode:bool(process.env.SIMULATION_MODE,false),
-  webauthnRpId:process.env.WEBAUTHN_RP_ID||'localhost',webauthnOrigin:process.env.WEBAUTHN_ORIGIN||'http://localhost:5000',
-  webrtcTurnUrl:process.env.WEBRTC_TURN_URL||'',webrtcTurnUsername:process.env.WEBRTC_TURN_USERNAME||'',webrtcTurnCredential:process.env.WEBRTC_TURN_CREDENTIAL||''
+  webauthnRpId:process.env.WEBAUTHN_RP_ID||'localhost',webauthnOrigin:process.env.WEBAUTHN_ORIGIN||'http://localhost:5000'
 };
 env.routeWeights={distance:num(process.env.ROUTE_WEIGHT_DISTANCE,.15),time:num(process.env.ROUTE_WEIGHT_TIME,.15),traffic:num(process.env.ROUTE_WEIGHT_TRAFFIC,.15),safety:num(process.env.ROUTE_WEIGHT_SAFETY,.25),familiarity:num(process.env.ROUTE_WEIGHT_FAMILIARITY,.12),history:num(process.env.ROUTE_WEIGHT_HISTORY,.10),preference:num(process.env.ROUTE_WEIGHT_PREFERENCE,.08)};
 if(Math.abs(Object.values(env.routeWeights).reduce((a,b)=>a+b,0)-1)>.001)throw new Error('Route weights must total 1.0');

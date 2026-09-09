@@ -1,4 +1,4 @@
-const DEFAULT_OPTIONAL_CHECKS=['google','brevo','traffic','passkeys','weather','turn'];
+const DEFAULT_OPTIONAL_CHECKS=['google','brevo','traffic','passkeys','weather'];
 
 function validHttps(value){
   try{
@@ -26,12 +26,6 @@ function passkeyReady(config){
   }catch{return false}
 }
 
-function turnReady(config){
-  const any=!!(config.webrtcTurnUrl||config.webrtcTurnUsername||config.webrtcTurnCredential);
-  if(!any)return false;
-  return /^turns?:/i.test(String(config.webrtcTurnUrl||''))&&!!config.webrtcTurnUsername&&!!config.webrtcTurnCredential;
-}
-
 function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=false}={}){
   if(!config)throw new Error('Production readiness requires resolved config');
   const production=config.nodeEnv==='production';
@@ -52,8 +46,7 @@ function evaluateProductionReadiness({config,rawEnv=process.env,databaseReady=fa
     brevo:{required:false,pass:!!config.brevoApiKey&&validEmail(config.brevoSenderEmail),message:'BREVO_API_KEY and a valid BREVO_SENDER_EMAIL are required for email OTP delivery'},
     traffic:{required:false,pass:config.trafficProvider==='tomtom'&&!!config.trafficApiKey,message:'TomTom live traffic requires TRAFFIC_PROVIDER=tomtom and TRAFFIC_API_KEY'},
     passkeys:{required:false,pass:!production||passkeyReady(config),message:'Production passkeys require HTTPS WEBAUTHN_ORIGIN whose hostname equals WEBAUTHN_RP_ID'},
-    weather:{required:false,pass:config.weatherProvider==='openweathermap'&&!!config.openWeatherApiKey,message:'OpenWeather live weather risk requires OPENWEATHER_API_KEY'},
-    turn:{required:false,pass:turnReady(config),message:'Remote WebRTC reliability requires a TURN URL, username and credential'}
+    weather:{required:false,pass:config.weatherProvider==='openweathermap'&&!!config.openWeatherApiKey,message:'OpenWeather live weather risk requires OPENWEATHER_API_KEY'}
   };
 
   const criticalReady=Object.values(critical).every(x=>!x.required||x.pass);

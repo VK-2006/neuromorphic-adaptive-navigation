@@ -11,8 +11,8 @@ Status meanings: **IMPLEMENTED** = source path is present and connected; **VERIF
 | Live GPS + map matching | IMPLEMENTED / VERIFIED algorithms | Single `watchPosition`, segment projection, covered/remaining/progress/ETA |
 | Route deviation | IMPLEMENTED / VERIFIED static | Distance + accuracy + heading + speed + time-outside corridor |
 | Journey lifecycle | IMPLEMENTED | Plan/start/pause/resume/reroute/complete + CRM update |
-| Camera privacy | IMPLEMENTED / VERIFIED static | Explicit Detection OFF default; no inference/hazard creation while off; no MediaRecorder storage |
-| Object / road-damage detection | IMPLEMENTED / DATASET GATE | BDD100K/RDD2022 prep/train/evaluate path; independent detectorValidated gate; explicit OpenCV fallback |
+| Camera-independent navigation | IMPLEMENTED / VERIFIED static | GPS and route-risk navigation does not request camera access |
+| Object / road-damage detection | RDD2022 / DATASET GATE | RDD2022-only prep/train/evaluate path; independent detectorValidated gate; explicit development fallback |
 | SNN | IMPLEMENTED / AI tests VERIFIED fallback / DATASET GATE | snnTorch LIF, temporal encoding, spike/membrane decode, train/evaluate path, independent riskValidated gate |
 | CRM + DTW + EMA | IMPLEMENTED / VERIFIED algorithms | Completed journeys update memory; future route scoring uses history and route similarity |
 | ACO | IMPLEMENTED / VERIFIED algorithms | Multi-ant exploration, pheromone/deposit/evaporation/iterations, route-specific utility |

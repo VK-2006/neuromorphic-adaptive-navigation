@@ -4,7 +4,7 @@ const {
   DETECTION_SIMILARITY_THRESHOLD,
 }=require('../src/services/hazardSimilarity');
 
-test('detection similarity merges repeated nearby camera detections',()=>{
+test('detection similarity merges repeated detector observations',()=>{
   const previous={detection:{boundingBox:[.22,.35,.18,.16],approximateDistance:8.2,confidence:.88,detectorMode:'torchscript-trained-weights',detectorVersion:'detector-1'}};
   const current={detection:{boundingBox:[.24,.36,.17,.16],approximateDistance:8.8,confidence:.84,detectorMode:'torchscript-trained-weights',detectorVersion:'detector-1'}};
   expect(boxSimilarity(previous.detection.boundingBox,current.detection.boundingBox)).toBeGreaterThan(.75);
@@ -18,5 +18,5 @@ test('detection similarity separates visually and physically different detection
 });
 
 test('detection similarity requires per-frame detection evidence',()=>{
-  expect(detectionSimilarity({source:'camera'},{source:'camera'})).toBeNull();
+  expect(detectionSimilarity({source:'detector'},{source:'detector'})).toBeNull();
 });

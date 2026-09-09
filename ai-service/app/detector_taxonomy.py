@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-# Backward-compatible detector taxonomy. Keep the original public exports
-# because BDD100K callers still use them.
-CLASS_ORDER = [
-    'person', 'bicycle', 'motorcycle', 'car', 'bus', 'truck',
-    'traffic cone', 'barrier', 'road damage', 'pothole',
-]
-
 # Ordered list of the nine trainable RDD2022 model classes.
 CANONICAL_CLASSES = [
     "D00",  # Longitudinal Crack
@@ -40,10 +33,7 @@ RDD_TO_CANONICAL = {
 QUARANTINED_CLASSES = {"D0w0"}
 
 SOURCE_CLASSES = {
-    'BDD100K': set(CLASS_ORDER[:8]),
-    # Legacy RDD labels remain valid for existing callers, but are not model
-    # classes. New RDD2022 training uses only CANONICAL_CLASSES.
-    'RDD2022': set(CANONICAL_CLASSES) | {'road damage', 'pothole'},
+    'RDD2022': set(CANONICAL_CLASSES),
 }
 
 # Reverse mapping for convenience.
@@ -67,18 +57,18 @@ def ordered_classes(values) -> list[str]:
     canonical names).  Unknown identifiers raise ``ValueError``.
     """
     values = set(values)
-    unknown = sorted(values - set(CLASS_ORDER) - set(CANONICAL_CLASSES))
+    unknown = sorted(values - set(CANONICAL_CLASSES))
     if unknown:
         raise ValueError(f"unsupported detector classes: {unknown}")
     # Preserve the canonical ordering.
-    return [c for c in CLASS_ORDER + CANONICAL_CLASSES if c in values]
+    return [c for c in CANONICAL_CLASSES if c in values]
 
 
 def validate_source_class(source: str, class_name: str) -> None:
     """Validate that ``class_name`` is allowed for ``source``.
 
-    The only supported source for Phase‑17 is ``"RDD2022"``.  Any other source
-    raises ``ValueError``.  ``D0w0`` is explicitly rejected.
+    The only supported source is ``"RDD2022"``. Any other source raises
+    ``ValueError``. ``D0w0`` is explicitly rejected.
     """
     allowed = SOURCE_CLASSES.get(source)
     if allowed is None:

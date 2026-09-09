@@ -8,22 +8,13 @@ This directory manages the real-world dataset evaluation pipeline for NAVORA's P
 - `manifests/`: JSON manifests mapping subsets of datasets for evaluation.
 - `samples/`: Tiny representative samples for smoke testing.
 
-## Supported Datasets
+## Supported Dataset
 
-### 1. BDD100K (Berkeley DeepDrive)
-- **Content:** Urban driving scenes.
-- **Access:** Requires registration at [bdd-data.berkeley.edu](https://bdd-data.berkeley.edu/).
-- **Classes Mapped:**
-  - `pedestrian` -> `person` (HIGH RISK)
-  - `car` -> `car` (MEDIUM RISK)
-  - `truck`, `bus` -> `car` (mapped for compatibility)
-
-### 2. RDD2022 (Road Damage Dataset)
+### RDD2022 (Road Damage Dataset)
 - **Content:** Road surface hazards (cracks, potholes).
 - **Access:** Publicly available on AWS Open Data / GitHub.
 - **Classes Mapped:**
-  - `D00`, `D10`, `D20` -> `road damage` (MEDIUM RISK)
-  - `D40` -> `pothole` (CRITICAL RISK)
+  - Canonical classes: `D00`, `D01`, `D10`, `D11`, `D20`, `D40`, `D43`, `D44`, `D50`
 
 ## Usage & Validation
 NAVORA's V30 Cryptographic Evidence Chain strictly differentiates between `SYNTHETIC` and `REAL-WORLD` training datasets.
@@ -37,5 +28,5 @@ and the FastAPI service will safely fallback to heuristic perception.
 
 ### To Evaluate a Real Dataset:
 1. Place formatted images in `datasets/processed/images/` and YOLO-formatted labels in `datasets/processed/labels/`.
-2. Run the evaluation script (e.g. `python scripts/evaluate_detector.py --dataset BDD100K --split val`).
+2. Run the detector evaluation script against the held-out RDD2022 manifest.
 3. This will generate the true `validation-evidence.json` with `datasetType: "real-world"`.

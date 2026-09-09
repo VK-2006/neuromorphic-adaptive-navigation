@@ -14,7 +14,7 @@
     map:new Set(['map']),
     journey:new Set(['journey','journey-replay','shared-journey']),
     admin:new Set(['admin','admin-audit','admin-chat','admin-hazards','admin-health','admin-users']),
-    chat:new Set(['world-chat']),devices:new Set(['devices']),offline:new Set(['offline'])
+    chat:new Set(['world-chat']),offline:new Set(['offline'])
   };
   let group='data';
   for(const [name,set] of Object.entries(groups))if(set.has(page)){group=name;break}
@@ -59,9 +59,7 @@
       if(group==='admin')el.classList.add('pg-admin-restraint');
     }
 
-    if(el.matches('.camera-pane')){
-      el.classList.add('pg-safe-edge');
-    }else if(el.matches('.navigation-pane,.panel,.glass-panel,.journey-stats,.reroute-panel,.share-box,.field-safety-note,.data-list,.chat-panel,.device-card,.table-responsive')){
+    if(el.matches('.navigation-pane,.panel,.glass-panel,.journey-stats,.reroute-panel,.share-box,.field-safety-note,.data-list,.chat-panel,.table-responsive')){
       if(!el.classList.contains('card')&&!el.classList.contains('route-card')){
         role(el,group==='map'||group==='journey'?'pg-route-signal':'pg-border-panel');
         if(group==='admin')el.classList.add('pg-admin-restraint');
@@ -75,8 +73,8 @@
 
   const selector=[
     'button','a.btn-navora','[role="button"]','.card','.auth-card','.route-card','.stat-card','.metric-card','.dashboard-card',
-    '.camera-pane','.navigation-pane','.panel','.glass-panel','.journey-stats','.reroute-panel','.share-box','.field-safety-note',
-    '.data-list','.chat-panel','.device-card','.table-responsive','table','input','textarea','select','.input','.select','.form-control',
+    '.navigation-pane','.panel','.glass-panel','.journey-stats','.reroute-panel','.share-box','.field-safety-note',
+    '.data-list','.chat-panel','.table-responsive','table','input','textarea','select','.input','.select','.form-control',
     '.chip','.badge','.status-pill','[data-status]'
   ].join(',');
 

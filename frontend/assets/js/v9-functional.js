@@ -68,30 +68,7 @@ function mapPrerequisites(){
   }
 }
 
-async function installIceConfig(){
-  if(!window.RTCPeerConnection||window.__navoraRtcWrapped)return;
-  const Native=window.RTCPeerConnection;
-  let extra=[{urls:'stun:stun1.l.google.com:19302'}];
-  window.__navoraRtcWrapped=true;
-  const Wrapped=function(config={},constraints){
-    const existing=Array.isArray(config.iceServers)?config.iceServers:[];
-    const merged=[...existing,...extra].filter((x,i,a)=>a.findIndex(y=>JSON.stringify(y)===JSON.stringify(x))===i);
-    return new Native({...config,iceServers:merged},constraints);
-  };
-  Wrapped.prototype=Native.prototype;Object.setPrototypeOf(Wrapped,Native);window.RTCPeerConnection=Wrapped;
-  try{
-    // ICE configuration is an optional enhancement. Read it without api(), because
-    // a missing/expired session here must not emit navora:auth-required and hijack
-    // the main Journey page while its primary authenticated data is still loading.
-    const response=await fetch('/api/v1/live/webrtc-config',{credentials:'include',headers:{accept:'application/json'}});
-    if(!response.ok)return;
-    const body=await response.json().catch(()=>null),cfg=body?.data??body;
-    if(Array.isArray(cfg?.iceServers)&&cfg.iceServers.length)extra=cfg.iceServers;
-  }catch{}
-}
-
 function init(){
-  capabilityGuards();historyGuard();notificationsUi();settingsSafety();mapPrerequisites();
-  if(['journey.html','camera-share.html'].includes(page))installIceConfig();
+ capabilityGuards();historyGuard();notificationsUi();settingsSafety();mapPrerequisites();
 }
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init,{once:true}):init();

@@ -136,7 +136,6 @@
     const layout=$('.journey-layout');
     if(!layout) return;
     layout.setAttribute('aria-label','Live navigation cockpit');
-    $('.camera-pane')?.setAttribute('aria-label','Camera perception and neuromorphic risk view');
     $('.navigation-pane')?.setAttribute('aria-label','Map and journey navigation view');
   }
 

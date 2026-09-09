@@ -34,10 +34,6 @@ echo   RDD_ROOT       = extracted RDD2022 root containing XML annotations/images
 echo   SNN_TRAIN_CSV  = leakage-free normalized SNN training CSV
 echo   SNN_EVAL_CSV   = untouched normalized SNN held-out CSV
 echo.
-echo Optional BDD100K pair - set BOTH or neither:
-echo   BDD_LABELS     = BDD100K detection labels JSON
-echo   BDD_IMAGES     = matching BDD100K image directory
-echo.
 echo Optional overrides:
 echo   PYTHON_EXE, DET_EPOCHS, DET_BATCH_SIZE, DET_LR,
 echo   SNN_EPOCHS, SNN_LR, DET_EVAL_FRACTION, DET_SPLIT_SEED,
@@ -51,21 +47,6 @@ call :require_file SNN_TRAIN_CSV "SNN training CSV"
 if errorlevel 1 goto :failed
 call :require_file SNN_EVAL_CSV "SNN held-out CSV"
 if errorlevel 1 goto :failed
-
-if defined BDD_LABELS if not defined BDD_IMAGES (
-  echo [BLOCKED] BDD_LABELS is set but BDD_IMAGES is missing.
-  goto :failed
-)
-if defined BDD_IMAGES if not defined BDD_LABELS (
-  echo [BLOCKED] BDD_IMAGES is set but BDD_LABELS is missing.
-  goto :failed
-)
-if defined BDD_LABELS (
-  call :require_file BDD_LABELS "BDD100K labels JSON"
-  if errorlevel 1 goto :failed
-  call :require_path BDD_IMAGES "BDD100K images directory"
-  if errorlevel 1 goto :failed
-)
 
 %PYTHON_EXE% --version
 if errorlevel 1 (
@@ -97,11 +78,7 @@ rem Build the unified real detector manifest. RDD2022 is required because pothol
 rem validation must be backed by real labeled road-damage examples.
 echo.
 echo [1/9] Preparing unified detection manifest...
-if defined BDD_LABELS (
-  %PYTHON_EXE% "%ROOT%\scripts\prepare_detection_data.py" --bdd-labels "%BDD_LABELS%" --bdd-images "%BDD_IMAGES%" --rdd-root "%RDD_ROOT%" --out "%DET_MANIFEST%"
-) else (
-  %PYTHON_EXE% "%ROOT%\scripts\prepare_detection_data.py" --rdd-root "%RDD_ROOT%" --out "%DET_MANIFEST%"
-)
+%PYTHON_EXE% "%ROOT%\scripts\prepare_detection_data.py" --rdd-root "%RDD_ROOT%" --out "%DET_MANIFEST%"
 if errorlevel 1 goto :failed
 
 rem Deterministic source-aware split with zero shared image rows and held-out class coverage.

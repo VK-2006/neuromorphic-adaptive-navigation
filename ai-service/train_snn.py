@@ -569,10 +569,10 @@ def main() -> None:
             "trainEvalImageOverlap": 0,
             "trainSha256": det_train_sha,
             "evalSha256": det_eval_sha,
-            "trainClasses": ["person", "car", "road damage", "pothole"],
-            "evalClasses":  ["person", "car", "road damage", "pothole"],
-            "trainSources": {"BDD100K": 400, "RDD2022": 250},
-            "evalSources":  {"BDD100K": 150, "RDD2022": 100},
+            "trainClasses": ["D00", "D01", "D10", "D11", "D20", "D40", "D43", "D44", "D50"],
+            "evalClasses":  ["D00", "D01", "D10", "D11", "D20", "D40", "D43", "D44", "D50"],
+            "trainSources": {"RDD2022": 250},
+            "evalSources":  {"RDD2022": 100},
         },
         "snn": {
             "trainEvalRowOverlap": 0,
@@ -606,13 +606,12 @@ def main() -> None:
     metadata = {
         "detectorModelVersion": "stub-detector-v1-pending",
         "riskModelVersion": "risk-snn-v14-phase14",
-        "detectorClasses": ["person", "car", "road damage", "pothole"],
-        "trainingSources": ["BDD100K", "RDD2022"],
+        "detectorClasses": ["D00", "D01", "D10", "D11", "D20", "D40", "D43", "D44", "D50"],
+        "trainingSources": ["RDD2022"],
         "trainingManifestSha256": det_train_sha,
         "detectorValidated": True,
         "riskValidated": True,
         "validated": True,
-        "officialBddBenchmarkClaim": False,
         "officialRddBenchmarkClaim": False,
         "training": {
             "seed": SEED,
@@ -821,7 +820,7 @@ def main() -> None:
        mode: snn-trained-weights-validated
        validated: true (risk model)
   4. Note: detector is still stub â€” global validated=true reflects
-     both models. Full detector training requires BDD100K+RDD2022 data.
+     both models. Full detector training requires the RDD2022 data path.
     """)
 
 

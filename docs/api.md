@@ -71,4 +71,4 @@ If validated weights are absent, responses explicitly identify development/fallb
 
 ## Socket.IO room model
 
-Authenticated sockets may join authorized `user:{userId}`, `journey:{journeyId}`, `route:{routeId}`, `chat:{roomId}` and `admin` rooms. WebRTC signaling is additionally journey-scoped. Live journey position, hazard, SNN, route and notification events stay in private/authorized rooms; exact GPS is not globally broadcast.
+Authenticated sockets may join authorized `user:{userId}`, `journey:{journeyId}`, `route:{routeId}`, `chat:{roomId}` and `admin` rooms. Live journey position, hazard, SNN, route and notification events stay in private/authorized rooms; exact GPS is not globally broadcast.

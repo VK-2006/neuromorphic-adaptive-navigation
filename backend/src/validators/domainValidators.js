@@ -32,7 +32,6 @@ exports.profilePatch=[
   body('preferences.theme').optional().isIn(['LIGHT','DARK','SYSTEM']),
   body('preferences.units').optional().isIn(['METRIC','IMPERIAL']),
   body('preferences.voiceLanguage').optional().isIn(['en-IN','en-US','te-IN','hi-IN']),
-  body('preferences.detectionMode').optional().isIn(['LOCAL','CLOUD']),
   body('preferences.highAccuracyGps').optional().isBoolean()
 ];
 

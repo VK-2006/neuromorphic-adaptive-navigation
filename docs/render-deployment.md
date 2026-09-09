@@ -44,7 +44,6 @@ For the complete demo/release experience, configure these external integrations 
 - TomTom live traffic API key
 - OpenWeather API key if live weather risk is required
 - Roboflow key/workflow only if cloud detector mode is enabled
-- TURN relay credentials for reliable remote WebRTC across NAT/firewalls
 
 OSRM routing and policy-safe Nominatim manual geocoding can operate without API keys. Nominatim is not used for keystroke autocomplete. When a TomTom Search-capable key is available, predictive place suggestions can use TomTom.
 
@@ -84,7 +83,7 @@ V35 smoke verifies:
 - AI model metadata and risk inference
 - V33 rule that an unvalidated trained model cannot serve normal trained inference
 
-Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone GPS/camera/WebRTC remain separate evidence gates and must not be fabricated.
+Actual Google browser sign-in, delivered email receipt, held-out trained-model validation and physical phone GPS remain separate evidence gates and must not be fabricated.
 
 ## V35 automatic release watch
 

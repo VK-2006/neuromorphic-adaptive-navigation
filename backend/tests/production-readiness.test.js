@@ -19,9 +19,6 @@ function productionConfig(overrides={}){
     webauthnRpId:'navora.example.com',
     weatherProvider:'openweathermap',
     openWeatherApiKey:'weather-secret-placeholder',
-    webrtcTurnUrl:'turns:turn.example.com:5349',
-    webrtcTurnUsername:'navora',
-    webrtcTurnCredential:'turn-secret-placeholder',
     ...overrides
   };
 }
@@ -92,17 +89,14 @@ describe('V34 production readiness',()=>{
         brevoSenderEmail:'',
         trafficProvider:'',
         trafficApiKey:'',
-        openWeatherApiKey:'',
-        webrtcTurnUrl:'',
-        webrtcTurnUsername:'',
-        webrtcTurnCredential:''
+        openWeatherApiKey:''
       }),
       rawEnv:productionRaw(),
       databaseReady:true
     });
     expect(out.ready).toBe(true);
     expect(out.fullIntegrationReady).toBe(false);
-    expect(out.missingIntegrations).toEqual(expect.arrayContaining(['google','brevo','traffic','weather','turn']));
+    expect(out.missingIntegrations).toEqual(expect.arrayContaining(['google','brevo','traffic','weather']));
   });
 
   test('public readiness never serializes secret values',()=>{
@@ -118,6 +112,5 @@ describe('V34 production readiness',()=>{
     expect(serialized).not.toContain(refresh);
     expect(serialized).not.toContain('brevo-secret-placeholder');
     expect(serialized).not.toContain('tomtom-secret-placeholder');
-    expect(serialized).not.toContain('turn-secret-placeholder');
   });
 });

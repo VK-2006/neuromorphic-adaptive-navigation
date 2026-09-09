@@ -9,7 +9,7 @@ const {ok}=require('../utils/response');
 const pick=(obj,keys)=>Object.fromEntries(keys.filter(k=>obj?.[k]!==undefined).map(k=>[k,obj[k]]));
 const CONTACT_FIELDS=['name','phone','email','relationship','sharePermission'];
 const PROFILE_FIELDS=['name','phone','city','country','preferredLanguage'];
-const PREF_FIELDS=['safety','traffic','familiarity','theme','units','voiceLanguage','detectionMode','highAccuracyGps'];
+const PREF_FIELDS=['safety','traffic','familiarity','theme','units','voiceLanguage','highAccuracyGps'];
 
 exports.profile=async(req,res)=>ok(res,{
   id:req.user._id,name:req.user.name,email:req.user.email,role:req.user.role,
