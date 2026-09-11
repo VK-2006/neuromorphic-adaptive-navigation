@@ -6,7 +6,7 @@ from ..services.detection_service import detector
 from ..utils.image import decode_data_url
 router=APIRouter()
 @router.get('/model/info')
-def model_info():return {'riskModel':{'version':engine.version,'mode':engine.mode,'validated':engine.validated,'validationIssues':engine.validation_issues},'detector':{'version':detector.version,'mode':detector.mode,'validated':detector.validated,'targets':detector.targets,'validationIssues':detector.validation_issues},'note':'Normal trained inference is enabled only for V30 evidence-bound validated weights. Unvalidated or research-only weights are blocked from normal prediction/detection and deterministic development fallbacks remain active.'}
+def model_info():return {'validated':bool(engine.validated and detector.validated),'riskModel':{'version':engine.version,'mode':engine.mode,'validated':engine.validated,'validationIssues':engine.validation_issues},'detector':{'version':detector.version,'mode':detector.mode,'validated':detector.validated,'targets':detector.targets,'validationIssues':detector.validation_issues},'note':'Normal trained inference is enabled only for V30 evidence-bound validated weights. Unvalidated or research-only weights are blocked from normal prediction/detection and deterministic development fallbacks remain active.'}
 @router.post('/api/v1/risk/predict',response_model=RiskResponse)
 def risk(req:RiskRequest):return engine.predict(req.features)
 @router.post('/api/v1/risk/batch')
