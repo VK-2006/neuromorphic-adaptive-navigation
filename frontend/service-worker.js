@@ -8,6 +8,7 @@ const V21_CACHE_LINEAGE='navora-fixed-sidebar-v21-0-0';
 const V20_CACHE_LINEAGE='navora-left-navbar-v20-0-0';
 const V19_CACHE_LINEAGE='navora-sidebar-light-v19-0-0';
 const LEGACY_CACHE_MARKER='navora-v7-functional-product-1'; // retained only so older audit tooling recognizes the migrated lineage.
+const V9_CACHE_LINEAGE='navora-v9-functional-e2e-1';
 const SHELL=["/", "/index.html", "/register.html", "/verify-email.html", "/login.html", "/forgot-password.html", "/verify-otp.html", "/reset-password.html", "/dashboard.html", "/map.html", "/journey.html", "/world-chat.html", "/memory.html", "/journey-replay.html", "/history.html", "/notifications.html", "/profile.html", "/settings.html", "/shared-journey.html", "/offline.html", "/admin.html", "/admin-users.html", "/admin-hazards.html", "/admin-chat.html", "/admin-health.html", "/admin-audit.html", "/manifest.json", "/assets/css/main.css",
   "/assets/css/obsidian.css",
   "/assets/css/obsidian-motion.css",

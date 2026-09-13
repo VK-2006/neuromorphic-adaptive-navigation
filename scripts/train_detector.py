@@ -212,6 +212,12 @@ def main():
     )
     ap.add_argument('--dataset-root', default=ROOT,
                     help='Root used to resolve relative image paths in the manifest.')
+    ap.add_argument(
+        '--output-dir',
+        type=Path,
+        default=ROOT / 'ai-service/trained_models',
+        help='Directory receiving the checkpoint, detector weights, state, and metadata.',
+    )
     ap.add_argument('--epochs', type=int, default=5)
     ap.add_argument('--batch-size', type=int, default=2)
     ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
@@ -227,8 +233,8 @@ def main():
     ap.add_argument('--num-workers', type=int, default=2)
     ap.add_argument(
         '--resume',
-        default=ROOT / 'ai-service/trained_models/detector-training-checkpoint.pt',
-        help='Epoch checkpoint to resume when it exists.',
+        default=None,
+        help='Optional epoch checkpoint to resume; resuming is opt-in.',
     )
     ap.add_argument('--no-resume', action='store_true')
     ap.add_argument('--amp', action='store_true',
@@ -297,11 +303,11 @@ def main():
     )
     scheduler = None
 
-    out = ROOT / 'ai-service/trained_models'
+    out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = Path(args.resume)
+    checkpoint_path = Path(args.resume) if args.resume else out / 'detector-training-checkpoint.pt'
     start_epoch = 0
-    if not args.no_resume and checkpoint_path.exists():
+    if args.resume and not args.no_resume and checkpoint_path.exists():
         checkpoint = torch.load(checkpoint_path, map_location=args.device)
         if checkpoint.get('classes') != ds.classes:
             raise SystemExit(
