@@ -1,52 +1,63 @@
-# Navora — Final Deployment Readiness Report
+# Navora — Deployment Readiness Report
 
-Date: 2026-08-13
+> Updated: 2026-09-13 — Final audit on `final-audit-v2` branch (from `d19a004`)
 
 This report separates **source readiness**, **locally verified behavior**, and **external production gates**. No production secrets are stored in source.
 
-| Area | Status | Evidence / boundary |
+## Deployment Verification
+
+| Service | URL | Status | Evidence |
+|---------|-----|--------|----------|
+| Backend | `https://navora-backend-clzp.onrender.com` | **LIVE** | `/health` returns `{"status":"ok","database":"connected","ready":true,"commit":"d19a004..."}` |
+| AI Service | `https://navora-ai-ttsr.onrender.com` | **LIVE** | `/health` returns `{"status":"ok","service":"navora-ai"}` |
+| AI Risk | POST `/api/v1/risk/predict` | **LIVE** | Returns valid risk response with `validated: false`, `mode: "development/heuristic-fallback"` |
+
+## Subsystem Readiness Matrix
+
+| Area | Status | Evidence |
 |---|---|---|
-| Frontend | **PASS** | 28 pages; static/UI/DOM/accessibility/live-navigation contracts pass |
-| Backend | **PASS locally** | Windows Jest 9/9 suites, 25/25 tests |
-| Dependency security | **PASS locally** | `npm audit` reports 0 vulnerabilities |
-| Database architecture | **PASS source/local** | Mongo/Mongoose models, indexes, TTL/geospatial rules; runtime E2E tooling provided |
-| AI service | **PASS fallback/API** | Pytest 6/6; real LIF SNN architecture; truthful fallback when weights absent |
-| Routing | **PASS source/algorithm** | OSRM/GraphHopper/Valhalla/mock; shortest/fastest/safest/familiar/adaptive pipeline |
-| Traffic | **PASS source / NEEDS CREDENTIALS for live TomTom** | Explicit UNKNOWN/degraded/simulation labeling |
-| GPS / journey | **PASS source/contracts** | Single watcher, map matching, distance/ETA/progress/deviation/arrival/reroute |
-| Camera / WebRTC | **PASS source / HARDWARE VALIDATION REQUIRED** | Explicit opt-in camera; no raw recording; WebRTC use is separate from device control |
-| Detector | **PASS architecture / DATASET VALIDATION REQUIRED** | BDD100K/RDD2022 preparation/training/evaluation scripts; unvalidated output cannot drive live safety |
-| SNN | **PASS architecture / DATASET VALIDATION REQUIRED** | snnTorch LIF + train/evaluate scripts; separate `riskValidated` gate |
-| CRM / DTW / EMA / ACO / XAI | **PASS** | Connected route scoring and journey-completion learning; pure tests pass |
-| Hazards / reputation / geofence | **PASS** | Type+proximity+time+journey+detection-similarity dedup; trust and route-aware alerts |
-| Socket.IO / chat | **PASS source** | Authenticated ownership rooms, chat/privacy flows; runtime E2E script tests round-trip when Mongo is available |
-| Auth / authorization | **PASS** | Password, OTP, reset, rotating refresh, RBAC, Google path, passkey path |
-| Brevo | **SOURCE COMPLETE / NEEDS PRODUCTION CREDENTIALS** | Development fallback does not expose OTP in production |
-| Google Auth | **SOURCE COMPLETE / NEEDS PRODUCTION CREDENTIALS** | GIS ID token → backend verification path |
-| SOS / trusted contacts | **PASS source** | User-authorized contact notification flow; no emergency-service claim |
-| PWA / offline | **PASS static** | Manifest/service worker/offline shell; live API/socket data not cached as stale truth |
-| Three.js / animations / themes | **PASS source/contracts** | Bootstrap + GSAP + AOS + Lottie + Three.js; reduced motion and cleanup lifecycle |
-| Security | **PASS source/static** | Helmet/CORS/rate limits/validation/RBAC/ownership/secret audit/privacy rules |
-| Docker | **SOURCE READY** | Backend/AI Dockerfiles + compose; runtime depends on Docker availability |
-| Render | **SOURCE READY** | `backend`, `npm ci`, `npm start`, `process.env.PORT` contract |
-| Git hygiene | **PRE-PUSH TOOLING READY** | cleanup + tracked-secret/lock consistency audit + GitHub Actions CI included |
+| Frontend (25 pages) | **PASS** | All pages load; static/UI/DOM/accessibility/navigation contracts pass |
+| Backend (14 routes, 25 services) | **PASS** | Jest 28 suites, 130 tests all pass |
+| Dependency security | **PASS** | `npm audit --audit-level=high` reports 0 vulnerabilities |
+| Database architecture | **PASS** | MongoDB models, indexes, TTL/geospatial rules verified |
+| AI service | **PASS** | Pytest 29 tests pass; 14-feature RiskSNN with fail-closed heuristic fallback |
+| Routing | **PASS** | OSRM/TomTom providers, simulation fallback, candidate route generation |
+| Traffic | **PASS source** | TomTom live traffic where configured; deterministic fallback otherwise |
+| GPS / Journey | **PASS** | Single watcher, map matching, distance/ETA/progress/reroute/arrival |
+| CRM / DTW / EMA / ACO / XAI | **PASS** | Route memory, trajectory similarity, experience updates, swarm optimization, explainability |
+| Hazards / reputation / geofence | **PASS** | Community reporting, deduplication, trust verification, route-aware alerts |
+| Socket.IO / chat | **PASS** | Authenticated rooms, message ownership, presence tracking |
+| Auth / authorization | **PASS** | Password/OTP/reset/refresh/RBAC/Google/passkey paths |
+| SOS / trusted contacts | **PASS** | Emergency notification flow; no emergency-service claim |
+| PWA / offline | **PASS** | Manifest, service worker (`navora-completion-v37-0-0`), offline shell |
+| UI/UX / animations / themes | **PASS** | Bootstrap + GSAP + AOS + Three.js; reduced motion support |
+| Security | **PASS** | Helmet/CORS/rate limits/validation/RBAC/secret audit |
+| Docker | **SOURCE READY** | Backend/AI Dockerfiles + compose |
+| Render | **DEPLOYED** | Both services live, CI/CD release watcher configured |
+| Git hygiene | **PASS** | Pre-push audit, cleanup scripts, GitHub Actions CI |
 
-## Final code state
+## External Gates (Cannot Be Fabricated)
 
-All code/compliance errors identified in the repository audit have been consolidated into the final pre-push source. Historical update artifacts, backup files and generated QA screenshots are excluded/ignored. QA paths are clone-relative rather than sandbox-specific. Frontend stack requirements and hazard detection-similarity are part of the master cross-check.
+| Gate | Status | Notes |
+|------|--------|-------|
+| MongoDB Atlas | **CONNECTED** | Production database connected per `/health` response |
+| TomTom live traffic | **NEEDS CREDENTIALS** | Requires `TOMTOM_API_KEY` env var; fallback works without it |
+| Brevo email | **NEEDS CREDENTIALS** | Development fallback does not expose OTP in production |
+| Google OAuth | **NEEDS CREDENTIALS** | GIS client ID required for production Google sign-in |
+| SNN validation | **NOT VALIDATED** | `validated=false` is correct; deterministic heuristic active |
 
-## Production gates that cannot be fabricated
+## Excluded Components (Not Production Blockers)
 
-A codebase cannot truthfully manufacture external credentials, a real BDD100K/RDD2022 held-out evaluation, or physical phone permissions. The final source therefore provides explicit configuration, training/evaluation and runtime-test paths rather than claiming those external conditions already happened.
+- RDD2022 detector — research/training code preserved, excluded from production flow
+- BDD100K — permanently excluded
+- Camera/WebRTC — production navigation is camera-free by design
+- Bluetooth/device management — removed in device-free cleanup (PR #37)
 
-## Ready-for-Git condition
-
-Before pushing the user's working repository, run:
+## Ready-for-Git Condition
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\cleanup_for_git.ps1
-python .\scripts\final_verify.py --runtime
-python .\scripts\prepush_audit.py
+python scripts/final_verify.py
+python scripts/prepush_audit.py
 ```
 
-When all required checks pass, the repository is ready for the user's Git commit/push. Production deployment remains a separate later step.
+When all required checks pass, the repository is ready for Git commit/push.

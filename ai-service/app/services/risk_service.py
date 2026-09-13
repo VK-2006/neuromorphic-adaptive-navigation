@@ -1,4 +1,4 @@
-import cv2, numpy as np, json
+import numpy as np, json
 from ..config import settings
 from ..models.snn import RiskSNN,SNN_AVAILABLE
 from ..model_validation import model_validation_status

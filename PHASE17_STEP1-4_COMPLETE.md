@@ -1,3 +1,5 @@
+> **HISTORICAL / ARCHIVED** — This report reflects the Phase 17 checkpoint. See `NAVORA_END_TO_END_STATUS.md` for current status.
+
 # PHASE 17 PROGRESS REPORT
 ## Steps 1-4 Complete: Dataset Integration & Training Pipeline Setup
 

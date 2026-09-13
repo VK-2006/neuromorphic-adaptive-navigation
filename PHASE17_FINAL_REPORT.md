@@ -1,3 +1,5 @@
+> **HISTORICAL / ARCHIVED** — This report reflects the Phase 17 checkpoint and is preserved for reference. See `NAVORA_END_TO_END_STATUS.md` and `DEPLOYMENT_READINESS_REPORT.md` for the current status.
+
 # PHASE 17 FINAL REPORT
 
 ## 1. What is actually complete
