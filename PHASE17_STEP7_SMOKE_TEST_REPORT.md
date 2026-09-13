@@ -1,3 +1,5 @@
+> **HISTORICAL / ARCHIVED** � This report reflects the Phase 17 checkpoint. See `NAVORA_END_TO_END_STATUS.md` for current status.
+
 # PHASE 17 â€” STEP 7: RDD2022 SMOKE TRAINING TEST
 ## Comprehensive Verification Report
 

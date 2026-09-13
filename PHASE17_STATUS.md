@@ -1,3 +1,5 @@
+> **HISTORICAL / ARCHIVED** — This report reflects the Phase 17 checkpoint. See `NAVORA_END_TO_END_STATUS.md` for current status.
+
 # PHASE 17 COMPLETION STATUS REPORT
 **NAVORA Ã¢â‚¬â€œ Neuromorphic Adaptive Navigation**
 **RDD2022 India Real-World Integration**

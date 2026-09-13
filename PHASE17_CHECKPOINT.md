@@ -1,3 +1,5 @@
+> **HISTORICAL / ARCHIVED** � This report reflects the Phase 17 checkpoint. See `NAVORA_END_TO_END_STATUS.md` for current status.
+
 # PHASE 17 CHECKPOINT â€” Session Complete
 ## RDD2022 Integration Steps 1-7 Verified
 

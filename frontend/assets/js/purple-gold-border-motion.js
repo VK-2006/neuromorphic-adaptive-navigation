@@ -14,7 +14,7 @@
     map:new Set(['map']),
     journey:new Set(['journey','journey-replay','shared-journey']),
     admin:new Set(['admin','admin-audit','admin-chat','admin-hazards','admin-health','admin-users']),
-    chat:new Set(['world-chat']),devices:new Set(['devices']),offline:new Set(['offline'])
+    chat:new Set(['world-chat']),offline:new Set(['offline'])
   };
   let group='data';
   for(const [name,set] of Object.entries(groups))if(set.has(page)){group=name;break}
