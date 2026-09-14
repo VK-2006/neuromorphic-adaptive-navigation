@@ -286,15 +286,29 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---------- 10. TOAST NOTIFICATIONS ---------- */
 @keyframes toast-slide-in {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateY(12px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
-.toast-stack > * {
-  animation: toast-slide-in 0.3s ease-out;
+.toast-stack {
+  max-width: min(390px, calc(100vw - 32px)) !important;
+  box-sizing: border-box !important;
+}
+.toast-stack > *,
+.toastx {
+  animation: toast-slide-in 0.25s ease-out !important;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow-wrap: anywhere;
 }
-[data-theme="dark"] .toast-stack > * {
+.toastx > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-theme="dark"] .toast-stack > *,
+[data-theme="dark"] .toastx {
   box-shadow: 0 8px 28px rgba(0,0,0,0.35);
 }
 
