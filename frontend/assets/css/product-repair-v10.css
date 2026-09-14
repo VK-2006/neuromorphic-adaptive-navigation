@@ -127,34 +127,15 @@ body.navora-admin .navora-nav>.nav-account{
 }
 .journey-camera-dock .chip{white-space:normal}
 .navigation-pane{
-  display:grid !important;
-  grid-template-rows:auto minmax(480px,1fr) !important;
-  gap:0 !important;
-  overflow:hidden !important;
-}
-.navigation-pane>.journey-stats{
-  position:relative !important;
-  inset:auto !important;
-  width:auto !important;
-  max-width:none !important;
-  max-height:340px !important;
-  overflow:auto !important;
-  margin:12px !important;
-  z-index:30 !important;
-}
-.navigation-pane>#journey-map{
-  grid-row:2;
-  min-height:480px !important;
-  height:100% !important;
+  position:relative;
+  min-width:0;
 }
 .navigation-pane>.navora-state-panel{
   position:relative;
   z-index:35;
   margin:12px;
-  grid-row:1;
 }
 body.journey-no-active .navigation-pane>.journey-stats{display:none !important}
-body.journey-no-active .navigation-pane{grid-template-rows:auto minmax(520px,1fr) !important}
 body.journey-no-active .journey-camera-dock{display:none !important}
 .journey-camera-empty{
   position:absolute;
@@ -240,7 +221,6 @@ body.journey-no-active .journey-camera-dock{display:none !important}
   body.navora-app .navora-nav,body.navora-admin .navora-nav{height:100dvh !important;max-height:100dvh !important}
   .journey-layout{padding:8px !important}
   .journey-camera-dock{max-height:52%}
-  .navigation-pane>.journey-stats{max-height:none !important}
   .px-memory-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .profile-hero{grid-template-columns:auto 1fr}
   .profile-hero>.toolbar{grid-column:1/-1}

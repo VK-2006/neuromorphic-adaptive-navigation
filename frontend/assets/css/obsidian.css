@@ -774,12 +774,12 @@ body[data-wc-page="map"] { background: var(--obs-bg-primary) !important; }
 body[data-wc-page="journey"] .page-shell { width:min(calc(100% - 28px),1760px) !important; padding-top: 18px !important; }
 body[data-wc-page="journey"] .page-head { margin-bottom: 16px !important; padding-bottom: 14px !important; }
 .journey-layout {
-  grid-template-columns: minmax(0,1.08fr) minmax(430px,.92fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   gap: 14px !important;
   align-items: stretch !important;
 }
 .camera-pane,.navigation-pane {
-  min-height: clamp(560px,72vh,800px) !important;
+  min-height: 0 !important;
   border-radius: var(--obs-radius-xl) !important;
   border: 1px solid var(--obs-border-primary) !important;
   overflow: hidden !important;
