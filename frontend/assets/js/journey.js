@@ -1,4 +1,4 @@
-import {api,toast} from './api.js';
+import {api,toast,createTileLayer} from './api.js';
 
 let gpsWatch=null;
 let map,userMarker,routeLine,coveredLine,remainingLine,socket,headingLine=null;
@@ -33,7 +33,7 @@ async function init(){
   if(!document.getElementById('journey-map'))return;
   if(window.L){
     map=L.map('journey-map',{zoomControl:true}).setView([17.385,78.4867],14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'Ã‚Â© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+    createTileLayer().addTo(map);
   }
   bind();
   setupFieldEnvironment();

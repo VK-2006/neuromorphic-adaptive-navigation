@@ -1,4 +1,4 @@
-import{api,toast}from'./api.js';
+import{api,toast,createTileLayer}from'./api.js';
 
 const mapEl=document.getElementById('map');
 let map,routeLayers=[],hazardLayers=[],selected=null,selectedRoute=null,currentRoutes=[],sourceMarker,destMarker;
@@ -53,7 +53,7 @@ async function init(){
   if(!mapEl||!window.L){showMapUnavailable();return}
   try{
     map=window.L.map('map',{zoomControl:false}).setView(fallbackSource,12);
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    createTileLayer().addTo(map);
     window.L.control.zoom({position:'bottomright'}).addTo(map);
     sourceMarker=window.L.marker(fallbackSource,{draggable:true}).addTo(map);
     destMarker=window.L.marker(fallbackDest,{draggable:true}).addTo(map);

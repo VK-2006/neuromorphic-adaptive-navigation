@@ -1,4 +1,4 @@
-import{api,toast}from'./api.js';
+import{api,toast,createTileLayer}from'./api.js';
 
 let map,marker,hazardLayer,routeLayers=[],timer=null,pos=0,speed=1,data=null,timeline={start:0,end:0,duration:0},unitMode='METRIC';
 const $=id=>document.getElementById(id),slider=$('replay-slider');
@@ -16,7 +16,7 @@ function replayable(j){return['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.
 async function init(){
   await loadUnits();
   if(window.L){
-    try{map=window.L.map('replay-map').setView([17.385,78.4867],12);window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);hazardLayer=window.L.layerGroup().addTo(map)}
+    try{map=window.L.map('replay-map').setView([17.385,78.4867],12);createTileLayer().addTo(map);hazardLayer=window.L.layerGroup().addTo(map)}
     catch(e){map=null;hazardLayer=null;mapUnavailable();toast(`Replay map: ${e.message}`,'warning')}
   }else mapUnavailable();
   try{

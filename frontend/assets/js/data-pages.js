@@ -1,5 +1,5 @@
 
-import{api,toast}from'./api.js';
+import{api,toast,createTileLayer}from'./api.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const arr=v=>Array.isArray(v)?v:[];
@@ -34,7 +34,7 @@ function renderDetailMap(bundle){
   const host=$('journey-detail-map');if(!host||!window.L)return;
   if(!detailMap){
     detailMap=L.map(host,{zoomControl:true,attributionControl:true}).setView([17.385,78.4867],12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(detailMap);
+    createTileLayer().addTo(detailMap);
   }
   detailLayers.forEach(x=>x.remove?.());detailLayers=[];
   const route=bundle?.currentRoute||bundle?.route||bundle?.originalRoute;

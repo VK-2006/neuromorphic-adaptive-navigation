@@ -37,6 +37,8 @@ const cspDirectives={
     'blob:',
     'https://tile.openstreetmap.org',
     'https://*.tile.openstreetmap.org',
+    'https://api.tomtom.com',
+    'https://*.api.tomtom.com',
     'https://unpkg.com',
     'https://*.googleusercontent.com',
     'https://*.gstatic.com'
