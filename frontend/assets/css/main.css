@@ -41,3 +41,99 @@ img,video,canvas,svg{max-width:100%}
 @media(max-width:65.625rem){.map-layout,.journey-layout,.replay-grid{grid-template-columns:1fr}.chat-layout{grid-template-columns:minmax(0,13.75rem) minmax(0,1fr)}.people{display:none}}
 @media(max-width:45rem){.grid-2,.grid-3,.grid-4,.form-grid{grid-template-columns:1fr}.chat-layout{grid-template-columns:1fr}.rooms{display:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* NAVORA real-device mobile repair v1.
+ * Fixes observed on physical-phone screenshots without changing application logic.
+ */
+@media (max-width:45rem){
+  html,body{max-width:100%;overflow-x:hidden!important}
+
+  /* Compact mobile drawer. The app-shell JS owns open/close state. */
+  html body.navora-app .navora-nav,
+  html body.navora-admin .navora-nav,
+  html body.navora-public .navora-nav,
+  html body.navora-auth .navora-nav{
+    position:fixed!important;inset:0 auto 0 0!important;
+    width:min(22rem,88vw)!important;max-width:88vw!important;
+    height:100dvh!important;max-height:100dvh!important;
+    margin:0!important;padding:1.25rem 1rem max(1rem,env(safe-area-inset-bottom))!important;
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    transform:translateX(-105%)!important;transition:transform .22s ease!important;
+    z-index:1800!important;
+  }
+  html body.navora-app.nav-open .navora-nav,
+  html body.navora-admin.nav-open .navora-nav,
+  html body.navora-public.nav-open .navora-nav,
+  html body.navora-auth.nav-open .navora-nav{transform:translateX(0)!important}
+  html body .nav-mobile-toggle{
+    position:fixed!important;top:max(.75rem,env(safe-area-inset-top))!important;left:.75rem!important;
+    width:3.5rem!important;height:3.5rem!important;min-width:3.5rem!important;min-height:3.5rem!important;
+    padding:0!important;display:grid!important;place-items:center!important;z-index:1900!important;border-radius:1.1rem!important;
+  }
+  html body.nav-open::after{content:"";position:fixed!important;inset:0!important;z-index:1700!important;background:rgba(0,0,0,.48)!important;pointer-events:none!important}
+  html body.nav-open .nav-mobile-toggle{z-index:1950!important}
+  html body.navora-app .navora-nav>.nav-links,
+  html body.navora-admin .navora-nav>.nav-links{flex:1 1 auto!important;min-height:0!important;width:100%!important;overflow:visible!important;padding:1rem 0!important}
+  html body.navora-app .navora-nav>.nav-account,
+  html body.navora-admin .navora-nav>.nav-account{position:static!important;width:100%!important;max-width:none!important;margin-top:auto!important;padding:.9rem 0 max(.5rem,env(safe-area-inset-bottom))!important}
+  html body .nav-account .toolbar{grid-template-columns:1fr 1fr!important}
+  html body .navora-nav .brand{padding-bottom:.9rem!important}
+  html body .navora-nav .nav-links a{min-height:2.75rem!important;padding:.65rem .75rem!important}
+
+  /* Landing / public pages. */
+  html body .hero{min-height:auto!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:1.25rem!important;padding:4.75rem 1rem 2rem!important}
+  html body .hero h1{font-size:clamp(2rem,10vw,3rem)!important;line-height:1.02!important}
+  html body .hero .lead{font-size:.98rem!important;line-height:1.55!important}
+  html body .hero-actions{display:grid!important;grid-template-columns:1fr!important;gap:.65rem!important}
+  html body .hero-actions .btn-navora{width:100%!important}
+  html body .three-shell{width:100%!important;min-height:18rem!important;max-height:28rem!important}
+
+  /* Navigate map page: stack route controls and map instead of crushing both into one viewport. */
+  html body.navora-app .map-layout{display:flex!important;flex-direction:column!important;min-height:0!important}
+  html body.navora-app .map-layout>.route-panel{width:100%!important;max-height:none!important;min-height:auto!important;border-right:0!important;border-bottom:1px solid var(--nav-line)!important;padding:1rem!important}
+  html body.navora-app .map-layout>#map{width:100%!important;height:56svh!important;min-height:22rem!important;max-height:34rem!important;flex:0 0 auto!important}
+
+  /* Live journey: map first, summary below. */
+  html body.field-navigation-page .journey-layout{display:block!important;min-height:0!important;padding:.5rem!important;margin:0!important}
+  html body.field-navigation-page .live-field-bar{margin:0!important;padding:.5rem .75rem!important;min-height:3rem!important;padding-left:5rem!important}
+  html body.field-navigation-page .navigation-pane{display:flex!important;flex-direction:column!important;min-height:0!important;gap:.65rem!important}
+  html body.field-navigation-page #journey-map{flex:0 0 52svh!important;width:100%!important;height:52svh!important;min-height:22rem!important;max-height:34rem!important;border-radius:1.25rem!important;overflow:hidden!important}
+  html body.field-navigation-page .navigation-pane>.journey-stats{position:relative!important;inset:auto!important;width:100%!important;max-width:none!important;margin:0!important;transform:none!important;z-index:20!important;max-height:none!important;overflow:visible!important;padding:1rem!important;border-radius:1.25rem!important}
+  html body.field-navigation-page .journey-stats .grid.grid-2{grid-template-columns:1fr 1fr!important;gap:.75rem!important}
+  html body.field-navigation-page .journey-stats .journey-actions,
+  html body.field-navigation-page .journey-stats .voice-settings{display:grid!important;grid-template-columns:1fr 1fr!important;gap:.6rem!important}
+  html body.field-navigation-page .journey-stats .journey-actions .btn-navora,
+  html body.field-navigation-page .journey-stats .voice-settings>*{width:100%!important;min-width:0!important}
+  html body.field-navigation-page .reroute-panel{position:relative!important;inset:auto!important;width:100%!important;margin:.65rem 0 0!important}
+
+  /* History: replace the unusable nine-column table with labelled record cards. */
+  html body .table-wrap{width:100%!important;overflow:visible!important;padding:.65rem!important;border-radius:1.1rem!important}
+  html body .table-wrap table,html body .table-wrap tbody,html body .table-wrap tr,html body .table-wrap td{display:block!important;width:100%!important}
+  html body .table-wrap thead{display:none!important}
+  html body .table-wrap tbody tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.55rem .7rem!important;padding:.9rem!important;margin-bottom:.7rem!important;border:1px solid var(--nav-line)!important;border-radius:1rem!important;background:var(--nav-surface)!important}
+  html body .table-wrap tbody td{min-width:0!important;padding:.15rem 0!important;border:0!important;overflow-wrap:anywhere!important;word-break:break-word!important;font-size:.88rem!important}
+  html body .table-wrap tbody td:nth-child(1)::before{content:"Date"}
+  html body .table-wrap tbody td:nth-child(2)::before{content:"Route"}
+  html body .table-wrap tbody td:nth-child(3)::before{content:"Mode"}
+  html body .table-wrap tbody td:nth-child(4)::before{content:"Distance"}
+  html body .table-wrap tbody td:nth-child(5)::before{content:"Safety"}
+  html body .table-wrap tbody td:nth-child(6)::before{content:"Hazards"}
+  html body .table-wrap tbody td:nth-child(7)::before{content:"Reroutes"}
+  html body .table-wrap tbody td:nth-child(8)::before{content:"Status"}
+  html body .table-wrap tbody td:nth-child(9)::before{content:"Details"}
+  html body .table-wrap tbody td::before{display:block!important;margin-bottom:.18rem!important;color:var(--nav-muted)!important;font-size:.68rem!important;font-weight:800!important;letter-spacing:.07em!important;text-transform:uppercase!important}
+  html body .table-wrap tbody td[colspan]{grid-column:1/-1!important;text-align:center!important}
+
+  /* Generic data pages: prevent giant cards and title blocks from wasting phone height. */
+  html body .page-shell{width:100%!important;padding:4.75rem 1rem 2rem!important}
+  html body .page-head{display:block!important;margin-bottom:1.25rem!important}
+  html body .card{min-width:0!important;max-width:100%!important}
+}
+@media (max-width:22.5rem){
+  html body.field-navigation-page .journey-stats .grid.grid-2,
+  html body.field-navigation-page .journey-stats .journey-actions,
+  html body.field-navigation-page .journey-stats .voice-settings,
+  html body .table-wrap tbody tr{grid-template-columns:1fr!important}
+  html body .hero,html body .page-shell{padding-left:.75rem!important;padding-right:.75rem!important}
+}
