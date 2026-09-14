@@ -14,7 +14,7 @@ const PORT=Number(process.env.NAVORA_UI_AUDIT_PORT||5097);
 const BASE=`http://127.0.0.1:${PORT}`;
 
 const pages=['index.html','register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html','dashboard.html','map.html','journey.html','world-chat.html','memory.html','journey-replay.html','history.html','notifications.html','profile.html','settings.html','shared-journey.html','offline.html','admin.html','admin-users.html','admin-hazards.html','admin-chat.html','admin-health.html','admin-audit.html'];
-if(pages.length!==26)throw new Error(`UI sweep expected 26 pages, found ${pages.length}`);
+if(pages.length!==25)throw new Error(`UI sweep expected 25 pages, found ${pages.length}`);
 
 const auth=new Set(['register.html','verify-email.html','login.html','forgot-password.html','verify-otp.html','reset-password.html']);
 const publicPages=new Set(['index.html','shared-journey.html','offline.html',...auth]);
@@ -139,7 +139,7 @@ async function main(){
 
     for(const page of pages){
       for(const theme of ['light','dark']){
-        for(const width of [1440,375]){
+        for(const width of [1440,320,360,375,390,412,430]){
           try{await open(browser,page,width,theme);console.log('PASS',page,theme,width)}
           catch(e){failures.push(`${page} ${theme} ${width}: ${e.message}`);console.error('FAIL',page,theme,width,e.message)}
         }
@@ -166,7 +166,7 @@ async function main(){
     process.exit(1);
   }
   console.log('\nNAVORA UI PHASE 2 BROWSER SWEEP: PASS');
-  console.log('27 pages: light/dark at 1440 and 375 PASS');
+  console.log('25 pages: light/dark at 1440, 320, 360, 375, 390, 412 and 430 PASS');
   console.log('Critical pages: 1200/1024/768/480/320 in light+dark PASS');
 }
 main().catch(e=>{console.error(e.stack||e);process.exit(1)});
