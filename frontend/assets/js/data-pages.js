@@ -30,11 +30,17 @@ function eventText(e){
   ].filter(Boolean).join(' · ');
   return `<div class="journey-event"><time>${when(e?.at)}</time><div><strong>${esc(type)}</strong>${detail?`<div class="muted">${esc(detail)}</div>`:''}</div></div>`;
 }
-function renderDetailMap(bundle){
+async function renderDetailMap(bundle){
   const host=$('journey-detail-map');if(!host||!window.L)return;
   if(!detailMap){
-    detailMap=L.map(host,{zoomControl:true,attributionControl:true}).setView([17.385,78.4867],12);
-    createTileLayer().addTo(detailMap);
+    try{
+      const layer=await createTileLayer();
+      detailMap=L.map(host,{zoomControl:true,attributionControl:true}).setView([17.385,78.4867],12);
+      layer.addTo(detailMap);
+    }catch(e){
+      console.warn('Detail map tiles unavailable:',e);
+      return;
+    }
   }
   detailLayers.forEach(x=>x.remove?.());detailLayers=[];
   const route=bundle?.currentRoute||bundle?.route||bundle?.originalRoute;

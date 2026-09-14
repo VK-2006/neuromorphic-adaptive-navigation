@@ -1,6 +1,6 @@
 # Navora — Deployment Readiness Report
 
-> Updated: 2026-09-13 — Final audit on `final-audit-v2` branch (from `d19a004`)
+> Updated: 2026-09-14 — Final audit on `main` branch (from `887c362`)
 
 This report separates **source readiness**, **locally verified behavior**, and **external production gates**. No production secrets are stored in source.
 

@@ -16,7 +16,12 @@ function replayable(j){return['COMPLETED','ACTIVE','PAUSED'].includes(String(j?.
 async function init(){
   await loadUnits();
   if(window.L){
-    try{map=window.L.map('replay-map').setView([17.385,78.4867],12);createTileLayer().addTo(map);hazardLayer=window.L.layerGroup().addTo(map)}
+    try{
+      const layer=await createTileLayer();
+      map=window.L.map('replay-map').setView([17.385,78.4867],12);
+      layer.addTo(map);
+      hazardLayer=window.L.layerGroup().addTo(map);
+    }
     catch(e){map=null;hazardLayer=null;mapUnavailable();toast(`Replay map: ${e.message}`,'warning')}
   }else mapUnavailable();
   try{

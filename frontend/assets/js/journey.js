@@ -32,8 +32,13 @@ function fmtSpeed(metersPerSecond){const s=Math.max(0,Number(metersPerSecond)||0
 async function init(){
   if(!document.getElementById('journey-map'))return;
   if(window.L){
-    map=L.map('journey-map',{zoomControl:true}).setView([17.385,78.4867],14);
-    createTileLayer().addTo(map);
+    try{
+      const layer=await createTileLayer();
+      map=L.map('journey-map',{zoomControl:true}).setView([17.385,78.4867],14);
+      layer.addTo(map);
+    }catch(e){
+      console.warn('Journey map tiles unavailable:',e);
+    }
   }
   bind();
   setupFieldEnvironment();

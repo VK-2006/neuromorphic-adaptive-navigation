@@ -1,16 +1,16 @@
 # NAVORA END-TO-END STATUS
 
-> Updated: 2026-09-13 — Final audit on `final-audit-v2` branch
+> Updated: 2026-09-14 — Final audit on `main` branch (from commit `887c362`)
 
 ## Summary
 
-The NAVORA production navigation pipeline is **fully operational**. All eight pipeline components are implemented, integrated, and verified through automated tests and live deployment health checks.
+The NAVORA production navigation pipeline is **fully operational**. All eight pipeline components are implemented, integrated, and verified through automated tests, pre-push verification, and live deployment health checks.
 
 ## Component Classification
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| User request → map/location input | **IMPLEMENTED** | `map.html` with geocoding autocomplete, GPS current-location, click-to-place markers |
+| User request → map/location input | **IMPLEMENTED** | `map.html` with TomTom Orbis raster tiles, geocoding autocomplete, GPS current-location, click-to-place markers |
 | Route calculation | **IMPLEMENTED** | OSRM + TomTom providers via `routingProvider.js`, simulation fallback |
 | Traffic annotation | **IMPLEMENTED** | `trafficService.js` with TomTom live / deterministic fallback |
 | Risk input / AI service | **IMPLEMENTED** | `aiClient.js` → FastAPI `/api/v1/risk/predict`, resilient retry with cold-start warmup |
@@ -32,14 +32,18 @@ USER → FRONTEND/PWA → BACKEND API
   → ACO SWARM OPTIMIZATION
   → EXPLAINABILITY ("WHY THIS ROUTE?")
   → BEST/SAFEST ROUTE → BACKEND RESPONSE
-  → FRONTEND → LEAFLET MAP + NAVIGATION UI
+  → FRONTEND → LEAFLET MAP (TomTom tiles) + NAVIGATION UI
 ```
 
-## Research Limitations
+## Research Limitations & Excluded Components
 
 - **SNN model**: Prototype weights exist but are **unvalidated** (`validated=false`). The service correctly falls back to a deterministic heuristic. This is honestly documented and does NOT block production navigation.
+- **WebAuthn / Passkeys**: Optional authentication path; disabled unless browser/rpID environment is configured.
+- **WebRTC TURN**: Optional media relay; unavailable unless TURN credentials are provided.
 - **RDD2022 detector**: Research/training code preserved but excluded from production flow. Not a production dependency.
 - **BDD100K**: Permanently excluded. Not a production dependency.
+- **Camera & Bluetooth**: Permanently excluded from production navigation.
+- **Historical GitHub Issue #27**: References legacy camera/Bluetooth/WebRTC gates from early checkpoints. Explicitly classified as historical/out-of-scope for the camera-free production release.
 
 ## Current Honest Status
 

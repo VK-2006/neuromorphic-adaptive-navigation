@@ -52,8 +52,9 @@ async function init(){
   await loadSavedPreferences();
   if(!mapEl||!window.L){showMapUnavailable();return}
   try{
+    const tileLayer=await createTileLayer();
     map=window.L.map('map',{zoomControl:false}).setView(fallbackSource,12);
-    createTileLayer().addTo(map);
+    tileLayer.addTo(map);
     window.L.control.zoom({position:'bottomright'}).addTo(map);
     sourceMarker=window.L.marker(fallbackSource,{draggable:true}).addTo(map);
     destMarker=window.L.marker(fallbackDest,{draggable:true}).addTo(map);
