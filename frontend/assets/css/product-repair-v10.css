@@ -127,15 +127,34 @@ body.navora-admin .navora-nav>.nav-account{
 }
 .journey-camera-dock .chip{white-space:normal}
 .navigation-pane{
-  position:relative;
-  min-width:0;
+  display:grid !important;
+  grid-template-rows:auto minmax(480px,1fr) !important;
+  gap:0 !important;
+  overflow:hidden !important;
+}
+.navigation-pane>.journey-stats{
+  position:relative !important;
+  inset:auto !important;
+  width:auto !important;
+  max-width:none !important;
+  max-height:340px !important;
+  overflow:auto !important;
+  margin:12px !important;
+  z-index:30 !important;
+}
+.navigation-pane>#journey-map{
+  grid-row:2;
+  min-height:480px !important;
+  height:100% !important;
 }
 .navigation-pane>.navora-state-panel{
   position:relative;
   z-index:35;
   margin:12px;
+  grid-row:1;
 }
 body.journey-no-active .navigation-pane>.journey-stats{display:none !important}
+body.journey-no-active .navigation-pane{grid-template-rows:auto minmax(520px,1fr) !important}
 body.journey-no-active .journey-camera-dock{display:none !important}
 .journey-camera-empty{
   position:absolute;
@@ -198,6 +217,7 @@ body.journey-no-active .journey-camera-dock{display:none !important}
 .journey-event{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:10px 12px;border-left:2px solid var(--px-primary);background:color-mix(in srgb,var(--px-primary) 4%,transparent);border-radius:0 10px 10px 0}
 .journey-event time{color:var(--px-muted);font-size:.75rem}
 .history-actions{display:flex;gap:8px;flex-wrap:wrap}
+.history-mobile-list{display:none}
 
 /* Profile / settings */
 .profile-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center}
@@ -221,6 +241,7 @@ body.journey-no-active .journey-camera-dock{display:none !important}
   body.navora-app .navora-nav,body.navora-admin .navora-nav{height:100dvh !important;max-height:100dvh !important}
   .journey-layout{padding:8px !important}
   .journey-camera-dock{max-height:52%}
+  .navigation-pane>.journey-stats{max-height:none !important}
   .px-memory-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .profile-hero{grid-template-columns:auto 1fr}
   .profile-hero>.toolbar{grid-column:1/-1}
@@ -233,6 +254,46 @@ body.journey-no-active .journey-camera-dock{display:none !important}
   .journey-event{grid-template-columns:1fr;gap:4px}
   .settings-range-row{grid-template-columns:1fr 54px}
   .settings-range-row label{grid-column:1/-1}
+}
+
+@media(max-width:45rem){
+  body.history-page .history-table-wrap{display:none}
+  body.history-page .history-mobile-list{display:grid;gap:1rem;min-width:0;width:100%}
+  body.history-page .history-mobile-card{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:.75rem;
+    min-width:0;
+    padding:1rem;
+    border:1px solid var(--px-border);
+    border-radius:1rem;
+    background:var(--px-panel);
+  }
+  body.history-page .history-mobile-field{min-width:0}
+  body.history-page .history-mobile-field>span{
+    display:block;
+    margin-bottom:.25rem;
+    color:var(--px-muted);
+    font-size:.7rem;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  body.history-page .history-mobile-field>strong{
+    display:block;
+    min-width:0;
+    font-size:.9rem;
+    font-weight:700;
+    overflow-wrap:anywhere;
+  }
+  body.history-page .history-mobile-route,
+  body.history-page .history-mobile-actions{grid-column:1/-1}
+  body.history-page .history-mobile-actions .history-actions{margin:0}
+  body.history-page .history-mobile-actions .btn-navora{flex:1 1 10rem}
+}
+
+@media(max-width:22.5rem){
+  body.history-page .history-mobile-card{grid-template-columns:1fr}
 }
 
 @media(prefers-reduced-motion:reduce){

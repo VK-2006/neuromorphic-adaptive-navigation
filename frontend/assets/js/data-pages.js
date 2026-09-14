@@ -33,14 +33,9 @@ function eventText(e){
 async function renderDetailMap(bundle){
   const host=$('journey-detail-map');if(!host||!window.L)return;
   if(!detailMap){
-    try{
-      const layer=await createTileLayer();
-      detailMap=L.map(host,{zoomControl:true,attributionControl:true}).setView([17.385,78.4867],12);
-      layer.addTo(detailMap);
-    }catch(e){
-      console.warn('Detail map tiles unavailable:',e);
-      return;
-    }
+    const layer=await createTileLayer();
+    detailMap=L.map(host,{zoomControl:true,attributionControl:true}).setView([17.385,78.4867],12);
+    layer.addTo(detailMap);
   }
   detailLayers.forEach(x=>x.remove?.());detailLayers=[];
   const route=bundle?.currentRoute||bundle?.route||bundle?.originalRoute;
@@ -112,25 +107,50 @@ async function openJourneyDetail(id){
       <section><h3>Journey route</h3><div id="journey-detail-map"></div></section>
       <section><h3>Decision & hazard timeline</h3><div class="journey-timeline">${arr(b?.events).length?arr(b.events).map(eventText).join(''):'<div class="empty-state">No decision events or hazards were recorded.</div>'}</div></section>
     `;
-    renderDetailMap(b);
+    await renderDetailMap(b);
   }catch(e){body.innerHTML=`<div class="empty-state">Could not load journey details: ${esc(e.message)}</div>`;toast(e.message,'error')}
 }
 async function history(){
   const h=$('history-body');if(!h)return;
+  const mobile=$('history-mobile-list');
+  const record=j=>({
+    date:when(j?.createdAt),
+    route:esc(j?.selectedRouteSnapshot?.label||'Adaptive route'),
+    mode:esc(j?.mode||'—'),
+    distance:km(j?.totalDistance),
+    safety:safety(j),
+    hazards:num(j?.hazardCount),
+    reroutes:num(j?.reroutes),
+    status:esc(String(j?.status||'—').toUpperCase()),
+    id:esc(j?._id),
+    replay:replayable(j)
+  });
+  const bindDetails=container=>container?.querySelectorAll('[data-journey-detail]').forEach(b=>b.addEventListener('click',()=>openJourneyDetail(b.dataset.journeyDetail)));
   try{
     const rows=arr(await api('/journeys'));
-    h.innerHTML=rows.length?rows.map(j=>`<tr>
-      <td>${when(j?.createdAt)}</td>
-      <td>${esc(j?.selectedRouteSnapshot?.label||'Adaptive route')}</td>
-      <td>${esc(j?.mode||'—')}</td>
-      <td>${km(j?.totalDistance)}</td>
-      <td>${safety(j)}</td>
-      <td>${num(j?.hazardCount)}</td>
-      <td>${num(j?.reroutes)}</td>
-      <td><span class="chip">${esc(String(j?.status||'—').toUpperCase())}</span></td>
-      <td><div class="history-actions"><button class="btn-navora btn-ghost" type="button" data-journey-detail="${esc(j?._id)}">View details</button>${replayable(j)?`<a class="btn-navora btn-ghost" data-replay="${esc(j?._id)}" href="journey-replay.html?journey=${encodeURIComponent(j?._id||'')}">Replay</a>`:''}</div></td>
-    </tr>`).join(''):'<tr><td colspan="9">No journeys yet. Plan and complete a route to build history.</td></tr>';
-    h.querySelectorAll('[data-journey-detail]').forEach(b=>b.addEventListener('click',()=>openJourneyDetail(b.dataset.journeyDetail)));
+    if(rows.length){
+      const records=rows.map(record);
+      h.innerHTML=records.map(r=>`<tr>
+        <td>${r.date}</td><td>${r.route}</td><td>${r.mode}</td><td>${r.distance}</td><td>${r.safety}</td>
+        <td>${r.hazards}</td><td>${r.reroutes}</td><td><span class="chip">${r.status}</span></td>
+        <td><div class="history-actions"><button class="btn-navora btn-ghost" type="button" data-journey-detail="${r.id}">View details</button>${r.replay?`<a class="btn-navora btn-ghost" data-replay="${r.id}" href="journey-replay.html?journey=${encodeURIComponent(r.id)}">Replay</a>`:''}</div></td>
+      </tr>`).join('');
+      if(mobile)mobile.innerHTML=records.map(r=>`<article class="history-mobile-card">
+        <div class="history-mobile-field"><span>Date</span><strong>${r.date}</strong></div>
+        <div class="history-mobile-field history-mobile-route"><span>Route</span><strong>${r.route}</strong></div>
+        <div class="history-mobile-field"><span>Mode</span><strong>${r.mode}</strong></div>
+        <div class="history-mobile-field"><span>Distance</span><strong>${r.distance}</strong></div>
+        <div class="history-mobile-field"><span>Safety</span><strong>${r.safety}</strong></div>
+        <div class="history-mobile-field"><span>Hazards</span><strong>${r.hazards}</strong></div>
+        <div class="history-mobile-field"><span>Reroutes</span><strong>${r.reroutes}</strong></div>
+        <div class="history-mobile-field"><span>Status</span><strong><span class="chip">${r.status}</span></strong></div>
+        <div class="history-mobile-field history-mobile-actions"><span>Details</span><div class="history-actions"><button class="btn-navora btn-ghost" type="button" data-journey-detail="${r.id}">View details</button>${r.replay?`<a class="btn-navora btn-ghost" data-replay="${r.id}" href="journey-replay.html?journey=${encodeURIComponent(r.id)}">Replay</a>`:''}</div></div>
+      </article>`).join('');
+    }else{
+      h.innerHTML='<tr><td colspan="9">No journeys yet. Plan and complete a route to build history.</td></tr>';
+      if(mobile)mobile.innerHTML='<div class="empty-state">No journeys yet. Plan and complete a route to build history.</div>';
+    }
+    bindDetails(h);bindDetails(mobile);
     const requested=new URLSearchParams(location.search).get('journey');if(requested)openJourneyDetail(requested);
   }catch(e){h.innerHTML='<tr><td colspan="9">Journey history is temporarily unavailable.</td></tr>';toast(e.message,'error')}
 }
