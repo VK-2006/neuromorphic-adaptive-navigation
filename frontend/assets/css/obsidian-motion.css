@@ -123,7 +123,7 @@ button,
 }
 
 .btn-navora,
-button:not(.leaflet-control-zoom-in):not(.leaflet-control-zoom-out),
+button:not(.leaflet-control-zoom-in):not(.leaflet-control-zoom-out):not(.obs-map-sheet-toggle),
 .icon-btn {
   position: relative;
   overflow: hidden;
