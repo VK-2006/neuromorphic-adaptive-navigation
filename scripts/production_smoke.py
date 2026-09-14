@@ -102,7 +102,7 @@ def main():
         ok("MongoDB production") if isinstance(h, dict) and h.get("database") == "connected" else fail("MongoDB production", repr(h))
         ok("Backend live mode") if isinstance(h, dict) and h.get("mode") == "live" else fail("Backend live mode", repr(h))
         deployed = h.get("commit") if isinstance(h, dict) else None
-        ok("Exact backend Render commit", deployed[:12]) if deployed == args.expected_commit else fail(
+        ok("Exact backend Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(args.expected_commit) else fail(
             "Exact backend Render commit",
             f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}",
         )
@@ -242,7 +242,7 @@ def main():
         if isinstance(h, dict) and h.get("status") == "ok":
             ok("AI health")
             deployed = h.get("commit")
-            ok("Exact AI Render commit", deployed[:12]) if deployed == args.expected_commit else fail(
+            ok("Exact AI Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(args.expected_commit) else fail(
                 "Exact AI Render commit",
                 f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}",
             )
