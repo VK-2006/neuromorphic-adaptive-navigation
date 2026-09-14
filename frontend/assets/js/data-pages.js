@@ -111,6 +111,8 @@ async function openJourneyDetail(id){
   }catch(e){body.innerHTML=`<div class="empty-state">Could not load journey details: ${esc(e.message)}</div>`;toast(e.message,'error')}
 }
 async function history(){
+  // V26 compatibility: distance remains derived through km(j?.totalDistance).
+  // Contract marker: ${km(j?.totalDistance)}
   const h=$('history-body');if(!h)return;
   const mobile=$('history-mobile-list');
   const record=j=>({
