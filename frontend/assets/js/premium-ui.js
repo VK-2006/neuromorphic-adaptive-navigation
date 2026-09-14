@@ -34,29 +34,10 @@
   }
   syncThemeMeta();
 
-  const ambient=document.createElement('div');
-  ambient.className='ui-ambient';
-  ambient.setAttribute('aria-hidden','true');
-  ambient.innerHTML='<span class="ui-orb ui-orb-a"></span><span class="ui-orb ui-orb-b"></span><span class="ui-orb ui-orb-c"></span>';
-  body.prepend(ambient);
-
   const progress=document.createElement('div');
   progress.className='ui-scroll-progress';
   progress.setAttribute('aria-hidden','true');
   body.appendChild(progress);
-
-  const transitionOverlay=document.createElement('div');
-  transitionOverlay.className='ui-transition-overlay';
-  transitionOverlay.setAttribute('aria-hidden','true');
-  body.appendChild(transitionOverlay);
-
-  let pointerLight=null;
-  if(finePointer()&&!reduce()){
-    pointerLight=document.createElement('div');
-    pointerLight.className='ui-pointer-light';
-    pointerLight.setAttribute('aria-hidden','true');
-    body.appendChild(pointerLight);
-  }
 
   let scrollTick=0;
   function paintScroll(){
@@ -70,19 +51,6 @@
     if(!scrollTick)scrollTick=requestAnimationFrame(paintScroll);
   },{passive:true});
   paintScroll();
-
-  if(pointerLight){
-    let pointerTick=0,px=innerWidth/2,py=innerHeight/2;
-    addEventListener('pointermove',e=>{
-      px=e.clientX;py=e.clientY;
-      if(pointerTick)return;
-      pointerTick=requestAnimationFrame(()=>{
-        pointerTick=0;
-        root.style.setProperty('--ui-pointer-x',`${px}px`);
-        root.style.setProperty('--ui-pointer-y',`${py}px`);
-      });
-    },{passive:true});
-  }
 
   const revealSelector=[
     '.page-head',
@@ -159,8 +127,6 @@
     for(const rec of records){
       const el=rec.target.nodeType===1?rec.target:rec.target.parentElement;
       if(!el?.matches?.('.metric,.admin-stat'))continue;
-      el.classList.remove('ui-number-pop');
-      void el.offsetWidth;
       el.classList.add('ui-number-pop');
     }
   });
@@ -183,15 +149,8 @@
   document.addEventListener('click',e=>{
     const a=e.target.closest?.('a[href]');
     if(!eligibleInternalLink(a,e))return;
-
-    const supportsCrossDocument=typeof CSS!=='undefined'&&typeof CSS.supports==='function'&&CSS.supports('view-transition-name: none')&&'startViewTransition'in document;
-    if(supportsCrossDocument)return;
-
-    e.preventDefault();
     body.classList.add('ui-page-exit');
-    const target=a.href;
-    setTimeout(()=>location.href=target,reduce()?0:205);
-  });
+  },{passive:true});
 
   addEventListener('pageshow',()=>{
     pageEntered=false;
@@ -203,22 +162,6 @@
     body.classList.add('ui-theme-changing');
     setTimeout(()=>body.classList.remove('ui-theme-changing'),360);
   });
-
-  if(finePointer()&&!reduce()){
-    document.addEventListener('pointermove',e=>{
-      const card=e.target.closest?.('.card');
-      if(!card||card.closest('.map-layout,.journey-layout,.chat-layout')||card.matches('.auth-card'))return;
-      const r=card.getBoundingClientRect();
-      const rx=((e.clientY-r.top)/r.height-.5)*-2.0;
-      const ry=((e.clientX-r.left)/r.width-.5)*2.0;
-      card.style.setProperty('--ui-tilt-x',`${rx}deg`);
-      card.style.setProperty('--ui-tilt-y',`${ry}deg`);
-    },{passive:true});
-    document.addEventListener('pointerout',e=>{
-      const card=e.target.closest?.('.card');
-      if(card){card.style.removeProperty('--ui-tilt-x');card.style.removeProperty('--ui-tilt-y');}
-    },{passive:true});
-  }
 
   addEventListener('pagehide',()=>{
     io?.disconnect();

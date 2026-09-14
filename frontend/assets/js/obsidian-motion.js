@@ -68,27 +68,10 @@
 
   const tiltSeen=new WeakSet();
   function addTilt(card){
-    if(!finePointer||reduce||tiltSeen.has(card)||card.closest('.leaflet-container')) return;
+    if(tiltSeen.has(card)||card.closest('.leaflet-container')) return;
     tiltSeen.add(card);card.classList.add('motion-tilt');
-    let raf=0,lastEvent=null;
-    const render=()=>{
-      raf=0;if(!lastEvent)return;
-      const rect=card.getBoundingClientRect();
-      const px=Math.min(1,Math.max(0,(lastEvent.clientX-rect.left)/Math.max(1,rect.width)));
-      const py=Math.min(1,Math.max(0,(lastEvent.clientY-rect.top)/Math.max(1,rect.height)));
-      card.style.setProperty('--motion-tilt-x',`${((.5-py)*2.6).toFixed(2)}deg`);
-      card.style.setProperty('--motion-tilt-y',`${((px-.5)*3.2).toFixed(2)}deg`);
-      card.style.setProperty('--motion-pointer-x',`${(px*100).toFixed(1)}%`);
-      card.style.setProperty('--motion-pointer-y',`${(py*100).toFixed(1)}%`);
-    };
-    card.addEventListener('pointermove',e=>{lastEvent=e;if(!raf)raf=requestAnimationFrame(render)},{passive:true});
-    card.addEventListener('pointerleave',()=>{
-      if(raf)cancelAnimationFrame(raf);raf=0;lastEvent=null;
-      card.style.setProperty('--motion-tilt-x','0deg');
-      card.style.setProperty('--motion-tilt-y','0deg');
-      card.style.setProperty('--motion-pointer-x','50%');
-      card.style.setProperty('--motion-pointer-y','50%');
-    },{passive:true});
+    card.style.setProperty('--motion-tilt-x','0deg');
+    card.style.setProperty('--motion-tilt-y','0deg');
   }
 
   const videoSeen=new WeakSet();

@@ -247,25 +247,7 @@ body::before {
 }
 
 body::after {
-  content: "";
-  position: fixed;
-  width: min(46rem, 54vw);
-  aspect-ratio: 1;
-  right: -22vw;
-  top: 24vh;
-  z-index: -7;
-  pointer-events: none;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 120deg,
-    color-mix(in srgb, var(--ui-primary) 13%, transparent),
-    transparent 28%,
-    color-mix(in srgb, var(--ui-premium) 10%, transparent),
-    transparent 64%,
-    color-mix(in srgb, var(--ui-rose-accent, var(--ui-primary)) 8%, transparent)
-  );
-  filter: blur(76px);
-  animation: uiAmbientOrbit 32s linear infinite;
+  display: none !important;
 }
 
 ::selection {
@@ -298,44 +280,9 @@ small { color: var(--ui-text-muted); }
   border-radius: 4px;
 }
 
-.ui-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: -5;
-  pointer-events: none;
-  overflow: hidden;
-}
-.ui-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(2px);
-  opacity: .44;
-  will-change: transform;
-}
-.ui-orb-a {
-  width: 31rem;
-  height: 31rem;
-  left: -13rem;
-  top: 18vh;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ui-primary) 14%, transparent), transparent 68%);
-  animation: uiDriftA 20s ease-in-out infinite alternate;
-}
-.ui-orb-b {
-  width: 26rem;
-  height: 26rem;
-  right: -9rem;
-  bottom: 2vh;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ui-premium) 10%, transparent), transparent 68%);
-  animation: uiDriftB 24s ease-in-out infinite alternate;
-}
-.ui-orb-c {
-  width: 19rem;
-  height: 19rem;
-  left: 48%;
-  top: 42%;
-  opacity: .20;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ui-rose-accent, var(--ui-primary)) 13%, transparent), transparent 70%);
-  animation: uiDriftC 17s ease-in-out infinite alternate;
+.ui-ambient,
+.ui-pointer-light {
+  display: none !important;
 }
 
 .ui-scroll-progress {
@@ -346,22 +293,7 @@ small { color: var(--ui-text-muted); }
   height: 2px;
   pointer-events: none;
   background: linear-gradient(90deg, var(--ui-primary), var(--ui-premium));
-  box-shadow: 0 0 18px color-mix(in srgb, var(--ui-premium) 45%, transparent);
-}
-
-.ui-pointer-light {
-  position: fixed;
-  left: var(--ui-pointer-x, 50vw);
-  top: var(--ui-pointer-y, 50vh);
-  width: 380px;
-  height: 380px;
-  z-index: -3;
-  pointer-events: none;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  opacity: .28;
-  background: radial-gradient(circle, color-mix(in srgb, var(--ui-primary) 12%, transparent), transparent 68%);
-  transition: opacity var(--ui-normal) var(--ui-ease);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ui-premium) 35%, transparent);
 }
 
 /* =========================================================
@@ -381,8 +313,8 @@ body.navora-auth .navora-nav {
   min-height: var(--ui-nav-h);
   background: color-mix(in srgb, var(--ui-surface-glass) 90%, transparent) !important;
   border-bottom: 1px solid var(--ui-border-subtle) !important;
-  box-shadow: 0 10px 40px color-mix(in srgb, var(--ui-text-primary) 5%, transparent);
-  backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ui-text-primary) 5%, transparent);
+  backdrop-filter: blur(4px);
 }
 
 body.navora-app .navora-nav,
@@ -392,8 +324,8 @@ body.navora-admin .navora-nav {
     radial-gradient(360px 440px at 25% 0%, color-mix(in srgb, var(--ui-primary) 10%, transparent), transparent 70%),
     linear-gradient(180deg, var(--nav-sidebar), var(--nav-sidebar-2)) !important;
   border-right: 1px solid var(--ui-border-subtle) !important;
-  box-shadow: 18px 0 52px color-mix(in srgb, var(--ui-text-primary) 5%, transparent);
-  backdrop-filter: blur(22px);
+  box-shadow: 6px 0 24px color-mix(in srgb, var(--ui-text-primary) 4%, transparent);
+  backdrop-filter: blur(4px);
 }
 
 .brand {
@@ -409,7 +341,7 @@ body.navora-admin .navora-nav {
     linear-gradient(145deg, color-mix(in srgb, var(--ui-primary) 94%, white 6%), var(--ui-primary)) !important;
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, white 18%, transparent),
-    0 10px 28px color-mix(in srgb, var(--ui-primary) 20%, transparent) !important;
+    0 4px 12px color-mix(in srgb, var(--ui-primary) 20%, transparent) !important;
   overflow: hidden;
 }
 .brand-mark::before {
@@ -418,7 +350,7 @@ body.navora-admin .navora-nav {
   inset: -60% -20%;
   transform: rotate(28deg);
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ui-premium) 62%, transparent), transparent);
-  animation: uiBrandSweep 5.4s ease-in-out infinite;
+  animation: none;
 }
 .brand-mark::after {
   content: "N" !important;

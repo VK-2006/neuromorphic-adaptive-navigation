@@ -186,8 +186,10 @@
       for(const record of records){
         for(const node of record.addedNodes){
           if(!(node instanceof Element)) continue;
-          semanticCards(node);
-          accessibility(node);
+          if(node.matches?.('.card,button,[role="button"]') || node.querySelector?.('.card,button')) {
+            semanticCards(node);
+            accessibility(node);
+          }
         }
       }
     });

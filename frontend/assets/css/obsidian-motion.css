@@ -198,11 +198,11 @@ button:active,
 .motion-tilt {
   --motion-tilt-x: 0deg;
   --motion-tilt-y: 0deg;
-  transform:
-    perspective(900px)
-    rotateX(var(--motion-tilt-x))
-    rotateY(var(--motion-tilt-y))
-    translate3d(0,var(--motion-lift,0px),0);
+  transform: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.motion-tilt:hover {
+  transform: translateY(-2px);
 }
 
 .motion-tilt:not(.pg-border-energy)::after {
@@ -279,7 +279,7 @@ form:focus-within label {
 .status-online,
 .status.connected,
 .network-status {
-  animation: motionStatusBreath 2600ms ease-in-out infinite;
+  animation: none;
 }
 
 .hero h1,
@@ -290,14 +290,14 @@ h1.motion-title {
 }
 
 .gradient-text {
-  background-size: 180% 180% !important;
-  animation: motionGradientDrift 7s ease-in-out infinite alternate;
+  background-size: 100% 100% !important;
+  animation: none;
 }
 
 .hero .chip,
 .hero .eyebrow,
 .section-kicker {
-  animation: motionSoftFloat 5s ease-in-out infinite;
+  animation: none;
 }
 
 .route-card {
@@ -383,13 +383,13 @@ svg .motion-path-draw {
     transparent 53%,
     transparent 100%
   );
-  transform: translateY(-105%);
-  animation: motionCameraScan 3.8s linear infinite;
+  transform: none;
+  animation: none;
 }
 
 .hud-panel,
 [data-hud] {
-  animation: motionHudBreathe 4.8s ease-in-out infinite;
+  animation: none;
 }
 
 table tbody tr,

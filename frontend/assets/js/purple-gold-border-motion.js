@@ -92,7 +92,6 @@
 
   const mo=new MutationObserver(records=>{
     records.forEach(record=>record.addedNodes.forEach(node=>{if(node instanceof Element)decorate(node)}));
-    syncActiveNav();
   });
   mo.observe(body,{childList:true,subtree:true});
 
