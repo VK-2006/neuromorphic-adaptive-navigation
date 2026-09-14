@@ -53,13 +53,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", required=True)
     ap.add_argument("--ai", required=True)
-    ap.add_argument("--expected-commit", required=True)
+    ap.add_argument("--expected-commit")
+    ap.add_argument("--expected-backend-commit")
+    ap.add_argument("--expected-ai-commit")
     ap.add_argument(
         "--require-integrations",
         action="store_true",
         help="Fail when optional production integrations such as Google/Brevo/TomTom/passkeys are unavailable.",
     )
     args = ap.parse_args()
+    expected_backend_commit = args.expected_backend_commit or args.expected_commit
+    expected_ai_commit = args.expected_ai_commit or args.expected_commit
+    if not expected_backend_commit or not expected_ai_commit:
+        ap.error("--expected-commit or both service-specific expected commit arguments are required")
 
     backend = base(args.backend)
     ai = base(args.ai)
@@ -102,9 +108,9 @@ def main():
         ok("MongoDB production") if isinstance(h, dict) and h.get("database") == "connected" else fail("MongoDB production", repr(h))
         ok("Backend live mode") if isinstance(h, dict) and h.get("mode") == "live" else fail("Backend live mode", repr(h))
         deployed = h.get("commit") if isinstance(h, dict) else None
-        ok("Exact backend Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(args.expected_commit) else fail(
+        ok("Exact backend Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(expected_backend_commit) else fail(
             "Exact backend Render commit",
-            f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}",
+            f"expected={expected_backend_commit[:12]} deployed={(deployed or 'missing')[:12]}",
         )
     except Exception as exc:
         fail("Backend liveness", str(exc))
@@ -242,9 +248,9 @@ def main():
         if isinstance(h, dict) and h.get("status") == "ok":
             ok("AI health")
             deployed = h.get("commit")
-            ok("Exact AI Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(args.expected_commit) else fail(
+            ok("Exact AI Render commit", deployed[:12]) if isinstance(deployed, str) and deployed.startswith(expected_ai_commit) else fail(
                 "Exact AI Render commit",
-                f"expected={args.expected_commit[:12]} deployed={(deployed or 'missing')[:12]}",
+                f"expected={expected_ai_commit[:12]} deployed={(deployed or 'missing')[:12]}",
             )
         else:
             fail("AI health", repr(h))
