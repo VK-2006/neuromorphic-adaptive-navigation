@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 client=TestClient(app)
@@ -21,5 +22,8 @@ def test_runtime_uses_training_artifact_names():
     assert settings.metadata_path.name=='metadata.json'
 
 def test_runtime_model_matches_build_artifact_input_width():
+    from app.models.snn import SNN_AVAILABLE
+    if not SNN_AVAILABLE:
+        pytest.skip('snntorch is not installed in the fallback-contract environment')
     from app.models.snn import RiskSNN
     assert RiskSNN().fc1.in_features==11
