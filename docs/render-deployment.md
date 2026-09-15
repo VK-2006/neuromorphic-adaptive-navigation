@@ -94,6 +94,24 @@ The automatic watcher uses core release mode so an optional integration does not
 
 The propagation watcher waits up to 20 minutes because Render builds/cold starts can lag behind GitHub CI. If either service never reaches the expected SHA, the workflow fails with the last observed non-secret HTTP/service status and commit value.
 
+## AI model provisioning
+
+The AI Docker image provisions RiskSNN during the image build. `ai-service/Dockerfile`
+runs the deterministic `train_snn.py` pipeline with seed 42, 25 epochs, and 300
+samples per class after installing the runtime dependencies. The build fails if the
+held-out validation gate fails, so an image cannot start with a falsely validated
+model. The generated weights, metadata, data-gate report, SNN evaluation, and
+validation-evidence files are hash-bound and loaded by `model_validation_status` at
+startup. No model secret or external credential is required.
+
+Configure the AI Render service with the repository's AI Dockerfile and use `/ready`
+as its health-check path. Render supplies `PORT` at runtime.
+
+`GET /health` remains liveness-only. `GET /ready` returns HTTP 200 only when the
+generated RiskSNN passes schema, evidence, and hash checks; missing or invalid
+artifacts return HTTP 503 with `validated=false`. A fresh image therefore cannot
+silently fall back while being marked deployment-ready.
+
 ## Nominatim policy-safe geocoding
 
 The public OSMF Nominatim service is retained as a configurable manual-search/reverse provider and is rate-limited/cached server-side. It is not used for keystroke autocomplete. When a TomTom geocoding key or the existing TomTom traffic key is available, Navora uses TomTom Search predictive typeahead for production place suggestions. `GEOCODING_API_KEY` is optional; if omitted, `TRAFFIC_API_KEY` is reused when that key is valid for the TomTom Search service.

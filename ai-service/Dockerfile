@@ -6,5 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY trained_models ./trained_models
+COPY train_snn.py ./train_snn.py
+RUN python train_snn.py --epochs 25 --samples-per-class 300 --seed 42
 EXPOSE 10000
 CMD ["sh","-c","exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
