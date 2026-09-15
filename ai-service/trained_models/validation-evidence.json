@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 3,
+  "passed": true,
+  "weights": {
+    "riskSnnSha256": "b4c562f7906ae18a9f1ca400628ca7ed2cbf957604cb5b7a1e4db225a59f6c4d"
+  },
+  "datasets": {
+    "snnTrainSha256": "6a043bc3868772abff0dba5a5d671b305149c402966c10d6546d7d239ee780d4",
+    "snnEvalSha256": "c354c1f9bb023034fdfed2bbd6cf3a61535d2306e56b50e705909fdf983e0616"
+  },
+  "reports": {
+    "dataGateSha256": "36a99eaee806faa9f60fc6139c0b6091f76e900a077fac0c13b3c8bdbd9ebf3e",
+    "snnEvaluationSha256": "60f692147931d743c1af632ba9ad33658c4e6f2f7dd59812ba465a7752de9f21",
+    "metadataSha256": "2c7ea70f7ad971f73281fe1d4797413aaecee046cdda56c3e90d6779fd666bb1"
+  },
+  "metrics": {
+    "snn": {
+      "samples": 300,
+      "accuracy": 1.0,
+      "macroF1": 1.0,
+      "balancedAccuracy": 1.0,
+      "negativeLogLikelihood": 0.349852,
+      "classPolicyPassed": true,
+      "perClass": {
+        "LOW": {
+          "support": 76,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MEDIUM": {
+          "support": 73,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "HIGH": {
+          "support": 65,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CRITICAL": {
+          "support": 86,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "passed": true,
+      "validationEligible": true
+    }
+  }
+}

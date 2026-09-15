@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "policyCompliant": true,
+  "thresholds": {
+    "minSnnTrainRows": 400,
+    "minSnnEvalRows": 200,
+    "minSnnEvalSamplesPerClass": 10
+  },
+  "snn": {
+    "trainEvalRowOverlap": 0,
+    "trainSha256": "6a043bc3868772abff0dba5a5d671b305149c402966c10d6546d7d239ee780d4",
+    "evalSha256": "c354c1f9bb023034fdfed2bbd6cf3a61535d2306e56b50e705909fdf983e0616"
+  }
+}

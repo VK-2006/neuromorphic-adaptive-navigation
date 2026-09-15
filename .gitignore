@@ -37,6 +37,11 @@ ai-service/trained_models/*.pt
 **/*.pth
 **/*.onnx
 !ai-service/trained_models/README.md
+!ai-service/trained_models/navora-risk-snn.pt
+!ai-service/trained_models/navora-risk-snn-metadata.json
+!ai-service/trained_models/data-gate-report.json
+!ai-service/trained_models/snn-evaluation.json
+!ai-service/trained_models/validation-evidence.json
 
 # Dataset payloads are not redistributed; keep only documented fixtures/manifests.
 datasets/raw/
