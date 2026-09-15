@@ -118,7 +118,7 @@ def sha256_bytes(data: bytes) -> str:
 
 def write_json(path: Path, obj: dict) -> str:
     text = json.dumps(obj, indent=2)
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
     return sha256_file(path)
 
 

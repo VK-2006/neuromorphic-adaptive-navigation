@@ -28,7 +28,7 @@
     "trainSamples": 2400,
     "valSamples": 300,
     "testSamples": 300,
-    "trainTimeSec": 192.81,
+    "trainTimeSec": 353.04,
     "bestValLoss": 0.35049,
     "bestValAcc": 1.0,
     "finalTrainLoss": 0.34929,

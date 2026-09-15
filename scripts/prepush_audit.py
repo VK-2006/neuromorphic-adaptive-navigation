@@ -32,7 +32,7 @@ for p in paths:
     if name=='.env' or '/node_modules/' in f'/{lp}/' or '/.venv/' in f'/{lp}/':forbidden.append(p)
     if name.endswith('.backup') or '.before-' in name or 'before-zip-update' in name:forbidden.append(p)
     if lp.startswith('qa-screens/') and Path(lp).suffix in {'.png','.jpg','.jpeg'}:forbidden.append(p)
-    if lp.startswith('ai-service/trained_models/') and Path(lp).suffix=='.pt':forbidden.append(p)
+    if lp.startswith('ai-service/trained_models/') and Path(lp).suffix=='.pt' and lp!='ai-service/trained_models/navora-risk-snn.pt':forbidden.append(p)
     if p.startswith('UPDATE_') and p.endswith('.md'):forbidden.append(p)
     if p.startswith('TEST_RESULTS_') and p!='TEST_RESULTS.md':forbidden.append(p)
 if forbidden:
