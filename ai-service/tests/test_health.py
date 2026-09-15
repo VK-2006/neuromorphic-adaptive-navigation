@@ -15,10 +15,11 @@ def test_ready_is_fail_closed():
     assert payload['status'] == ('ready' if response.status_code == 200 else 'not_ready')
     assert payload['validated'] is (response.status_code == 200)
 
-def test_runtime_uses_canonical_artifacts_for_legacy_render_names(monkeypatch):
-    monkeypatch.setenv('SNN_WEIGHTS_PATH','trained_models/risk_snn.pt')
-    monkeypatch.setenv('MODEL_METADATA_PATH','trained_models/metadata.json')
-    from app.config import Settings
-    settings=Settings()
-    assert settings.snn_weights.name=='navora-risk-snn.pt'
-    assert settings.metadata_path.name=='navora-risk-snn-metadata.json'
+def test_runtime_uses_training_artifact_names():
+    from app.config import settings
+    assert settings.snn_weights.name=='risk_snn.pt'
+    assert settings.metadata_path.name=='metadata.json'
+
+def test_runtime_model_matches_build_artifact_input_width():
+    from app.models.snn import RiskSNN
+    assert RiskSNN().fc1.in_features==11

@@ -50,7 +50,7 @@ class RiskEngine:
         self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
-                candidate=RiskSNN(input_size=14)
+                candidate=RiskSNN(input_size=11)
                 candidate.load_state_dict(
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
@@ -128,7 +128,8 @@ class RiskEngine:
         return [{'factor':n,'normalizedValue':round(x,3)} for n,x in pairs[:4]]
 
     def snn_predict(self,f):
-        x=torch.tensor(self.vector(f),dtype=torch.float32).unsqueeze(0)
+        # The deployed build artifact is the validated 11-feature RiskSNN.
+        x=torch.tensor(self.vector(f)[:11],dtype=torch.float32).unsqueeze(0)
         steps=20
         rate=torch.clamp(x,0,1)
         seq=torch.stack([(torch.rand_like(rate)<rate).float() for _ in range(steps)])
