@@ -1,7 +1,7 @@
 {
   "riskModelVersion": "risk-snn-v14-phase14",
-  "riskValidated": true,
-  "validated": true,
+  "riskValidated": false,
+  "validated": false,
   "realWorldValidated": false,
   "featureSchema": [
     "distance_km",
@@ -43,5 +43,5 @@
     "macroF1": 1.0,
     "highRiskRecall": 1.0
   },
-  "note": "Synthetic held-out RiskSNN validation only; real-world validation is not available."
+  "note": "Placeholder metadata only. Docker provisioning must replace this file with evidence-bound synthetic validation artifacts before readiness can pass."
 }
