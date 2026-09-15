@@ -104,6 +104,12 @@ model. The generated weights, metadata, data-gate report, SNN evaluation, and
 validation-evidence files are hash-bound and loaded by `model_validation_status` at
 startup. No model secret or external credential is required.
 
+The canonical runtime artifacts are `trained_models/navora-risk-snn.pt`,
+`trained_models/navora-risk-snn-metadata.json`, and
+`trained_models/validation-evidence.json`. The runtime normalizes the two known
+legacy environment names (`risk_snn.pt` and `metadata.json`) to these canonical
+artifacts so stale Render environment values cannot select an incompatible model.
+
 Configure the AI Render service with the repository's AI Dockerfile and use `/ready`
 as its health-check path. Render supplies `PORT` at runtime.
 
