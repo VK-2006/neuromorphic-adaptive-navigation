@@ -284,7 +284,7 @@ def test_metadata_boolean_alone_cannot_claim_validation(tmp_path):
     assert 'overall validated flag is not true' in status['reasons']
 
 
-def test_report_tamper_revokes_both_live_validation_paths(tmp_path):
+def test_detector_report_tamper_does_not_gate_risk_validation(tmp_path):
     p = coherent_bundle(tmp_path)
     report = json.loads(p['detector_eval'].read_text(encoding='utf-8'))
     report['precision'] = 0.99
@@ -292,7 +292,7 @@ def test_report_tamper_revokes_both_live_validation_paths(tmp_path):
     detector = model_validation_status('detector', p['detector'], p['metadata'])
     risk = model_validation_status('risk', p['snn'], p['metadata'])
     assert detector['passed'] is False
-    assert risk['passed'] is False
+    assert risk['passed'] is True
     assert any('detector evaluation report SHA-256' in reason for reason in detector['reasons'])
 
 

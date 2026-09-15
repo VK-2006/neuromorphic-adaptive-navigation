@@ -53,7 +53,7 @@ def main():
     require('detector evaluation report is not bound to the exact held-out manifest' in evidence,'detector report/dataset evidence binding missing')
     require('SNN evaluation report is not bound to the exact held-out CSV' in evidence,'SNN report/dataset evidence binding missing')
     require('detectorEvaluationSha256' in evidence and 'metadataSha256' in evidence,'evidence report hashes missing')
-    require("model_validation_status('detector'" in readiness and "model_validation_status('risk'" in readiness,'readiness must reuse live validation guard')
+    require("model_validation_status('risk'" in readiness,'readiness must reuse the live RiskSNN validation guard')
 
     print('V28+ MODEL VALIDATION CONTRACTS PASS')
 

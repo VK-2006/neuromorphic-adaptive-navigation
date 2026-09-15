@@ -11,11 +11,10 @@ Usage:
     python train_snn.py
 
 Outputs (trained_models/):
-    risk_snn.pt                  -- PyTorch state dict
-    metadata.json                -- version, flags, class lists
+    navora-risk-snn.pt           -- PyTorch state dict
+    navora-risk-snn-metadata.json -- version, flags, schema
     data-gate-report.json        -- dataset size, SHA-256, overlap checks
     snn-evaluation.json          -- held-out eval report
-    detector-evaluation.json     -- stub detector eval (required for global gate)
     validation-evidence.json     -- V30 evidence binding everything together
 
 No secrets, no API keys, no MongoDB credentials are referenced or produced.
@@ -68,11 +67,10 @@ BASE = Path(__file__).resolve().parent
 TRAINED = BASE / "trained_models"
 TRAINED.mkdir(exist_ok=True)
 
-WEIGHTS_PATH  = TRAINED / "risk_snn.pt"
-METADATA_PATH = TRAINED / "metadata.json"
+WEIGHTS_PATH  = TRAINED / "navora-risk-snn.pt"
+METADATA_PATH = TRAINED / "navora-risk-snn-metadata.json"
 GATE_PATH     = TRAINED / "data-gate-report.json"
 SNN_EVAL_PATH = TRAINED / "snn-evaluation.json"
-DET_EVAL_PATH = TRAINED / "detector-evaluation.json"
 EVIDENCE_PATH = TRAINED / "validation-evidence.json"
 
 # ---------------------------------------------------------------------------
@@ -86,11 +84,8 @@ np.random.seed(SEED)
 # Policy floors (must mirror model_validation.py exactly)
 # ---------------------------------------------------------------------------
 DATA_GATE_MINIMUMS = {
-    "minDetectorTrainImages": 400,
-    "minDetectorEvalImages":  200,
-    "minSnnTrainRows":        400,
-    "minSnnEvalRows":         200,
-    "minDetectorEvalInstancesPerTrainedClass": 5,
+    "minSnnTrainRows": 400,
+    "minSnnEvalRows": 200,
     "minSnnEvalSamplesPerClass": 10,
 }
 
@@ -100,16 +95,6 @@ SNN_EVAL_MINIMUMS = {
     "minMacroF1":         0.70,
     "minPerClassF1":      0.55,
     "minHighRiskRecall":  0.65,
-}
-
-DETECTOR_EVAL_MINIMUMS = {
-    "minSamples":               200,
-    "minPrecision":             0.65,
-    "minRecall":                0.60,
-    "minF1":                    0.62,
-    "minPerClassPrecision":     0.35,
-    "minPerClassRecall":        0.40,
-    "minPerClassF1":            0.40,
 }
 
 CLASSES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -148,29 +133,13 @@ def banner(msg: str) -> None:
 
 def generate_dataset(n: int = 3000, seed: int = SEED) -> tuple[np.ndarray, np.ndarray]:
     """
-    Generate n samples of 11-dimensional risk feature vectors with integer class labels.
-
-    Feature schema (mirrors RiskEngine.vector in risk_service.py):
-      0  object_class_prior   [0,1]   CLASS_RISK lookup normalized
-      1  confidence           [0,1]
-      2  proximity            [0,1]   1 - dist/50
-      3  relative_speed       [0,1]   |relSpeed|/30
-      4  user_speed           [0,1]   speed/35
-      5  persistence          [0,1]
-      6  traffic_density      [0,1]
-      7  hazard_frequency     [0,1]
-      8  low_visibility       [0,1]   1 - visibility
-      9  weather_risk         [0,1]
-      10 road_condition       [0,1]
+    Generate n samples of the canonical 14-dimensional route-risk schema.
 
     Label assignment uses the same weighted dot-product as the heuristic fallback
     to ensure the SNN learns a well-defined latent signal from the same feature space.
     No data leakage: eval set is a disjoint random split.
     """
     rng = np.random.default_rng(seed)
-
-    # Weight vector used by the heuristic (for ground-truth label generation)
-    W = np.array([.18, .08, .16, .10, .08, .07, .08, .07, .05, .05, .08], dtype=np.float32)
 
     X_list, y_list = [], []
 
@@ -190,9 +159,9 @@ def generate_dataset(n: int = 3000, seed: int = SEED) -> tuple[np.ndarray, np.nd
     for cls_idx, (lo, hi) in class_feature_ranges.items():
         for _ in range(samples_per_class):
             # Core features sampled from class range
-            core = rng.uniform(lo, hi, size=11).astype(np.float32)
+            core = rng.uniform(lo, hi, size=14).astype(np.float32)
             # Add controlled per-sample noise
-            noise = rng.normal(0, 0.04, size=11).astype(np.float32)
+            noise = rng.normal(0, 0.04, size=14).astype(np.float32)
             x = np.clip(core + noise, 0.0, 1.0)
             X_list.append(x)
             y_list.append(cls_idx)
@@ -213,7 +182,7 @@ def verify_no_overlap(train_idx: list[int], eval_idx: list[int]) -> int:
 # ---------------------------------------------------------------------------
 
 class RiskSNN(nn.Module):
-    def __init__(self, input_size: int = 11, hidden: int = 64, outputs: int = 4, beta: float = 0.92):
+    def __init__(self, input_size: int = 14, hidden: int = 64, outputs: int = 4, beta: float = 0.92):
         super().__init__()
         self.fc1  = nn.Linear(input_size, hidden)
         self.lif1 = snn.Leaky(beta=beta)
@@ -236,11 +205,9 @@ class RiskSNN(nn.Module):
 
 
 def features_to_sequence(x_batch: torch.Tensor, steps: int = 20) -> torch.Tensor:
-    """Convert feature batch [B, 11] to spike-rate-coded sequence [steps, B, 11]."""
+    """Convert normalized features to a deterministic rate-coded sequence."""
     rate = torch.clamp(x_batch, 0.0, 1.0)
-    return torch.stack(
-        [(torch.rand_like(rate) < rate).float() for _ in range(steps)]
-    )
+    return rate.unsqueeze(0).repeat(steps, 1, 1)
 
 
 def decode_output(spikes: torch.Tensor, mem: torch.Tensor) -> torch.Tensor:
@@ -395,42 +362,6 @@ def build_snn_eval_report(
     }
 
 
-def build_stub_detector_eval() -> dict:
-    """
-    No trained detector weights are generated in this pipeline.
-    This is an honest stub that meets the data-gate minimum sample count
-    and all policy floors with representative synthetic metrics â€” it records
-    that a detector with these characteristics *would* be needed for the
-    full two-model gate, and will be replaced by a real detector pipeline
-    when detector training is executed.
-    """
-    per_class = {
-        "person":     {"support": 80,  "precision": 0.83, "recall": 0.79, "f1": 0.81},
-        "car":        {"support": 100, "precision": 0.85, "recall": 0.80, "f1": 0.82},
-        "road damage":{"support": 60,  "precision": 0.78, "recall": 0.71, "f1": 0.74},
-        "pothole":    {"support": 60,  "precision": 0.76, "recall": 0.68, "f1": 0.72},
-    }
-    return {
-        "images": 300,
-        "precision": 0.80,
-        "recall": 0.74,
-        "f1": 0.77,
-        "macroF1": 0.72,
-        "classPolicyPassed": True,
-        "perClass": per_class,
-        "passed": True,
-        "policyCompliant": True,
-        "dataGateBound": True,
-        "validationEligible": True,
-        "manifestSha256": "stub-detector-manifest-sha256",
-        "thresholds": dict(DETECTOR_EVAL_MINIMUMS),
-        "note": (
-            "Stub detector evaluation representing minimum-policy-meeting metrics "
-            "for use while full detector training is pending. "
-            "Replace with real detector-evaluation.json from train_detector.py."
-        ),
-    }
-
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
@@ -487,11 +418,6 @@ def main() -> None:
     print(f"  SNN train SHA-256: {snn_train_sha[:16]}...")
     print(f"  SNN eval  SHA-256: {snn_eval_sha[:16]}...")
 
-    # Detector stubs
-    det_train_sha = sha256_bytes(b"stub-detector-training-data-v1")
-    det_eval_sha  = sha256_bytes(b"stub-detector-eval-data-v1")
-    det_manifest_sha = sha256_bytes(b"stub-detector-manifest-v1")
-
     # -----------------------------------------------------------------------
     # Step 3: Train RiskSNN model
     # -----------------------------------------------------------------------
@@ -499,9 +425,9 @@ def main() -> None:
     EPOCHS = 40
     LR = 5e-3
 
-    model = RiskSNN(input_size=11, hidden=64, outputs=4, beta=0.92)
+    model = RiskSNN(input_size=14, hidden=64, outputs=4, beta=0.92)
     param_count = sum(p.numel() for p in model.parameters())
-    print(f"  Architecture: Linear(11,64)->LIF -> Linear(64,32)->LIF -> Linear(32,4)->LIF")
+    print(f"  Architecture: Linear(14,64)->LIF -> Linear(64,32)->LIF -> Linear(32,4)->LIF")
     print(f"  Parameters: {param_count:,}")
     print(f"  Epochs: {EPOCHS}  LR: {LR}  Optimizer: Adam  Loss: CrossEntropy")
     print()
@@ -551,13 +477,6 @@ def main() -> None:
     print(f"\n  âœ“ SNN evaluation PASSED all policy floors.")
 
     # -----------------------------------------------------------------------
-    # Step 6: Detector stub eval
-    # -----------------------------------------------------------------------
-    banner("Step 6: Building stub detector evaluation (no detector training in this pipeline)")
-    det_eval = build_stub_detector_eval()
-    det_eval["manifestSha256"] = det_eval_sha
-
-    # -----------------------------------------------------------------------
     # Step 7: Write data-gate report
     # -----------------------------------------------------------------------
     banner("Step 7: Writing data-gate report")
@@ -565,15 +484,6 @@ def main() -> None:
         "passed": True,
         "policyCompliant": True,
         "thresholds": dict(DATA_GATE_MINIMUMS),
-        "detector": {
-            "trainEvalImageOverlap": 0,
-            "trainSha256": det_train_sha,
-            "evalSha256": det_eval_sha,
-            "trainClasses": ["person", "car", "road damage", "pothole"],
-            "evalClasses":  ["person", "car", "road damage", "pothole"],
-            "trainSources": {"BDD100K": 400, "RDD2022": 250},
-            "evalSources":  {"BDD100K": 150, "RDD2022": 100},
-        },
         "snn": {
             "trainEvalRowOverlap": 0,
             "trainSha256": snn_train_sha,
@@ -591,29 +501,22 @@ def main() -> None:
     snn_eval_sha_file = write_json(SNN_EVAL_PATH, snn_eval)
     print(f"  Written: {SNN_EVAL_PATH}")
 
-    # -----------------------------------------------------------------------
-    # Step 9: Write detector evaluation report
-    # -----------------------------------------------------------------------
-    det_eval_sha_file = write_json(DET_EVAL_PATH, det_eval)
-    print(f"  Written: {DET_EVAL_PATH}")
 
     # -----------------------------------------------------------------------
     # Step 10: Write metadata
     # -----------------------------------------------------------------------
     banner("Step 10: Writing model metadata")
-    # Stub detector weight SHA (no real detector.pt exists)
-    stub_detector_sha = sha256_bytes(b"stub-detector-weights-v1-placeholder")
     metadata = {
-        "detectorModelVersion": "stub-detector-v1-pending",
         "riskModelVersion": "risk-snn-v14-phase14",
-        "detectorClasses": ["person", "car", "road damage", "pothole"],
-        "trainingSources": ["BDD100K", "RDD2022"],
-        "trainingManifestSha256": det_train_sha,
-        "detectorValidated": True,
         "riskValidated": True,
         "validated": True,
-        "officialBddBenchmarkClaim": False,
-        "officialRddBenchmarkClaim": False,
+        "realWorldValidated": False,
+        "featureSchema": [
+            "distance_km", "travel_time_min", "traffic_level", "road_condition",
+            "pothole_level", "road_damage_level", "road_blockage_level",
+            "weather_condition", "accident_risk", "pedestrian_density",
+            "vehicle_density", "road_width", "lighting_condition", "historical_risk",
+        ],
         "training": {
             "seed": SEED,
             "epochs": EPOCHS,
@@ -632,18 +535,13 @@ def main() -> None:
             "beta": 0.92,
         },
         "validation": {
-            "detectorReport": "detector-evaluation.json",
             "riskReport": "snn-evaluation.json",
             "evidenceSchema": 3,
             "accuracy": snn_eval["accuracy"],
             "macroF1": snn_eval["macroF1"],
             "highRiskRecall": snn_eval["highRiskRecall"],
         },
-        "note": (
-            "Phase 14 trained RiskSNN with V30 evidence chain. "
-            "Detector evaluation is a stub pending real detector training pipeline. "
-            "SNN validation passes all policy floors."
-        ),
+        "note": "Synthetic held-out RiskSNN validation only; real-world validation is not available.",
     }
     meta_sha = write_json(METADATA_PATH, metadata)
     print(f"  Written: {METADATA_PATH}")
@@ -656,40 +554,27 @@ def main() -> None:
     # Re-compute all file hashes after all writes are done
     gate_sha     = sha256_file(GATE_PATH)
     snn_eval_sha_file = sha256_file(SNN_EVAL_PATH)
-    det_eval_sha_file = sha256_file(DET_EVAL_PATH)
     meta_sha     = sha256_file(METADATA_PATH)
     risk_sha     = sha256_file(WEIGHTS_PATH)
 
     snn_eval_loaded = json.loads(SNN_EVAL_PATH.read_text(encoding="utf-8"))
-    det_eval_loaded = json.loads(DET_EVAL_PATH.read_text(encoding="utf-8"))
 
     evidence = {
         "schemaVersion": 3,
         "passed": True,
         "weights": {
-            "detectorSha256": stub_detector_sha,
             "riskSnnSha256": risk_sha,
         },
         "datasets": {
-            "detectorTrainSha256": det_train_sha,
-            "detectorEvalSha256":  det_eval_sha,
             "snnTrainSha256": snn_train_sha,
             "snnEvalSha256":  snn_eval_sha,
         },
         "reports": {
             "dataGateSha256": gate_sha,
-            "detectorEvaluationSha256": det_eval_sha_file,
             "snnEvaluationSha256": snn_eval_sha_file,
             "metadataSha256": meta_sha,
         },
         "metrics": {
-            "detector": {
-                k: det_eval_loaded[k]
-                for k in [
-                    "images", "precision", "recall", "f1", "macroF1",
-                    "classPolicyPassed", "perClass", "passed", "validationEligible"
-                ]
-            },
             "snn": {
                 k: snn_eval_loaded[k]
                 for k in [
@@ -746,11 +631,11 @@ def main() -> None:
         return {"score": round(score, 4), "level": CLASSES[idx], "idx": idx}
 
     # LOW risk scenario: all features near 0.1
-    low_x = np.array([0.12, 0.8, 0.05, 0.05, 0.10, 0.05, 0.08, 0.05, 0.05, 0.05, 0.05], dtype=np.float32)
+    low_x = np.full(14, 0.10, dtype=np.float32)
     # HIGH risk scenario: object close, high confidence, bad conditions
-    high_x = np.array([0.90, 0.92, 0.85, 0.75, 0.70, 0.80, 0.75, 0.80, 0.85, 0.80, 0.85], dtype=np.float32)
+    high_x = np.full(14, 0.85, dtype=np.float32)
     # MEDIUM risk scenario
-    med_x = np.array([0.45, 0.70, 0.40, 0.35, 0.40, 0.45, 0.40, 0.38, 0.35, 0.30, 0.35], dtype=np.float32)
+    med_x = np.full(14, 0.45, dtype=np.float32)
 
     low_res  = quick_infer(low_x)
     med_res  = quick_infer(med_x)
@@ -800,7 +685,7 @@ def main() -> None:
     # -----------------------------------------------------------------------
     banner("PHASE 14 TRAINING PIPELINE COMPLETE")
     print(f"""
-  Model:          risk_snn.pt (RiskSNN 3-layer LIF SNN)
+  Model:          navora-risk-snn.pt (RiskSNN 3-layer LIF SNN)
   Weights SHA-256:{risk_sha[:32]}...
   Parameters:     {param_count:,}
   Training:       {N_TRAIN} samples / {EPOCHS} epochs / {train_time_s:.1f}s
@@ -820,8 +705,8 @@ def main() -> None:
   3. Verify GET /model/info returns:
        mode: snn-trained-weights-validated
        validated: true (risk model)
-  4. Note: detector is still stub â€” global validated=true reflects
-     both models. Full detector training requires BDD100K+RDD2022 data.
+  4. Note: this is synthetic held-out risk validation only; real-world
+     validation remains false until labeled field data is available.
     """)
 
 

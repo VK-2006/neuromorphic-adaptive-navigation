@@ -3,7 +3,7 @@ try:
     import snntorch as snn
     SNN_AVAILABLE=True
     class RiskSNN(nn.Module):
-        def __init__(self,input_size=11,hidden=64,outputs=4,beta=.92):
+        def __init__(self,input_size=14,hidden=64,outputs=4,beta=.92):
             super().__init__()
             self.fc1=nn.Linear(input_size,hidden)
             self.lif1=snn.Leaky(beta=beta)

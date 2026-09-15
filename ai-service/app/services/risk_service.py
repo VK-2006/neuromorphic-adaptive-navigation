@@ -50,7 +50,7 @@ class RiskEngine:
         self.validation_issues=list(validation.get('reasons') or [])
         if SNN_AVAILABLE and torch is not None and settings.snn_weights.exists():
             try:
-                candidate=RiskSNN(input_size=11)
+                candidate=RiskSNN(input_size=14)
                 candidate.load_state_dict(
                     torch.load(settings.snn_weights,map_location=settings.device,weights_only=True)
                 )
@@ -128,11 +128,9 @@ class RiskEngine:
         return [{'factor':n,'normalizedValue':round(x,3)} for n,x in pairs[:4]]
 
     def snn_predict(self,f):
-        # The deployed build artifact is the validated 11-feature RiskSNN.
-        x=torch.tensor(self.vector(f)[:11],dtype=torch.float32).unsqueeze(0)
+        x=torch.tensor(self.vector(f),dtype=torch.float32).unsqueeze(0)
         steps=20
-        rate=torch.clamp(x,0,1)
-        seq=torch.stack([(torch.rand_like(rate)<rate).float() for _ in range(steps)])
+        seq=torch.stack([torch.clamp(x,0,1) for _ in range(steps)])
         with torch.no_grad():
             spikes,mem=self.model(seq)
             rates=spikes.float().mean(0).squeeze(0)
@@ -140,11 +138,18 @@ class RiskEngine:
             logits=rates+torch.softmax(membrane,dim=0)
             prob=torch.softmax(logits,dim=0)
             idx=int(torch.argmax(prob))
-            score=float(torch.dot(prob,torch.tensor([.12,.42,.7,.95])))
+            model_score=float(torch.dot(prob,torch.tensor([.12,.42,.7,.95])))
+            weights=torch.tensor([.08,.10,.10,.08,.11,.10,.12,.08,.07,.04,.04,.03,.02,.03])
+            calibrated_signal=float(torch.clamp(torch.dot(x.squeeze(0),weights)/weights.sum()*1.35,0,1))
+            object_prior=CLASS_RISK.get(canonical_object_class(f.objectClass),CLASS_RISK['unknown'])
+            score=float(torch.clamp(.7*model_score+.3*torch.clamp(calibrated_signal+.35*object_prior,0,1),0,1))
+            idx=0 if score<.3 else 1 if score<.55 else 2 if score<.78 else 3
         return score,CLASSES[idx],float(prob[idx]),{
             'classProbabilities':{c:round(float(prob[i]),4) for i,c in enumerate(CLASSES)},
             'temporalSteps':steps,
             'decoder':'spike-rate + membrane',
+            'modelScore':round(model_score,4),
+            'calibratedFeatureSignal':round(calibrated_signal,4),
             'canonicalObjectClass':canonical_object_class(f.objectClass)
         }
 

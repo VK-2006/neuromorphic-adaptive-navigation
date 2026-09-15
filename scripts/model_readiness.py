@@ -15,7 +15,7 @@ from app.model_validation import model_validation_status
 MODEL_DIR = AI_ROOT / "trained_models"
 MODEL_PATH = MODEL_DIR / "navora-risk-snn.pt"
 METADATA_PATH = MODEL_DIR / "navora-risk-snn-metadata.json"
-EVIDENCE_PATH = MODEL_DIR / "navora-risk-validation-evidence.json"
+EVIDENCE_PATH = MODEL_DIR / "validation-evidence.json"
 
 
 def load_json(path: Path):
@@ -34,16 +34,12 @@ def main() -> None:
     validated = bool(metadata.get("validated", False))
     risk_validated = bool(metadata.get("riskValidated", False))
 
-    detector_status = model_validation_status('detector', MODEL_PATH, METADATA_PATH)
     risk_status = model_validation_status('risk', MODEL_PATH, METADATA_PATH)
 
     if validated or risk_validated:
-        if not model_exists:
-            print("MODEL_READINESS FAIL: NAVORA RiskSNN weights are missing")
-            return 1
-        if evidence.get("passed") is not True:
-            print("MODEL_READINESS FAIL: validation evidence is not passing")
-            for problem in evidence.get("problems", []):
+        if not model_exists or risk_status.get("passed") is not True:
+            print("MODEL_READINESS FAIL: RiskSNN artifacts are not evidence-bound and ready")
+            for problem in risk_status.get("reasons", []):
                 print("-", problem)
             return 1
         print("MODEL_READINESS PASS: NAVORA RiskSNN is backed by passing evidence and matching model hashes.")
@@ -53,7 +49,6 @@ def main() -> None:
     print(f"- NAVORA RiskSNN weights present: {model_exists}")
     print(f"- metadata validated flag: {validated}")
     print(f"- metadata riskValidated flag: {risk_validated}")
-    print(f"- detector validation status: {detector_status.get('passed', False)}")
     print(f"- risk validation status: {risk_status.get('passed', False)}")
     return 0
 

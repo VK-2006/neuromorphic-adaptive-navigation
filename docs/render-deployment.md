@@ -96,18 +96,21 @@ The propagation watcher waits up to 20 minutes because Render builds/cold starts
 
 ## AI model provisioning
 
-The AI Docker image provisions RiskSNN during the image build. `ai-service/Dockerfile`
-runs the deterministic `train_snn.py` pipeline with seed 42, 25 epochs, and 300
-samples per class after installing the runtime dependencies. The build fails if the
-held-out validation gate fails, so an image cannot start with a falsely validated
-model. The generated weights, metadata, data-gate report, SNN evaluation, and
-validation-evidence files are hash-bound and loaded by `model_validation_status` at
-startup. No model secret or external credential is required.
+The AI Docker image provisions the risk-only RiskSNN during the image build.
+`ai-service/Dockerfile` runs the deterministic `train_snn.py` pipeline with seed
+42. The model has 14 route-risk inputs in the order documented in
+`ai-service/app/route_risk_preprocessing.py`. The build fails if held-out
+synthetic validation, hash binding, or the fail-closed risk gate fails.
 
-The canonical runtime artifacts are `trained_models/risk_snn.pt`,
-`trained_models/metadata.json`, and `trained_models/validation-evidence.json`.
-These names are emitted by `train_snn.py`, checked by the image build, and used
-directly by the runtime without aliases.
+The canonical runtime artifacts are `trained_models/navora-risk-snn.pt`,
+`trained_models/navora-risk-snn-metadata.json`,
+`trained_models/validation-evidence.json`,
+`trained_models/snn-evaluation.json`, and
+`trained_models/data-gate-report.json`. These names are emitted by `train_snn.py`,
+checked by the image build, and used directly by the runtime without aliases.
+The metadata explicitly records `realWorldValidated: false`; synthetic held-out
+metrics must not be presented as field validation. Detector evidence is not a
+production prerequisite for RiskSNN readiness.
 
 Configure the AI Render service with the repository's AI Dockerfile and use `/ready`
 as its health-check path. Render supplies `PORT` at runtime.

@@ -18,12 +18,12 @@ def test_ready_is_fail_closed():
 
 def test_runtime_uses_training_artifact_names():
     from app.config import settings
-    assert settings.snn_weights.name=='risk_snn.pt'
-    assert settings.metadata_path.name=='metadata.json'
+    assert settings.snn_weights.name=='navora-risk-snn.pt'
+    assert settings.metadata_path.name=='navora-risk-snn-metadata.json'
 
 def test_runtime_model_matches_build_artifact_input_width():
     from app.models.snn import SNN_AVAILABLE
     if not SNN_AVAILABLE:
         pytest.skip('snntorch is not installed in the fallback-contract environment')
     from app.models.snn import RiskSNN
-    assert RiskSNN().fc1.in_features==11
+    assert RiskSNN().fc1.in_features==14

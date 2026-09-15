@@ -1,9 +1,9 @@
 {
-  "model": "RiskSNN",
-  "riskModelVersion": "navora-risk-snn-prototype-v2",
-  "datasetVersion": "prototype-v2",
-  "dataset": "NAVORA Route Risk Dataset prototype-v2",
-  "features": [
+  "riskModelVersion": "risk-snn-v14-phase14",
+  "riskValidated": true,
+  "validated": true,
+  "realWorldValidated": false,
+  "featureSchema": [
     "distance_km",
     "travel_time_min",
     "traffic_level",
@@ -19,225 +19,29 @@
     "lighting_condition",
     "historical_risk"
   ],
-  "featureCount": 14,
-  "seed": 42,
-  "epochs": 40,
-  "batchSize": 32,
-  "optimizer": "Adam",
-  "learningRate": 0.005,
-  "trainSamples": 600,
-  "validationSamples": 200,
-  "finalTestSamples": 200,
-  "testSamples": 200,
-  "history": [
-    {
-      "epoch": 1,
-      "trainLoss": 1.2380949147542317,
-      "valLoss": 1.021216869354248
-    },
-    {
-      "epoch": 2,
-      "trainLoss": 0.8938827443122864,
-      "valLoss": 0.7158886790275574
-    },
-    {
-      "epoch": 3,
-      "trainLoss": 0.657003002166748,
-      "valLoss": 0.5496861934661865
-    },
-    {
-      "epoch": 4,
-      "trainLoss": 0.5471154602368673,
-      "valLoss": 0.534045398235321
-    },
-    {
-      "epoch": 5,
-      "trainLoss": 0.5082843589782715,
-      "valLoss": 0.5082990527153015
-    },
-    {
-      "epoch": 6,
-      "trainLoss": 0.4988242304325104,
-      "valLoss": 0.5042735934257507
-    },
-    {
-      "epoch": 7,
-      "trainLoss": 0.47879754622777304,
-      "valLoss": 0.46779078245162964
-    },
-    {
-      "epoch": 8,
-      "trainLoss": 0.4714310026168823,
-      "valLoss": 0.45962169766426086
-    },
-    {
-      "epoch": 9,
-      "trainLoss": 0.4750899775822957,
-      "valLoss": 0.45831993222236633
-    },
-    {
-      "epoch": 10,
-      "trainLoss": 0.4598256500562032,
-      "valLoss": 0.5022025108337402
-    },
-    {
-      "epoch": 11,
-      "trainLoss": 0.4726888195673625,
-      "valLoss": 0.5101705193519592
-    },
-    {
-      "epoch": 12,
-      "trainLoss": 0.4528683598836263,
-      "valLoss": 0.4425511062145233
-    },
-    {
-      "epoch": 13,
-      "trainLoss": 0.43031255443890887,
-      "valLoss": 0.43493640422821045
-    },
-    {
-      "epoch": 14,
-      "trainLoss": 0.4409577079614003,
-      "valLoss": 0.4430617392063141
-    },
-    {
-      "epoch": 15,
-      "trainLoss": 0.44017583012580874,
-      "valLoss": 0.44552910327911377
-    },
-    {
-      "epoch": 16,
-      "trainLoss": 0.4204644838968913,
-      "valLoss": 0.42190977931022644
-    },
-    {
-      "epoch": 17,
-      "trainLoss": 0.42872151732444763,
-      "valLoss": 0.44562071561813354
-    },
-    {
-      "epoch": 18,
-      "trainLoss": 0.4376706083615621,
-      "valLoss": 0.44817039370536804
-    },
-    {
-      "epoch": 19,
-      "trainLoss": 0.41797539512316384,
-      "valLoss": 0.42832425236701965
-    },
-    {
-      "epoch": 20,
-      "trainLoss": 0.41504972815513613,
-      "valLoss": 0.4301271140575409
-    },
-    {
-      "epoch": 21,
-      "trainLoss": 0.40994465629259746,
-      "valLoss": 0.4149513244628906
-    },
-    {
-      "epoch": 22,
-      "trainLoss": 0.420268136660258,
-      "valLoss": 0.4207746982574463
-    },
-    {
-      "epoch": 23,
-      "trainLoss": 0.4131653638680776,
-      "valLoss": 0.41562560200691223
-    },
-    {
-      "epoch": 24,
-      "trainLoss": 0.4221614952882131,
-      "valLoss": 0.4329167604446411
-    },
-    {
-      "epoch": 25,
-      "trainLoss": 0.42265589237213136,
-      "valLoss": 0.4210015833377838
-    },
-    {
-      "epoch": 26,
-      "trainLoss": 0.402214500506719,
-      "valLoss": 0.41231629252433777
-    },
-    {
-      "epoch": 27,
-      "trainLoss": 0.40306920647621153,
-      "valLoss": 0.412947416305542
-    },
-    {
-      "epoch": 28,
-      "trainLoss": 0.41381705125172935,
-      "valLoss": 0.41557368636131287
-    },
-    {
-      "epoch": 29,
-      "trainLoss": 0.40381141304969786,
-      "valLoss": 0.40487584471702576
-    },
-    {
-      "epoch": 30,
-      "trainLoss": 0.4044341087341309,
-      "valLoss": 0.4067048728466034
-    },
-    {
-      "epoch": 31,
-      "trainLoss": 0.4026134852568308,
-      "valLoss": 0.39864838123321533
-    },
-    {
-      "epoch": 32,
-      "trainLoss": 0.41152538855870563,
-      "valLoss": 0.4301958382129669
-    },
-    {
-      "epoch": 33,
-      "trainLoss": 0.42930299560228985,
-      "valLoss": 0.42371422052383423
-    },
-    {
-      "epoch": 34,
-      "trainLoss": 0.410512361129125,
-      "valLoss": 0.41782259941101074
-    },
-    {
-      "epoch": 35,
-      "trainLoss": 0.41677228927612303,
-      "valLoss": 0.42840635776519775
-    },
-    {
-      "epoch": 36,
-      "trainLoss": 0.41260462125142416,
-      "valLoss": 0.4046209752559662
-    },
-    {
-      "epoch": 37,
-      "trainLoss": 0.396074104309082,
-      "valLoss": 0.43417710065841675
-    },
-    {
-      "epoch": 38,
-      "trainLoss": 0.397422989209493,
-      "valLoss": 0.41155651211738586
-    },
-    {
-      "epoch": 39,
-      "trainLoss": 0.3969079172611237,
-      "valLoss": 0.41761770844459534
-    },
-    {
-      "epoch": 40,
-      "trainLoss": 0.4092275889714559,
-      "valLoss": 0.4514923095703125
-    }
-  ],
-  "testMetrics": {
-    "samples": 200,
-    "accuracy": 0.965,
-    "macroF1": 0.964838950881883,
-    "maeRiskScore": 0.0976190308853984
+  "training": {
+    "seed": 42,
+    "epochs": 40,
+    "lr": 0.005,
+    "optimizer": "Adam",
+    "lossFunction": "CrossEntropy",
+    "trainSamples": 2400,
+    "valSamples": 300,
+    "testSamples": 300,
+    "trainTimeSec": 192.81,
+    "bestValLoss": 0.35049,
+    "bestValAcc": 1.0,
+    "finalTrainLoss": 0.34929,
+    "snnParameters": 3172,
+    "temporalSteps": 20,
+    "beta": 0.92
   },
-  "validated": false,
-  "riskValidated": false,
-  "note": "Prototype data; final held-out evaluation is locked for one-time validation only."
+  "validation": {
+    "riskReport": "snn-evaluation.json",
+    "evidenceSchema": 3,
+    "accuracy": 1.0,
+    "macroF1": 1.0,
+    "highRiskRecall": 1.0
+  },
+  "note": "Synthetic held-out RiskSNN validation only; real-world validation is not available."
 }

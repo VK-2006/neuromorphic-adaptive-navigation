@@ -84,6 +84,85 @@ def _file_hash_matches(path: Path, expected: object, issues: list[str], label: s
         issues.append(f'{label} SHA-256 does not match validation evidence')
 
 
+def _risk_only_validation_status(weights_path: Path, metadata_path: Path) -> dict:
+    """Validate the production risk model without depending on detector evidence."""
+    model_dir = metadata_path.parent
+    gate_path = model_dir / 'data-gate-report.json'
+    eval_path = model_dir / 'snn-evaluation.json'
+    evidence_path = model_dir / 'validation-evidence.json'
+    issues: list[str] = []
+    metadata = _load_json(metadata_path, issues, 'model metadata')
+    if metadata.get('validated') is not True:
+        issues.append('overall validated flag is not true')
+    if metadata.get('riskValidated') is not True:
+        issues.append('riskValidated is not true')
+    if metadata.get('realWorldValidated') is True:
+        issues.append('real-world validation cannot be asserted by synthetic provisioning')
+
+    gate = _load_json(gate_path, issues, 'data-gate report')
+    snn_gate = gate.get('snn', {})
+    if gate.get('passed') is not True or gate.get('policyCompliant') is not True:
+        issues.append('risk data-gate report did not pass')
+    if snn_gate.get('trainEvalRowOverlap') != 0:
+        issues.append('risk train/eval overlap is not zero')
+    _thresholds_at_least(gate.get('thresholds', {}), {
+        'minSnnTrainRows': DATA_GATE_MINIMUMS['minSnnTrainRows'],
+        'minSnnEvalRows': DATA_GATE_MINIMUMS['minSnnEvalRows'],
+        'minSnnEvalSamplesPerClass': DATA_GATE_MINIMUMS['minSnnEvalSamplesPerClass'],
+    }, issues, 'risk data-gate')
+
+    evaluation = _load_json(eval_path, issues, 'risk evaluation report')
+    if evaluation.get('passed') is not True or evaluation.get('policyCompliant') is not True:
+        issues.append('risk held-out evaluation did not pass')
+    if evaluation.get('dataGateBound') is not True or evaluation.get('validationEligible') is not True:
+        issues.append('risk evaluation is not bound to the passing data gate')
+    _thresholds_at_least(evaluation.get('thresholds', {}), SNN_EVAL_MINIMUMS, issues, 'risk evaluation')
+    _validate_class_policy('risk', evaluation, {}, issues)
+    if evaluation.get('datasetSha256') != snn_gate.get('evalSha256'):
+        issues.append('risk evaluation dataset fingerprint does not match the data gate')
+
+    evidence = _load_json(evidence_path, issues, 'validation evidence')
+    if evidence.get('schemaVersion') != 3:
+        issues.append('validation evidence is not V30 schema version 3')
+    if evidence.get('passed') is not True:
+        issues.append('validation evidence did not pass')
+    actual_sha = None
+    if not weights_path.exists() or weights_path.stat().st_size <= 0:
+        issues.append('trained weight file is missing or empty')
+    else:
+        actual_sha = sha256_file(weights_path)
+    if actual_sha in RESEARCH_ONLY_RISK_MODELS:
+        issues.append('risk model is permanently research-only after failed external final validation')
+    if evidence.get('weights', {}).get('riskSnnSha256') != actual_sha:
+        issues.append('trained weight SHA-256 does not match validation evidence')
+    metrics = evidence.get('metrics', {}).get('snn', {})
+    is_real_world = evidence.get('datasetType') == 'real-world'
+    if is_real_world and not isinstance(metrics.get('highRiskRecall'), (int, float)):
+        issues.append('risk evidence missing highRiskRecall')
+    metric_keys = ['samples', 'accuracy', 'macroF1', 'balancedAccuracy', 'negativeLogLikelihood',
+                   'classPolicyPassed', 'perClass', 'passed', 'validationEligible']
+    if not _metric_subset_matches(evaluation, metrics, metric_keys):
+        issues.append('risk evaluation metrics do not match validation evidence')
+    datasets = evidence.get('datasets', {})
+    if datasets.get('snnTrainSha256') != snn_gate.get('trainSha256') or datasets.get('snnEvalSha256') != snn_gate.get('evalSha256'):
+        issues.append('risk validation evidence dataset binding mismatch')
+    for path, key, label in [
+        (gate_path, 'dataGateSha256', 'data-gate report'),
+        (eval_path, 'snnEvaluationSha256', 'SNN evaluation report'),
+        (metadata_path, 'metadataSha256', 'model metadata'),
+    ]:
+        _file_hash_matches(path, evidence.get('reports', {}).get(key), issues, label)
+    reasons = list(dict.fromkeys(issues))
+    return {
+        'kind': 'risk',
+        'passed': not reasons,
+        'realWorldValidated': is_real_world and not reasons,
+        'weightSha256': actual_sha,
+        'evidenceBound': not reasons,
+        'reasons': reasons,
+    }
+
+
 def _validate_class_policy(kind: str, evaluation: dict, gate_detector: dict, issues: list[str]) -> None:
     if evaluation.get('classPolicyPassed') is not True:
         issues.append(f'{kind} per-class validation policy did not pass')
@@ -119,6 +198,8 @@ def model_validation_status(kind: str, weights_path: Path, metadata_path: Path) 
 
     weights_path = Path(weights_path)
     metadata_path = Path(metadata_path)
+    if kind == 'risk':
+        return _risk_only_validation_status(weights_path, metadata_path)
     model_dir = metadata_path.parent
     gate_path = model_dir / 'data-gate-report.json'
     detector_eval_path = model_dir / 'detector-evaluation.json'
