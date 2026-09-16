@@ -903,17 +903,7 @@ body[data-ui-page="dashboard"] canvas {
     0 14px 34px color-mix(in srgb, var(--ui-route-selected) 10%, transparent);
 }
 .route-card.selected::after {
-  content: "SELECTED";
-  position: absolute;
-  right: 12px;
-  top: -9px;
-  padding: 3px 7px;
-  border-radius: var(--ui-radius-round);
-  color: var(--ui-bg-primary);
-  background: var(--ui-route-selected);
-  font-size: .60rem;
-  font-weight: 900;
-  letter-spacing: .09em;
+  content: none;
 }
 .route-legend {
   border-radius: var(--ui-radius-sm) !important;

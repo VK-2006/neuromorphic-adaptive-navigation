@@ -7,6 +7,7 @@ let wakeLock=null,trackingInFlight=false,pendingTracking=null,trackingTimer=null
 let adaptiveTimer=null,simulationTimer=null;
 let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=false;
 let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true};
+let visualPosition=null,markerAnimationFrame=null,mapResizeFrame=null;
 const jid=()=>sessionStorage.getItem('journeyId');
 const offlineKey=()=>`navora:live-pending:${jid()||'none'}`;
 
@@ -36,6 +37,10 @@ async function init(){
       const layer=await createTileLayer();
       map=L.map('journey-map',{zoomControl:true}).setView([17.385,78.4867],14);
       layer.addTo(map);
+      scheduleMapResize();
+      window.addEventListener('resize',scheduleMapResize,{passive:true});
+      window.addEventListener('orientationchange',scheduleMapResize,{passive:true});
+      document.addEventListener('visibilitychange',scheduleMapResize);
     }catch(e){
       console.warn('Journey map tiles unavailable:',e);
     }
@@ -135,6 +140,7 @@ function drawRoute(){
   routeLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:9,opacity:.28,className:'navora-route-base'}).addTo(map);
   remainingLine=L.polyline(route.map(p=>[p.lat,p.lng]),{weight:7,opacity:.94,className:'navora-route-live'}).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[40,40]});
+  scheduleMapResize();
 }
 
 function connectSocket(){
@@ -237,13 +243,51 @@ async function flushTracking(force=false){
   }
 }
 
+function scheduleMapResize(){
+  if(!map)return;
+  if(mapResizeFrame)cancelAnimationFrame(mapResizeFrame);
+  mapResizeFrame=requestAnimationFrame(()=>{
+    mapResizeFrame=null;
+    map.invalidateSize({pan:false,animate:false});
+    setTimeout(()=>map?.invalidateSize({pan:false,animate:false}),120);
+  });
+}
+
+function animateMarkerTo(target){
+  if(!map)return;
+  const start=visualPosition||target;
+  if(markerAnimationFrame)cancelAnimationFrame(markerAnimationFrame);
+  const distance=geoDistance(start,target);
+  const timestampDelta=Number(target.timestamp)-Number(lastPosition?.timestamp);
+  const duration=distance>150?0:Math.max(180,Math.min(650,Number.isFinite(timestampDelta)&&timestampDelta>0?timestampDelta:350));
+  if(!duration){
+    visualPosition={lat:target.lat,lng:target.lng};
+    userMarker?.setLatLng([target.lat,target.lng]);
+    return;
+  }
+  const started=performance.now();
+  const tick=now=>{
+    const t=Math.min(1,(now-started)/duration);
+    const ease=t<.5?2*t*t:1-(((-2*t+2)**2)/2);
+    visualPosition={lat:start.lat+(target.lat-start.lat)*ease,lng:start.lng+(target.lng-start.lng)*ease};
+    userMarker?.setLatLng([visualPosition.lat,visualPosition.lng]);
+    if(t<1)markerAnimationFrame=requestAnimationFrame(tick);
+    else markerAnimationFrame=null;
+  };
+  markerAnimationFrame=requestAnimationFrame(tick);
+}
+
 function updateMap(p){
   if(!map)return;const ll=[p.lat,p.lng];
-  if(!userMarker)userMarker=L.circleMarker(ll,{radius:9,weight:4,className:'navora-live-position'}).addTo(map);else userMarker.setLatLng(ll);
+  if(!userMarker){
+    userMarker=L.circleMarker(ll,{radius:9,weight:4,className:'navora-live-position'}).addTo(map);
+    visualPosition={lat:p.lat,lng:p.lng};
+  }else animateMarkerTo(p);
   if(Number.isFinite(p.heading)){
     headingLine?.remove();const rad=p.heading*Math.PI/180;const q=[p.lat+Math.cos(rad)*.0015,p.lng+Math.sin(rad)*.0015];headingLine=L.polyline([ll,q],{weight:3,className:'navora-heading-line'}).addTo(map);
   }
-  map.panTo(ll,{animate:true,duration:.45});
+  const center=map.getCenter();
+  if(!center||geoDistance({lat:center.lat,lng:center.lng},p)>160)map.panTo(ll,{animate:true,duration:.35});
 }
 
 function applyProgress(r){
@@ -339,4 +383,3 @@ function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 addEventListener('pagehide',()=>{stopGps();stopSimulation();stopAdaptiveReevaluation();releaseWakeLock();if(trackingTimer)clearTimeout(trackingTimer);socket?.disconnect();window.speechSynthesis?.cancel?.()});
 
 init();
-
