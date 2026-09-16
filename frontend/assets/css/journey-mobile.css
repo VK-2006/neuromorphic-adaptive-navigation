@@ -174,12 +174,12 @@
   }
 
   body.field-navigation-page .live-field-bar .chip {
-    display: none;
+    display: none !important;
   }
 
   body.field-navigation-page .live-field-bar #gps-state,
   body.field-navigation-page .live-field-bar #network-state {
-    display: inline-flex;
+    display: inline-flex !important;
     margin-right: 4px;
     padding: 4px 7px;
     color: #dbe5f4;
