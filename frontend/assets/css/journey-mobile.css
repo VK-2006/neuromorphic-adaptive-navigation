@@ -35,7 +35,9 @@
 
   body.field-navigation-page .mobile-journey-topbar {
     position: absolute;
-    inset: max(10px, env(safe-area-inset-top)) 12px auto;
+    top: max(10px, env(safe-area-inset-top));
+    right: 12px;
+    left: 70px;
     z-index: 700;
     display: flex;
     align-items: center;
@@ -87,7 +89,7 @@
     z-index: 650 !important;
     width: auto !important;
     max-width: none !important;
-    max-height: calc(100% - 92px) !important;
+    max-height: 130px !important;
     margin: 0 !important;
     padding: 14px !important;
     overflow: hidden !important;
@@ -134,6 +136,7 @@
   }
 
   body.mobile-journey-expanded .journey-stats {
+    max-height: min(58vh, 520px) !important;
     overflow-y: auto !important;
   }
 
@@ -162,12 +165,15 @@
   body.field-navigation-page .live-field-bar {
     position: absolute !important;
     top: max(72px, calc(env(safe-area-inset-top) + 62px)) !important;
-    left: 12px !important;
+    left: 70px !important;
     right: 12px !important;
     z-index: 600 !important;
     min-height: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    overflow: visible !important;
     pointer-events: none;
     background: transparent !important;
     border: 0 !important;

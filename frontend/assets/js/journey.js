@@ -325,7 +325,7 @@ function applyProgress(r){
   if(mobileEta)mobileEta.textContent=`${Math.max(0,Math.round((r.etaSeconds||0)/60))} min · ${fmtShortDistance(r.distanceRemaining||0)}`;
   document.getElementById('arrival-time').textContent=new Date(Date.now()+Math.max(0,r.etaSeconds||0)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   document.getElementById('journey-traffic').textContent=r.traffic?.severity||routeDoc?.trafficSeverity||'UNKNOWN';
-  document.getElementById('journey-heading').textContent=Number.isFinite(Number(lastPosition?.heading))?`${Math.round(lastPosition.heading)}Ã‚Â°`:'Ã¢â‚¬â€';
+  document.getElementById('journey-heading').textContent=Number.isFinite(Number(lastPosition?.heading))?`${Math.round(lastPosition.heading)}\u00b0`:'\u2014';
   if(r.safetyScore!=null)document.getElementById('journey-safety').textContent=`${Math.round(r.safetyScore)}%`;
   if(r.voicePrompt)speak(r.voicePrompt);
   splitRouteByDistance(r.routeDistanceCovered??r.distanceCovered??0);
