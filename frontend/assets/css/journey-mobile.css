@@ -167,6 +167,7 @@
     top: max(72px, calc(env(safe-area-inset-top) + 62px)) !important;
     left: 70px !important;
     right: 12px !important;
+    width: calc(100% - 82px) !important;
     z-index: 600 !important;
     min-height: 0 !important;
     padding: 0 !important;
