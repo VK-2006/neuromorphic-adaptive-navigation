@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/assets/css/main.css"><link rel="stylesheet" href="/assets/css/navora-v7.css">
 <script src="/assets/js/theme.js"></script><title>Live Journey · Navora</title><link rel="stylesheet" href="/assets/css/premium-ui.css"><script src="/assets/js/premium-ui.js" defer></script><link rel="stylesheet" href="/assets/css/obsidian.css"><link rel="stylesheet" href="/assets/css/obsidian-motion.css"><link rel="stylesheet" href="/assets/css/purple-gold-border-motion.css"><link rel="stylesheet" href="/assets/css/product-repair-v10.css"><link rel="stylesheet" href="/assets/css/light-theme-profile-v17.css">
 	<link rel="stylesheet" href="/assets/css/navora-polish-v38.css">
+	<link rel="stylesheet" href="/assets/css/journey-mobile.css">
 </head>
 <body class="field-navigation-page">
 <nav class="navora-nav"><a class="brand" href="index.html"><span class="brand-mark"></span><span>NAVORA</span></a><div class="nav-links"><a href="dashboard.html">Dashboard</a><a href="map.html">Navigate</a><a class="active" href="journey.html">Live Journey</a><a href="world-chat.html">World Chat</a><a href="memory.html">Memory</a><a href="history.html">History</a></div><button aria-label="Change theme" class="icon-btn" data-theme-toggle>◐ Theme</button></nav>
@@ -15,10 +16,16 @@
 </div>
 <main class="journey-layout">
 <section class="navigation-pane">
+<div class="mobile-journey-topbar" aria-label="Current journey summary">
+<div><span class="mobile-journey-kicker">LIVE JOURNEY</span><strong id="mobile-journey-destination">Adaptive journey</strong></div>
+<div class="mobile-journey-topmeta"><span id="mobile-journey-status">PLANNED</span><span id="mobile-journey-eta">—</span></div>
+</div>
 <div id="journey-map" style="height:100%"></div>
 <div class="card journey-stats">
-<div style="display:flex;justify-content:space-between;gap:10px"><strong id="journey-title">Live journey</strong><span class="chip" id="journey-status">PLANNED</span></div>
+<div class="mobile-sheet-handle" aria-hidden="true"></div>
+<div class="journey-sheet-heading"><div style="display:flex;justify-content:space-between;gap:10px"><strong id="journey-title">Live journey</strong><span class="chip" id="journey-status">PLANNED</span></div><button class="mobile-sheet-toggle" id="mobile-sheet-toggle" type="button" aria-expanded="false" aria-controls="journey-details">Show journey details</button></div>
 <div class="progress" style="margin-top:10px"><span id="progress-bar"></span></div><div style="display:flex;justify-content:space-between;margin-top:5px"><small class="muted">Journey progress</small><span id="progress-text">0%</span></div>
+<div class="journey-details" id="journey-details">
 <div class="grid grid-2" style="margin-top:12px">
 <div><small class="muted">Current speed</small><div id="current-speed">0 km/h</div></div><div><small class="muted">Covered</small><div id="distance-covered">0 km</div></div>
 <div><small class="muted">Remaining</small><div id="distance-remaining">—</div></div><div><small class="muted">ETA</small><div id="eta">—</div></div>
@@ -30,6 +37,7 @@
 <div class="voice-settings"><button class="btn-navora btn-ghost full" id="voice-toggle">Voice OFF</button><label class="sr-only" for="voice-language">Voice language</label><select class="select" id="voice-language"><option value="en-IN">English (India)</option><option value="en-US">English (US)</option><option value="te-IN">Telugu</option><option value="hi-IN">Hindi</option></select><input aria-label="Voice volume" id="voice-volume" max="1" min="0" step="0.1" type="range" value="1"><label class="sr-only" for="voice-select">Voice selection</label><select class="select full" id="voice-select"><option value="">Default system voice</option></select></div>
 <div class="field-safety-note"><strong>Field navigation</strong><span>Keep Navora visible with location permission enabled to ensure continuous route guidance and adaptive rerouting.</span></div>
 <div class="share-box"><div style="display:flex;justify-content:space-between;gap:8px"><strong>Trusted contact sharing</strong><span class="muted" id="share-expiry"></span></div><div class="toolbar" style="margin-top:8px"><button class="btn-navora btn-ghost" id="share-journey">Create secure share link</button><button class="btn-navora btn-ghost" id="revoke-share">Revoke</button></div><div class="share-url" id="share-url"></div></div>
+</div>
 </div>
 <div aria-label="Adaptive reroute comparison" aria-live="polite" class="reroute-panel hidden" id="reroute-panel" role="dialog"><span class="chip">Adaptive reroute candidate</span><h3 style="margin:10px 0">Safer / better route found</h3><div class="muted" id="reroute-reason"></div><div class="reroute-comparison" id="reroute-comparison"></div><div class="toolbar"><button class="btn-navora" id="accept-reroute">Switch route</button><button class="btn-navora btn-ghost" id="decline-reroute">Keep current</button></div></div>
 </section></main>

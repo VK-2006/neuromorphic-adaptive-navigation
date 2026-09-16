@@ -1,0 +1,196 @@
+/* Mobile Live Journey cockpit. Desktop Journey styles remain owned by the
+ * existing shared layout and are intentionally not overridden here. */
+.mobile-journey-topbar,
+.mobile-sheet-handle,
+.mobile-sheet-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body.field-navigation-page {
+    background: #080a10;
+  }
+
+  body.field-navigation-page .journey-layout {
+    height: calc(100dvh - 56px) !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.field-navigation-page .navigation-pane {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background: #080a10 !important;
+  }
+
+  body.field-navigation-page #journey-map {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  body.field-navigation-page .mobile-journey-topbar {
+    position: absolute;
+    inset: max(10px, env(safe-area-inset-top)) 12px auto;
+    z-index: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    padding: 10px 12px;
+    color: #f7f8fb;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 16px;
+    background: rgba(10,14,23,.86);
+    box-shadow: 0 10px 28px rgba(0,0,0,.22);
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+  }
+
+  .mobile-journey-kicker {
+    display: block;
+    margin-bottom: 2px;
+    color: #a7b4c9;
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+  }
+
+  #mobile-journey-destination {
+    display: block;
+    max-width: 48vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .92rem;
+  }
+
+  .mobile-journey-topmeta {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+    color: #f6c453;
+    font-size: .72rem;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  body.field-navigation-page .journey-stats {
+    position: absolute !important;
+    inset: auto 10px max(10px, env(safe-area-inset-bottom)) !important;
+    z-index: 650 !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100% - 92px) !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    overflow: hidden !important;
+    color: #f7f8fb !important;
+    border: 1px solid rgba(255,255,255,.16) !important;
+    border-radius: 22px !important;
+    background: rgba(10,14,23,.93) !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,.34) !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  .mobile-sheet-handle {
+    display: block;
+    width: 38px;
+    height: 4px;
+    margin: 0 auto 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.34);
+  }
+
+  .journey-sheet-heading {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-sheet-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 6px 9px;
+    color: #dbe5f4;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    background: rgba(255,255,255,.06);
+    font-size: .7rem;
+    font-weight: 700;
+  }
+
+  body:not(.mobile-journey-expanded) .journey-details {
+    display: none;
+  }
+
+  body.mobile-journey-expanded .journey-stats {
+    overflow-y: auto !important;
+  }
+
+  body.mobile-journey-expanded .mobile-sheet-toggle::after {
+    content: " ↑";
+  }
+
+  body:not(.mobile-journey-expanded) .mobile-sheet-toggle::after {
+    content: " ↓";
+  }
+
+  body.field-navigation-page .journey-stats .progress {
+    margin-top: 10px !important;
+  }
+
+  body.field-navigation-page .journey-stats .journey-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.field-navigation-page .journey-stats .journey-actions .btn-navora,
+  body.field-navigation-page .journey-stats .voice-settings > * {
+    min-width: 0 !important;
+  }
+
+  body.field-navigation-page .live-field-bar {
+    position: absolute !important;
+    top: max(72px, calc(env(safe-area-inset-top) + 62px)) !important;
+    left: 12px !important;
+    right: 12px !important;
+    z-index: 600 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  body.field-navigation-page .live-field-bar .chip {
+    display: none;
+  }
+
+  body.field-navigation-page .live-field-bar #gps-state,
+  body.field-navigation-page .live-field-bar #network-state {
+    display: inline-flex;
+    margin-right: 4px;
+    padding: 4px 7px;
+    color: #dbe5f4;
+    border-color: rgba(255,255,255,.14);
+    background: rgba(10,14,23,.76);
+    font-size: .62rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.field-navigation-page .journey-stats {
+      backdrop-filter: none;
+    }
+  }
+}

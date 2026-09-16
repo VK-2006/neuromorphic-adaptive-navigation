@@ -82,6 +82,7 @@ async function init(){
 }
 
 function bind(){
+  bindMobileJourneySheet();
   document.getElementById('start-journey')?.addEventListener('click',resumeJourney);
   document.getElementById('pause-journey')?.addEventListener('click',pauseJourney);
   document.getElementById('complete-journey')?.addEventListener('click',()=>completeJourney());
@@ -93,6 +94,24 @@ function bind(){
   document.getElementById('revoke-share')?.addEventListener('click',revokeShare);
   document.getElementById('accept-reroute')?.addEventListener('click',acceptReroute);
   document.getElementById('decline-reroute')?.addEventListener('click',()=>{pendingReroute=null;document.getElementById('reroute-panel').classList.add('hidden')});
+}
+
+function bindMobileJourneySheet(){
+  const toggle=document.getElementById('mobile-sheet-toggle');
+  if(!toggle)return;
+  toggle.addEventListener('click',()=>{
+    const expanded=document.body.classList.toggle('mobile-journey-expanded');
+    toggle.setAttribute('aria-expanded',String(expanded));
+    toggle.textContent=expanded?'Hide details':'Show journey details';
+    scheduleMapResize();
+  });
+}
+
+function syncMobileJourneySummary(){
+  const destination=document.getElementById('mobile-journey-destination');
+  const status=document.getElementById('mobile-journey-status');
+  if(destination)destination.textContent=routeDoc?.label||'Adaptive journey';
+  if(status)status.textContent=journey?.status||'PLANNED';
 }
 
 function setupFieldEnvironment(){
@@ -128,6 +147,7 @@ function renderJourney(){
   document.getElementById('journey-status').textContent=journey.status;
   document.getElementById('journey-title').textContent=routeDoc?.label||'Adaptive journey';
   document.getElementById('journey-safety').textContent=routeDoc?.safetyScore!=null?`${Math.round(routeDoc.safetyScore)}%`:'Ã¢â‚¬â€';
+  syncMobileJourneySummary();
   route=routeDoc?.coordinates||[];
   drawRoute();
   if(journey.lastKnownPosition){lastPosition=journey.lastKnownPosition;updateMap(lastPosition)}
@@ -159,6 +179,7 @@ async function resumeJourney(){
   try{
     journey=await api(`/journeys/${jid()}/${journey?.status==='PAUSED'?'resume':'start'}`,{method:'POST'});
     document.getElementById('journey-status').textContent=journey.status;
+    syncMobileJourneySummary();
     if(journey.mode==='SIMULATION')startSimulation();else{
       await requestWakeLock();startGps();flushTracking(true);
       if(voiceEnabled)speak('Live navigation started. Keep Navora visible for continuous field guidance.');
@@ -172,7 +193,7 @@ async function pauseJourney(){
   try{
     journey=await api(`/journeys/${jid()}/pause`,{method:'POST'});
     stopGps();stopSimulation();await releaseWakeLock();
-    document.getElementById('journey-status').textContent='PAUSED';toast('Journey paused');
+    document.getElementById('journey-status').textContent='PAUSED';syncMobileJourneySummary();toast('Journey paused');
   }catch(e){toast(e.message,'error')}
 }
 
@@ -182,7 +203,7 @@ async function completeJourney({automaticSimulation=false,automaticArrival=false
   try{
     journey=await api(`/journeys/${jid()}/complete`,{method:'POST',body:JSON.stringify({success:true,userFeedback:.8})});
     stopGps();stopSimulation();stopAdaptiveReevaluation();await releaseWakeLock();
-    document.getElementById('journey-status').textContent='COMPLETED';speak('Destination reached. Journey completed.');
+    document.getElementById('journey-status').textContent='COMPLETED';syncMobileJourneySummary();speak('Destination reached. Journey completed.');
     toast(automaticSimulation?'SIMULATION MODE: destination reached; CRM and EMA updated':automaticArrival?'Destination reached; journey completed and route memory updated':'Journey completed; CRM and EMA updated','success');
     sessionStorage.setItem('lastCompletedJourneyId',jid());
   }catch(e){toast(e.message,'error')}
@@ -300,6 +321,8 @@ function applyProgress(r){
   document.getElementById('distance-covered').textContent=fmtDistance(r.distanceCovered||0);
   document.getElementById('distance-remaining').textContent=fmtDistance(r.distanceRemaining||0);
   document.getElementById('eta').textContent=`${Math.max(0,Math.round((r.etaSeconds||0)/60))} min`;
+  const mobileEta=document.getElementById('mobile-journey-eta');
+  if(mobileEta)mobileEta.textContent=`${Math.max(0,Math.round((r.etaSeconds||0)/60))} min · ${fmtShortDistance(r.distanceRemaining||0)}`;
   document.getElementById('arrival-time').textContent=new Date(Date.now()+Math.max(0,r.etaSeconds||0)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   document.getElementById('journey-traffic').textContent=r.traffic?.severity||routeDoc?.trafficSeverity||'UNKNOWN';
   document.getElementById('journey-heading').textContent=Number.isFinite(Number(lastPosition?.heading))?`${Math.round(lastPosition.heading)}Ã‚Â°`:'Ã¢â‚¬â€';
