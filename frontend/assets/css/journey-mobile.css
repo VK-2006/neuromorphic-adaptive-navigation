@@ -2,7 +2,8 @@
  * existing shared layout and are intentionally not overridden here. */
 .mobile-journey-topbar,
 .mobile-sheet-handle,
-.mobile-sheet-toggle {
+.mobile-sheet-toggle,
+.mobile-journey-summary {
   display: none;
 }
 
@@ -95,7 +96,7 @@
     z-index: 650 !important;
     width: auto !important;
     max-width: none !important;
-    max-height: 130px !important;
+    max-height: 190px !important;
     margin: 0 !important;
     padding: 14px !important;
     overflow: hidden !important;
@@ -141,8 +142,28 @@
     display: none;
   }
 
+  .mobile-journey-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .mobile-journey-summary > div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .mobile-journey-summary strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .8rem;
+  }
+
   body.mobile-journey-expanded .journey-stats {
-    max-height: min(58vh, 520px) !important;
+    max-height: min(55vh, 520px) !important;
     overflow-y: auto !important;
   }
 

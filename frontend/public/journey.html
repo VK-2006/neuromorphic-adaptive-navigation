@@ -25,6 +25,12 @@
 <div class="mobile-sheet-handle" aria-hidden="true"></div>
 <div class="journey-sheet-heading"><div style="display:flex;justify-content:space-between;gap:10px"><strong id="journey-title">Live journey</strong><span class="chip" id="journey-status">PLANNED</span></div><button class="mobile-sheet-toggle" id="mobile-sheet-toggle" type="button" aria-expanded="false" aria-controls="journey-details">Show journey details</button></div>
 <div class="progress" style="margin-top:10px"><span id="progress-bar"></span></div><div style="display:flex;justify-content:space-between;margin-top:5px"><small class="muted">Journey progress</small><span id="progress-text">0%</span></div>
+<div class="mobile-journey-summary" aria-label="Journey summary">
+<div><small class="muted">Speed</small><strong id="mobile-current-speed">0 km/h</strong></div>
+<div><small class="muted">Remaining</small><strong id="mobile-distance-remaining">—</strong></div>
+<div><small class="muted">ETA</small><strong id="mobile-eta-summary">—</strong></div>
+<div><small class="muted">Safety</small><strong id="mobile-safety-summary">—</strong></div>
+</div>
 <div class="journey-details" id="journey-details">
 <div class="grid grid-2" style="margin-top:12px">
 <div><small class="muted">Current speed</small><div id="current-speed">0 km/h</div></div><div><small class="muted">Covered</small><div id="distance-covered">0 km</div></div>

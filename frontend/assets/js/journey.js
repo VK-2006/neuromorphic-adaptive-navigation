@@ -112,6 +112,11 @@ function syncMobileJourneySummary(){
   const status=document.getElementById('mobile-journey-status');
   if(destination)destination.textContent=routeDoc?.label||'Adaptive journey';
   if(status)status.textContent=journey?.status||'PLANNED';
+  const copy=(from,to)=>{const source=document.getElementById(from),target=document.getElementById(to);if(source&&target)target.textContent=source.textContent};
+  copy('current-speed','mobile-current-speed');
+  copy('distance-remaining','mobile-distance-remaining');
+  copy('eta','mobile-eta-summary');
+  copy('journey-safety','mobile-safety-summary');
 }
 
 function setupFieldEnvironment(){
@@ -146,7 +151,7 @@ async function loadLiveReadiness(){
 function renderJourney(){
   document.getElementById('journey-status').textContent=journey.status;
   document.getElementById('journey-title').textContent=routeDoc?.label||'Adaptive journey';
-  document.getElementById('journey-safety').textContent=routeDoc?.safetyScore!=null?`${Math.round(routeDoc.safetyScore)}%`:'Ã¢â‚¬â€';
+  document.getElementById('journey-safety').textContent=routeDoc?.safetyScore!=null?`${Math.round(routeDoc.safetyScore)}%`:'\u2014';
   syncMobileJourneySummary();
   route=routeDoc?.coordinates||[];
   drawRoute();
@@ -224,7 +229,7 @@ function stopGps(){if(gpsWatch!==null)navigator.geolocation.clearWatch(gpsWatch)
 function onPosition(p){
   const c=p.coords;
   lastPosition={lat:c.latitude,lng:c.longitude,accuracy:c.accuracy,heading:c.heading,speed:c.speed,altitude:c.altitude,timestamp:p.timestamp};
-  setFieldChip('gps-state',`GPS Ã‚Â±${fmtShortDistance(c.accuracy||0)}`);
+  setFieldChip('gps-state',`GPS \u00b1${fmtShortDistance(c.accuracy||0)}`);
   if((c.accuracy||0)>60&&!gpsWarningShown){gpsWarningShown=true;toast('GPS accuracy is weak. Route matching will wait for more reliable fixes where possible.','warning')}
   if((c.accuracy||0)<=35)gpsWarningShown=false;
   updateMap(lastPosition);queueTracking(lastPosition);
@@ -314,7 +319,7 @@ function updateMap(p){
 function applyProgress(r){
   progress=r.progress||0;
   if(lastPosition?.speed!=null)document.getElementById('current-speed').textContent=fmtSpeed(lastPosition.speed);
-  if(r.nextManeuver)document.getElementById('next-maneuver').textContent=`${r.nextManeuver.maneuver?.instruction||r.nextManeuver.maneuver?.type||'Continue'} Ã‚Â· ${fmtShortDistance(r.nextManeuver.distance)}`;
+  if(r.nextManeuver)document.getElementById('next-maneuver').textContent=`${r.nextManeuver.maneuver?.instruction||r.nextManeuver.maneuver?.type||'Continue'} \u00b7 ${fmtShortDistance(r.nextManeuver.distance)}`;
   if(r.alerts?.length)r.alerts.forEach(a=>{toast(`${a.risk||'HAZARD'}: ${a.type} ${fmtShortDistance(a.distanceAhead)} ahead`,'warning');if(['HIGH','CRITICAL'].includes(a.risk))speak(`${a.risk.toLowerCase()} risk ${a.type} ahead.`)});
   document.getElementById('progress-bar').style.width=`${Math.max(0,Math.min(100,progress))}%`;
   document.getElementById('progress-text').textContent=`${Math.round(progress)}%`;
@@ -327,6 +332,7 @@ function applyProgress(r){
   document.getElementById('journey-traffic').textContent=r.traffic?.severity||routeDoc?.trafficSeverity||'UNKNOWN';
   document.getElementById('journey-heading').textContent=Number.isFinite(Number(lastPosition?.heading))?`${Math.round(lastPosition.heading)}\u00b0`:'\u2014';
   if(r.safetyScore!=null)document.getElementById('journey-safety').textContent=`${Math.round(r.safetyScore)}%`;
+  syncMobileJourneySummary();
   if(r.voicePrompt)speak(r.voicePrompt);
   splitRouteByDistance(r.routeDistanceCovered??r.distanceCovered??0);
 }
@@ -349,7 +355,7 @@ async function requestReroute(reason='route safety change'){
     const d=await api('/routes/reroute',{method:'POST',body:JSON.stringify({journeyId:jid(),currentLocation:lastPosition})});
     const alt=d.recommendedRoute;if(!d.shouldOffer||!alt?.databaseId||String(d.currentRoute?.databaseId)===String(alt.databaseId))return;
     pendingReroute={...d,reason};
-    const host=document.getElementById('reroute-comparison');host.innerHTML=`<div class="data-row"><strong>Current</strong><div>${fmtKm(d.currentRoute?.distance)} Ã‚Â· ${fmtMin(d.currentRoute?.trafficDuration)}</div><div>Safety ${Math.round(d.currentRoute?.safetyScore||0)}%</div></div><div class="data-row"><strong>${esc(alt.label)}</strong><div>${fmtKm(alt.distance)} Ã‚Â· ${fmtMin(alt.trafficDuration)}</div><div>Safety ${Math.round(alt.safetyScore||0)}%</div></div>`;
+    const host=document.getElementById('reroute-comparison');host.innerHTML=`<div class="data-row"><strong>Current</strong><div>${fmtKm(d.currentRoute?.distance)} \u00b7 ${fmtMin(d.currentRoute?.trafficDuration)}</div><div>Safety ${Math.round(d.currentRoute?.safetyScore||0)}%</div></div><div class="data-row"><strong>${esc(alt.label)}</strong><div>${fmtKm(alt.distance)} \u00b7 ${fmtMin(alt.trafficDuration)}</div><div>Safety ${Math.round(alt.safetyScore||0)}%</div></div>`;
     document.getElementById('reroute-reason').textContent=`Trigger: ${reason}. Route switch requires your confirmation.`;
     document.getElementById('reroute-panel').classList.remove('hidden');speak('Safer route found. Review the alternative before switching.');
   }catch(e){toast(`Reroute: ${e.message}`,'warning')}finally{rerouteBusy=false}
@@ -365,7 +371,7 @@ async function acceptReroute(){
 
 function toggleVoice(){voiceEnabled=!voiceEnabled;localStorage.setItem('navora:voice-enabled',String(voiceEnabled));updateVoiceButton();if(voiceEnabled)speak('Voice navigation enabled.')}
 function updateVoiceButton(){const b=document.getElementById('voice-toggle');if(b)b.textContent=`Voice ${voiceEnabled?'ON':'OFF'}`}
-function loadVoices(){const sel=document.getElementById('voice-select');if(!sel||!('speechSynthesis'in window))return;const voices=speechSynthesis.getVoices();const cur=sel.value;sel.innerHTML='<option value="">Default system voice</option>'+voices.map((v,i)=>`<option value="${i}">${esc(v.name)} Ã‚Â· ${esc(v.lang)}</option>`).join('');sel.value=cur}
+function loadVoices(){const sel=document.getElementById('voice-select');if(!sel||!('speechSynthesis'in window))return;const voices=speechSynthesis.getVoices();const cur=sel.value;sel.innerHTML='<option value="">Default system voice</option>'+voices.map((v,i)=>`<option value="${i}">${esc(v.name)} \u00b7 ${esc(v.lang)}</option>`).join('');sel.value=cur}
 function speak(text){if(!voiceEnabled||!text||text===lastSpoken||!('speechSynthesis'in window))return;lastSpoken=text;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=document.getElementById('voice-language')?.value||navigationPreferences.voiceLanguage||'en-IN';u.volume=Number(document.getElementById('voice-volume')?.value||1);const idx=document.getElementById('voice-select')?.value;if(idx!=='')u.voice=speechSynthesis.getVoices()[Number(idx)]||null;speechSynthesis.speak(u)}
 
 async function requestWakeLock(){
@@ -391,7 +397,7 @@ async function shareJourney(){try{const d=await api(`/journeys/${jid()}/share`,{
 async function revokeShare(){try{await api(`/journeys/${jid()}/share`,{method:'DELETE'});document.getElementById('share-url').textContent='';document.getElementById('share-expiry').textContent='Revoked';toast('Share link revoked')}catch(e){toast(e.message,'error')}}
 async function sendSos(){if(!confirm('Send SOS to trusted contacts with current/last known journey position?'))return;try{await api('/sos',{method:'POST',body:JSON.stringify({journeyId:jid(),location:lastPosition})});toast('SOS recorded and trusted-contact notifications queued','success')}catch(e){toast(e.message,'error')}}
 
-function startSimulation(){if(simulationTimer||journey?.status==='PAUSED'||journey?.status==='COMPLETED')return;document.getElementById('sim-banner').classList.remove('hidden');let i=0;const coords=route.length?route:Array.from({length:15},(_,n)=>({lat:17.385+n*.003,lng:78.4867-n*.0025}));simulationTimer=setInterval(async()=>{if(i>=coords.length){stopSimulation();await completeJourney({automaticSimulation:true});return}const p=coords[i];lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:300,speed:9,timestamp:Date.now()};updateMap(lastPosition);await sendSimulationTracking(lastPosition);try{const d=await api('/simulation/step',{method:'POST',body:JSON.stringify({journeyId:jid(),index:i,location:lastPosition})});if(d.event){const chip=document.getElementById('simulation-detection');chip?.classList.remove('hidden');if(chip)chip.textContent=`Sim ${d.event.detection.objectClass} Ã‚Â· ${d.event.risk.level}`;document.getElementById('risk').textContent=`Risk ${d.event.risk.level} ${Math.round((d.event.risk.score||0)*100)}%`;toast(`SIMULATION: ${d.event.detection.objectClass} Ã‚Â· ${d.event.risk.level} risk`,'warning');if(['HIGH','CRITICAL'].includes(d.event.risk.level)&&!pendingReroute&&!rerouteBusy)requestReroute(`simulation ${d.event.detection.objectClass}`)}}catch(e){console.debug('simulation step',e)}i++},1800)}
+function startSimulation(){if(simulationTimer||journey?.status==='PAUSED'||journey?.status==='COMPLETED')return;document.getElementById('sim-banner').classList.remove('hidden');let i=0;const coords=route.length?route:Array.from({length:15},(_,n)=>({lat:17.385+n*.003,lng:78.4867-n*.0025}));simulationTimer=setInterval(async()=>{if(i>=coords.length){stopSimulation();await completeJourney({automaticSimulation:true});return}const p=coords[i];lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:300,speed:9,timestamp:Date.now()};updateMap(lastPosition);await sendSimulationTracking(lastPosition);try{const d=await api('/simulation/step',{method:'POST',body:JSON.stringify({journeyId:jid(),index:i,location:lastPosition})});if(d.event){const chip=document.getElementById('simulation-detection');chip?.classList.remove('hidden');if(chip)chip.textContent=`Sim ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level}`;document.getElementById('risk').textContent=`Risk ${d.event.risk.level} ${Math.round((d.event.risk.score||0)*100)}%`;toast(`SIMULATION: ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level} risk`,'warning');if(['HIGH','CRITICAL'].includes(d.event.risk.level)&&!pendingReroute&&!rerouteBusy)requestReroute(`simulation ${d.event.detection.objectClass}`)}}catch(e){console.debug('simulation step',e)}i++},1800)}
 async function sendSimulationTracking(pos){try{const r=await api('/tracking/update',{method:'POST',body:JSON.stringify({journeyId:jid(),...pos})});applyProgress(r)}catch(e){if(!String(e.message).includes('Authentication'))console.debug(e)}}
 function stopSimulation(){if(simulationTimer)clearInterval(simulationTimer);simulationTimer=null}
 function startAdaptiveReevaluation(){if(adaptiveTimer)return;adaptiveTimer=setInterval(()=>{if(journey?.status==='ACTIVE'&&lastPosition&&navigator.onLine&&!pendingReroute&&!rerouteBusy)requestReroute('periodic ACO adaptive re-evaluation')},90000)}
