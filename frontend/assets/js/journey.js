@@ -70,7 +70,7 @@ async function init(){
     if(journey.mode==='SIMULATION'){
       document.getElementById('sim-banner').classList.remove('hidden');
       setFieldChip('field-mode','SIMULATION');
-      startSimulation();
+      if(journey.status==='ACTIVE')startSimulation();
     }else{
       setFieldChip('field-mode','LIVE FIELD');
       if(journey.status==='ACTIVE'){
@@ -397,8 +397,43 @@ async function shareJourney(){try{const d=await api(`/journeys/${jid()}/share`,{
 async function revokeShare(){try{await api(`/journeys/${jid()}/share`,{method:'DELETE'});document.getElementById('share-url').textContent='';document.getElementById('share-expiry').textContent='Revoked';toast('Share link revoked')}catch(e){toast(e.message,'error')}}
 async function sendSos(){if(!confirm('Send SOS to trusted contacts with current/last known journey position?'))return;try{await api('/sos',{method:'POST',body:JSON.stringify({journeyId:jid(),location:lastPosition})});toast('SOS recorded and trusted-contact notifications queued','success')}catch(e){toast(e.message,'error')}}
 
-function startSimulation(){if(simulationTimer||journey?.status==='PAUSED'||journey?.status==='COMPLETED')return;document.getElementById('sim-banner').classList.remove('hidden');let i=0;const coords=route.length?route:Array.from({length:15},(_,n)=>({lat:17.385+n*.003,lng:78.4867-n*.0025}));simulationTimer=setInterval(async()=>{if(i>=coords.length){stopSimulation();await completeJourney({automaticSimulation:true});return}const p=coords[i];lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:300,speed:9,timestamp:Date.now()};updateMap(lastPosition);await sendSimulationTracking(lastPosition);try{const d=await api('/simulation/step',{method:'POST',body:JSON.stringify({journeyId:jid(),index:i,location:lastPosition})});if(d.event){const chip=document.getElementById('simulation-detection');chip?.classList.remove('hidden');if(chip)chip.textContent=`Sim ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level}`;document.getElementById('risk').textContent=`Risk ${d.event.risk.level} ${Math.round((d.event.risk.score||0)*100)}%`;toast(`SIMULATION: ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level} risk`,'warning');if(['HIGH','CRITICAL'].includes(d.event.risk.level)&&!pendingReroute&&!rerouteBusy)requestReroute(`simulation ${d.event.detection.objectClass}`)}}catch(e){console.debug('simulation step',e)}i++},1800)}
-async function sendSimulationTracking(pos){try{const r=await api('/tracking/update',{method:'POST',body:JSON.stringify({journeyId:jid(),...pos})});applyProgress(r)}catch(e){if(!String(e.message).includes('Authentication'))console.debug(e)}}
+function startSimulation(){
+  if(simulationTimer||journey?.status!=='ACTIVE')return;
+  if(!route.length){setFieldChip('field-mode','SIMULATION ERROR');toast('Simulation requires a saved route geometry.','error');return}
+  document.getElementById('sim-banner').classList.remove('hidden');
+  let i=0;
+  const coords=route;
+  let lastResult=null;
+  const tick=async()=>{
+    if(journey?.status!=='ACTIVE'){stopSimulation();return}
+    if(i>=coords.length){
+      stopSimulation();
+      if(lastResult?.arrival?.arrived||Number(lastResult?.progress)>=99.5)await completeJourney({automaticSimulation:true});
+      else toast('Simulation route ended before the destination was reached.','error');
+      return;
+    }
+    const p=coords[i];
+    lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:300,speed:9,timestamp:Date.now()};
+    updateMap(lastPosition);
+    lastResult=await sendSimulationTracking(lastPosition);
+    if(!lastResult){stopSimulation();toast('Simulation tracking failed; journey remains active.','error');return}
+    try{
+      const d=await api('/simulation/step',{method:'POST',body:JSON.stringify({journeyId:jid(),index:i,location:lastPosition})});
+      if(d.event){
+        const chip=document.getElementById('simulation-detection');
+        chip?.classList.remove('hidden');
+        if(chip)chip.textContent=`Sim ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level}`;
+        document.getElementById('risk').textContent=`Risk ${d.event.risk.level} ${Math.round((d.event.risk.score||0)*100)}%`;
+        toast(`SIMULATION: ${d.event.detection.objectClass} \u00b7 ${d.event.risk.level} risk`,'warning');
+        if(['HIGH','CRITICAL'].includes(d.event.risk.level)&&!pendingReroute&&!rerouteBusy)requestReroute(`simulation ${d.event.detection.objectClass}`);
+      }
+    }catch(e){toast(`Simulation step failed: ${e.message}`,'error');stopSimulation();return}
+    i++;
+    if(journey?.status==='ACTIVE')simulationTimer=setTimeout(tick,1800);
+  };
+  simulationTimer=setTimeout(tick,0);
+}
+async function sendSimulationTracking(pos){try{const r=await api('/tracking/update',{method:'POST',body:JSON.stringify({journeyId:jid(),...pos})});applyProgress(r);return r}catch(e){if(!String(e.message).includes('Authentication'))console.debug(e);return null}}
 function stopSimulation(){if(simulationTimer)clearInterval(simulationTimer);simulationTimer=null}
 function startAdaptiveReevaluation(){if(adaptiveTimer)return;adaptiveTimer=setInterval(()=>{if(journey?.status==='ACTIVE'&&lastPosition&&navigator.onLine&&!pendingReroute&&!rerouteBusy)requestReroute('periodic ACO adaptive re-evaluation')},90000)}
 function stopAdaptiveReevaluation(){if(adaptiveTimer)clearInterval(adaptiveTimer);adaptiveTimer=null}
