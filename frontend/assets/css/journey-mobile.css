@@ -94,8 +94,11 @@
     position: absolute !important;
     inset: auto 10px max(10px, env(safe-area-inset-bottom)) !important;
     z-index: 650 !important;
+    display: flex !important;
+    flex-direction: column !important;
     width: auto !important;
     max-width: none !important;
+    min-height: 0 !important;
     max-height: 190px !important;
     margin: 0 !important;
     padding: 14px !important;
@@ -138,10 +141,6 @@
     font-weight: 700;
   }
 
-  body:not(.mobile-journey-expanded) .journey-details {
-    display: none;
-  }
-
   .mobile-journey-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -162,9 +161,32 @@
     font-size: .8rem;
   }
 
+  .journey-details {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .2s ease, opacity .2s ease;
+    touch-action: pan-y;
+  }
+
+  body.mobile-journey-expanded .journey-details {
+    display: flex !important;
+    flex-direction: column;
+    max-height: min(36vh, 280px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    opacity: 1;
+    margin-top: 12px;
+    padding-right: 4px;
+  }
+
   body.mobile-journey-expanded .journey-stats {
-    max-height: min(55vh, 520px) !important;
-    overflow-y: auto !important;
+    max-height: min(58vh, 540px) !important;
+    overflow: hidden !important;
   }
 
   body.mobile-journey-expanded .mobile-sheet-toggle::after {

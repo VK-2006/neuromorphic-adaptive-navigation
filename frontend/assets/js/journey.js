@@ -185,7 +185,10 @@ async function resumeJourney(){
     journey=await api(`/journeys/${jid()}/${journey?.status==='PAUSED'?'resume':'start'}`,{method:'POST'});
     document.getElementById('journey-status').textContent=journey.status;
     syncMobileJourneySummary();
-    if(journey.mode==='SIMULATION')startSimulation();else{
+    if(journey.mode==='SIMULATION'){
+      stopSimulation();
+      startSimulation();
+    }else{
       await requestWakeLock();startGps();flushTracking(true);
       if(voiceEnabled)speak('Live navigation started. Keep Navora visible for continuous field guidance.');
     }
@@ -398,22 +401,34 @@ async function revokeShare(){try{await api(`/journeys/${jid()}/share`,{method:'D
 async function sendSos(){if(!confirm('Send SOS to trusted contacts with current/last known journey position?'))return;try{await api('/sos',{method:'POST',body:JSON.stringify({journeyId:jid(),location:lastPosition})});toast('SOS recorded and trusted-contact notifications queued','success')}catch(e){toast(e.message,'error')}}
 
 function startSimulation(){
-  if(simulationTimer||journey?.status!=='ACTIVE')return;
-  if(!route.length){setFieldChip('field-mode','SIMULATION ERROR');toast('Simulation requires a saved route geometry.','error');return}
-  document.getElementById('sim-banner').classList.remove('hidden');
+  if(journey?.status!=='ACTIVE')return;
+  stopSimulation();
+  const coords=(Array.isArray(route)?route:[]).filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+  if(coords.length<2){setFieldChip('field-mode','SIMULATION ERROR');toast('Simulation requires a saved route with valid geometry.','error');return}
+  document.getElementById('sim-banner')?.classList.remove('hidden');
   let i=0;
-  const coords=route;
   let lastResult=null;
   const tick=async()=>{
     if(journey?.status!=='ACTIVE'){stopSimulation();return}
-    if(i>=coords.length){
+    const lastIndex=Math.max(0,coords.length-1);
+    if(i>=lastIndex){
+      const finalPoint=coords[lastIndex];
+      lastPosition={lat:finalPoint.lat,lng:finalPoint.lng,accuracy:8,heading:lastPosition?.heading ?? 300,speed:0,timestamp:Date.now()};
+      updateMap(lastPosition);
+      lastResult=await sendSimulationTracking(lastPosition);
       stopSimulation();
-      if(lastResult?.arrival?.arrived||Number(lastResult?.progress)>=99.5)await completeJourney({automaticSimulation:true});
-      else toast('Simulation route ended before the destination was reached.','error');
+      const completed=Boolean(lastResult?.arrival?.arrived) || Number(lastResult?.progress||0)>=99.5;
+      if(completed){
+        await completeJourney({automaticSimulation:true});
+      }else{
+        toast('Simulation route ended before the destination was reached.','error');
+      }
       return;
     }
     const p=coords[i];
-    lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:300,speed:9,timestamp:Date.now()};
+    const next=coords[Math.min(i+1,lastIndex)];
+    const segmentHeading=Math.atan2(next.lng-p.lng,next.lat-p.lat)*180/Math.PI;
+    lastPosition={lat:p.lat,lng:p.lng,accuracy:8,heading:segmentHeading,speed:9,timestamp:Date.now()};
     updateMap(lastPosition);
     lastResult=await sendSimulationTracking(lastPosition);
     if(!lastResult){stopSimulation();toast('Simulation tracking failed; journey remains active.','error');return}
@@ -434,7 +449,7 @@ function startSimulation(){
   simulationTimer=setTimeout(tick,0);
 }
 async function sendSimulationTracking(pos){try{const r=await api('/tracking/update',{method:'POST',body:JSON.stringify({journeyId:jid(),...pos})});applyProgress(r);return r}catch(e){if(!String(e.message).includes('Authentication'))console.debug(e);return null}}
-function stopSimulation(){if(simulationTimer)clearInterval(simulationTimer);simulationTimer=null}
+function stopSimulation(){if(simulationTimer){clearTimeout(simulationTimer);simulationTimer=null}}
 function startAdaptiveReevaluation(){if(adaptiveTimer)return;adaptiveTimer=setInterval(()=>{if(journey?.status==='ACTIVE'&&lastPosition&&navigator.onLine&&!pendingReroute&&!rerouteBusy)requestReroute('periodic ACO adaptive re-evaluation')},90000)}
 function stopAdaptiveReevaluation(){if(adaptiveTimer)clearInterval(adaptiveTimer);adaptiveTimer=null}
 
