@@ -45,6 +45,7 @@ async function init(){
   document.getElementById('route-form')?.addEventListener('submit',loadRoutes);
   document.getElementById('use-location')?.addEventListener('click',useLocation);
   document.getElementById('refresh-hazards')?.addEventListener('click',loadNearbyHazards);
+  document.getElementById('report-hazard')?.addEventListener('click',reportHazard);
   ['safety','traffic','familiarity'].forEach(k=>{
     const el=document.getElementById(`${k}-pref`),out=document.getElementById(`${k}-value`);
     const paint=()=>{if(el&&out)out.textContent=`${el.value}%`};el?.addEventListener('input',paint);paint();
@@ -171,6 +172,21 @@ async function loadNearbyHazards(){
   }catch(e){host.innerHTML='<div class="muted">Community hazards are temporarily unavailable.</div>'}
 }
 
+async function reportHazard(){
+  const button=document.getElementById('report-hazard');
+  const type=document.getElementById('hazard-type')?.value?.trim();
+  if(!button||!type)return;
+  if(!navigator.geolocation)return toast('Current location is required to report a nearby hazard','error');
+  button.disabled=true;button.textContent='Getting location…';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      await api('/hazards/report',{method:'POST',body:JSON.stringify({type,location:{lat:pos.coords.latitude,lng:pos.coords.longitude}})});
+      toast('Hazard reported at your current location','success');
+      await loadNearbyHazards();
+    }catch(e){toast(e.message,'error')}
+    finally{button.disabled=false;button.textContent='Report nearby hazard'}
+  },e=>{button.disabled=false;button.textContent='Report nearby hazard';toast(`Report location unavailable: ${e.message}`,'error')},{enableHighAccuracy:highAccuracyGps,maximumAge:3000,timeout:15000});
+}
 async function confirmHazard(id){
   if(!navigator.geolocation)return toast('Geolocation is required for a nearby confirmation','error');
   navigator.geolocation.getCurrentPosition(async pos=>{
