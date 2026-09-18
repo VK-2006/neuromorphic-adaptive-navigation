@@ -4,7 +4,7 @@ let gpsWatch=null;
 let map,userMarker,routeLine,coveredLine,remainingLine,socket,headingLine=null;
 let route=[],routeDoc=null,journey=null,progress=0,lastSpoken='',pendingReroute=null,rerouteBusy=false,voiceEnabled=false,lastPosition=null;
 let wakeLock=null,trackingInFlight=false,pendingTracking=null,trackingTimer=null,lastTrackingSentAt=0,lastTrackingPosition=null;
-let adaptiveTimer=null,simulationTimer=null;
+let adaptiveTimer=null,simulationTimer=null,sosInFlight=false;
 let arrivalSamples=0,liveReadiness=null,aiWarningShown=false,gpsWarningShown=false;
 let navigationPreferences={units:'METRIC',voiceLanguage:'en-IN',highAccuracyGps:true};
 let visualPosition=null,markerAnimationFrame=null,mapResizeFrame=null;
@@ -398,7 +398,22 @@ async function enterFullscreen(){
 
 async function shareJourney(){try{const d=await api(`/journeys/${jid()}/share`,{method:'POST',body:JSON.stringify({hours:4})});const absolute=new URL(d.url,location.origin).href;document.getElementById('share-url').textContent=absolute;document.getElementById('share-expiry').textContent=`Expires ${new Date(d.expiresAt).toLocaleTimeString()}`;try{await navigator.clipboard.writeText(absolute);toast('Secure share link copied')}catch{toast('Secure share link created')}}catch(e){toast(e.message,'error')}}
 async function revokeShare(){try{await api(`/journeys/${jid()}/share`,{method:'DELETE'});document.getElementById('share-url').textContent='';document.getElementById('share-expiry').textContent='Revoked';toast('Share link revoked')}catch(e){toast(e.message,'error')}}
-async function sendSos(){if(!confirm('Send SOS to trusted contacts with current/last known journey position?'))return;try{await api('/sos',{method:'POST',body:JSON.stringify({journeyId:jid(),location:lastPosition})});toast('SOS recorded and trusted-contact notifications queued','success')}catch(e){toast(e.message,'error')}}
+async function sendSos(){
+  const button=document.getElementById('sos'),status=document.getElementById('sos-status');
+  if(sosInFlight||button?.disabled)return;
+  if(!confirm('Send SOS to trusted contacts with current/last known journey position?'))return;
+  sosInFlight=true;if(button){button.disabled=true;button.dataset.sosLabel=button.textContent;button.textContent='Activating SOS…'}if(status)status.textContent='Activating SOS';
+  try{
+    const data=await api('/sos',{method:'POST',body:JSON.stringify({journeyId:jid(),location:lastPosition})});
+    const alreadyActive=Boolean(data?.alreadyActive);
+    if(button){button.textContent=alreadyActive?'SOS Active':'SOS Activated';button.classList.toggle('btn-ghost',true)}
+    if(status)status.textContent=alreadyActive?'SOS is already active':'SOS activated';
+    toast(alreadyActive?'SOS is already active':'SOS activated for trusted contacts',alreadyActive?'warning':'success');
+  }catch(e){
+    sosInFlight=false;if(button){button.disabled=false;button.textContent=button.dataset.sosLabel||'SOS'}if(status)status.textContent=`SOS failed: ${e.message}`;
+    toast(e.message,'error');
+  }
+}
 
 function startSimulation(){
   if(journey?.status!=='ACTIVE')return;
