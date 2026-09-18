@@ -7,13 +7,52 @@
   display: none;
 }
 
+/* Keep the map and details in the desktop layout flow. Later global polish
+ * rules make both elements absolute, which turns the details card into a
+ * floating overlay over the map. */
+body.field-navigation-page .journey-layout {
+  grid-template-columns: 1fr !important;
+  height: calc(100dvh - 76px) !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+body.field-navigation-page .navigation-pane {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.field-navigation-page #journey-map {
+  position: relative !important;
+  inset: auto !important;
+  grid-row: 1;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+body.field-navigation-page .journey-stats {
+  position: relative !important;
+  inset: auto !important;
+  grid-row: 2;
+  width: auto !important;
+  max-width: none !important;
+  max-height: min(340px, 42vh) !important;
+  margin: 12px !important;
+  overflow-y: auto !important;
+}
+
 @media (max-width: 768px) {
   body.field-navigation-page {
     background: #080a10;
   }
 
   body.field-navigation-page .journey-layout {
-    height: calc(100dvh - 56px) !important;
+    height: calc(100dvh - 88px) !important;
     min-height: 0 !important;
     padding: 0 !important;
   }
@@ -28,7 +67,7 @@
     background: #080a10 !important;
   }
 
-  body.field-navigation-page #journey-map {
+  html body.field-navigation-page #journey-map {
     position: relative !important;
     inset: auto !important;
     flex: 1 1 auto !important;
@@ -90,17 +129,19 @@
     white-space: nowrap;
   }
 
-  body.field-navigation-page .journey-stats {
-    position: absolute !important;
-    inset: auto 10px max(10px, env(safe-area-inset-bottom)) !important;
+  html body.field-navigation-page .navigation-pane > .journey-stats {
+    position: relative !important;
+    inset: auto !important;
     z-index: 650 !important;
     display: flex !important;
     flex-direction: column !important;
     width: auto !important;
     max-width: none !important;
     min-height: 0 !important;
+    height: auto !important;
     max-height: 190px !important;
-    margin: 0 !important;
+    margin: 10px !important;
+    flex: 0 1 auto !important;
     padding: 14px !important;
     overflow: hidden !important;
     color: #f7f8fb !important;
@@ -184,7 +225,7 @@
     padding-right: 4px;
   }
 
-  body.mobile-journey-expanded .journey-stats {
+  html body.field-navigation-page.mobile-journey-expanded .navigation-pane > .journey-stats {
     max-height: min(58vh, 540px) !important;
     overflow: hidden !important;
   }
