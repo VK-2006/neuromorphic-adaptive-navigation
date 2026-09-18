@@ -83,11 +83,14 @@ async function loadContacts(){
 }
 $('contact-form')?.addEventListener('submit',async e=>{
   e.preventDefault();
+  const form=e.currentTarget;
+  const submitButton=form?.querySelector('button[type="submit"]');
+  if(submitButton)submitButton.disabled=true;
   try{
     const sharePermission=Boolean($('contact-share')?.checked),email=value('contact-email');
     if(sharePermission&&!email)throw new Error('Email is required when journey sharing/SOS alerts are enabled.');
     await api('/trusted-contacts',{method:'POST',body:JSON.stringify({name:value('contact-name'),email,phone:value('contact-phone'),relationship:value('contact-relationship'),sharePermission})});
-    e.currentTarget.reset();toast('Trusted contact added','success');await loadContacts();
-  }catch(x){toast(x.message,'error')}
+    form.reset();toast('Trusted contact added','success');await loadContacts();
+  }catch(x){toast(x.message,'error')}finally{if(submitButton)submitButton.disabled=false}
 });
 loadProfile();loadContacts();
