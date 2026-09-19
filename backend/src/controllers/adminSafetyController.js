@@ -1,5 +1,6 @@
 const User=require('../models/User');
 const AuditLog=require('../models/AuditLog');
+const RefreshToken=require('../models/RefreshToken');
 
 exports.updateUser=async(req,res)=>{
   const target=await User.findById(req.params.id);
@@ -23,6 +24,7 @@ exports.updateUser=async(req,res)=>{
   if(req.body.disabled===false)patch.disabledAt=null;
 
   Object.assign(target,patch);await target.save();
+  if(wantsDisable)await RefreshToken.updateMany({userId:target._id,revokedAt:null},{$set:{revokedAt:new Date()}});
   await AuditLog.create({
     actorId:req.user._id,action:'USER_ADMIN_UPDATE',targetType:'User',targetId:target._id,
     result:JSON.stringify({role:patch.role??target.role,disabled:target.disabledAt!=null})
