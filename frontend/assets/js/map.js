@@ -59,11 +59,17 @@ async function init(){
     window.L.control.zoom({position:'bottomright'}).addTo(map);
     sourceMarker=null;
     destMarker=null;
-    map.on('click',async e=>{destMarker.setLatLng(e.latlng);await syncField('destination',e.latlng)});
-    sourceMarker.on('dragend',()=>syncField('source',sourceMarker.getLatLng()));
-    destMarker.on('dragend',()=>syncField('destination',destMarker.getLatLng()));
-    setCoords('source',...fallbackSource,'Current source');setCoords('destination',...fallbackDest,'Destination');
-    syncField('source',sourceMarker.getLatLng());syncField('destination',destMarker.getLatLng());
+    map.on('click',async e=>{
+      if(!destMarker){
+        destMarker=window.L.marker(e.latlng,{draggable:true}).addTo(map);
+        destMarker.on('dragend',()=>syncField('destination',destMarker.getLatLng()));
+      }else destMarker.setLatLng(e.latlng);
+      await syncField('destination',destMarker.getLatLng());
+    });
+    const sourceInput=document.getElementById('source');
+    if(sourceInput)sourceInput.value='Allow location access to detect your starting point';
+    const destinationInput=document.getElementById('destination');
+    if(destinationInput)destinationInput.value='';
     setupGeocoding();
   }catch(e){showMapUnavailable();toast(`Map initialization failed: ${e.message}`,'error')}
 }
