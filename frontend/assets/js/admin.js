@@ -6,23 +6,35 @@ const dt=x=>{if(!x)return'—';const d=new Date(x);return Number.isNaN(d.getTime
 async function overview(){const host=document.getElementById('admin-overview');if(!host)return;try{const d=obj(await api('/admin/overview'));for(const[k,v]of Object.entries(d)){const el=document.querySelector(`[data-admin-metric="${CSS.escape(k)}"]`);if(el)el.textContent=String(v??'—')}}catch(e){toast(e.message,'error')}}
 async function health(){const host=document.getElementById('admin-health-data');if(!host)return;try{const d=obj(await api('/admin/health')),entries=Object.entries(d);host.innerHTML=entries.length?entries.map(([k,raw])=>{const v=obj(raw),status=String(v.status??raw??'unknown');return`<tr><td>${esc(k)}</td><td class="${status==='ok'?'status-ok':'status-warn'}">${esc(status)}</td><td>${esc(v.detail||'')}</td></tr>`}).join(''):'<tr><td colspan="3">No health data.</td></tr>'}catch(e){host.innerHTML='<tr><td colspan="3">Health data unavailable.</td></tr>';toast(e.message,'error')}}
 async function users(){
-  const host=document.getElementById('admin-users-data');if(!host)return;
+  const adminHost=document.getElementById('admin-users-admin-data');
+  const userHost=document.getElementById('admin-users-user-data');
+  if(!adminHost&&!userHost)return;
   try{
     const rows=arr(await api('/admin/users'));
-    host.innerHTML=rows.length?rows.map(u=>{
+    const admins=rows.filter(u=>String(u?.role||'USER').toUpperCase()==='ADMIN');
+    const users=rows.filter(u=>String(u?.role||'USER').toUpperCase()!=='ADMIN');
+    const render=(list)=>list.length?list.map(u=>{
       const id=esc(u?._id),disabled=Boolean(u?.disabledAt),role=esc(u?.role||'USER');
       const profile='<div class="admin-user-profile"><strong>'+esc(u?.name||'Unnamed user')+'</strong><br><small>'+esc(u?.email||'')+'</small></div>';
       const contact='<div>'+esc(u?.phone||'—')+'<br><small>'+esc(u?.preferredLanguage||'—')+'</small></div>';
       const location='<div>'+esc(u?.city||'—')+'<br><small>'+esc(u?.country||'—')+'</small></div>';
       const detail='<div class="admin-user-detail" hidden><div><strong>User ID</strong><br><small>'+id+'</small></div><div><strong>Member since</strong><br>'+dt(u?.createdAt)+'</div><div><strong>Preferences</strong><br>Safety '+Math.round((Number(u?.preferences?.safety)||0)*100)+'% · Traffic '+Math.round((Number(u?.preferences?.traffic)||0)*100)+'% · Familiarity '+Math.round((Number(u?.preferences?.familiarity)||0)*100)+'%</div><div><strong>Units / voice</strong><br>'+esc(u?.preferences?.units||'—')+' · '+esc(u?.preferences?.voiceLanguage||'—')+'</div></div>';
       return '<tr data-id="'+id+'" data-role="'+role+'" data-disabled="'+disabled+'"><td>'+profile+detail+'</td><td><select class="input role" aria-label="Role"><option '+(u?.role==='USER'?'selected':'')+'>USER</option><option '+(u?.role==='ADMIN'?'selected':'')+'>ADMIN</option></select></td><td>'+contact+'</td><td>'+location+'</td><td>'+(u?.emailVerified?'Yes':'No')+'</td><td>'+(disabled?'<span class="status-warn">Blocked</span>':'<span class="status-ok">Active</span>')+'</td><td>'+dt(u?.lastLoginAt)+'</td><td class="admin-table-actions"><button type="button" class="btn-navora btn-ghost view">View profile</button><button type="button" class="btn-navora btn-ghost save">Save role</button><button type="button" class="btn-navora btn-ghost toggle">'+(disabled?'Unblock':'Block')+'</button></td></tr>';
-    }).join(''):'<tr><td colspan="8">No users.</td></tr>';
-    host.querySelectorAll('tr[data-id]').forEach(tr=>{
+    }).join(''):'<tr><td colspan="8">No accounts.</td></tr>';
+    if(adminHost)adminHost.innerHTML=render(admins);
+    if(userHost)userHost.innerHTML=render(users);
+    const adminCount=document.getElementById('admin-users-admin-count');if(adminCount)adminCount.textContent='('+admins.length+')';
+    const userCount=document.getElementById('admin-users-user-count');if(userCount)userCount.textContent='('+users.length+')';
+    [adminHost,userHost].filter(Boolean).forEach(host=>host.querySelectorAll('tr[data-id]').forEach(tr=>{
       tr.querySelector('.view')?.addEventListener('click',()=>{const detail=tr.querySelector('.admin-user-detail');if(!detail)return;detail.hidden=!detail.hidden;const button=tr.querySelector('.view');if(button)button.textContent=detail.hidden?'View profile':'Hide profile';});
       tr.querySelector('.save')?.addEventListener('click',()=>{const next=tr.querySelector('.role')?.value||'USER';if(tr.dataset.role==='ADMIN'&&next==='USER'&&!confirm('Demote this administrator to USER? Last-admin and self-demotion rules are enforced by the backend.'))return;patchUser(tr.dataset.id,{role:next});});
       tr.querySelector('.toggle')?.addEventListener('click',()=>{const block=tr.querySelector('.toggle')?.textContent==='Block';if(block&&!confirm('Block this user account? The user will lose authenticated access.'))return;patchUser(tr.dataset.id,{disabled:block});});
-    });
-  }catch(e){host.innerHTML='<tr><td colspan="8">Users unavailable.</td></tr>';toast(e.message,'error')}
+    }));
+  }catch(e){
+    if(adminHost)adminHost.innerHTML='<tr><td colspan="8">Administrators unavailable.</td></tr>';
+    if(userHost)userHost.innerHTML='<tr><td colspan="8">Users unavailable.</td></tr>';
+    toast(e.message,'error')
+  }
 }
 async function patchUser(id,body){try{await api(`/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(body)});toast('User updated','success');await users()}catch(e){toast(e.message,'error')}}
 async function hazards(){const host=document.getElementById('admin-hazards-data');if(!host)return;try{const rows=arr(await api('/admin/hazards'));host.innerHTML=rows.length?'':'<tr><td colspan="7">No hazards.</td></tr>';for(const h of rows){const tr=document.createElement('tr');tr.innerHTML=`<td>${esc(h?.type)}</td><td>${esc(h?.status)}</td><td>${Math.round((Number(h?.confidence)||0)*100)}%</td><td>${esc(h?.snnRiskLevel||'—')}</td><td>${Number(h?.trustScore||0).toFixed(2)}</td><td>${esc(h?.userId?.name||'Local AI')}</td><td class="admin-table-actions"><button type="button" class="btn-navora verify">Verify</button><button type="button" class="btn-navora btn-ghost reject">Reject</button></td>`;tr.querySelector('.verify')?.addEventListener('click',()=>confirm('Verify this hazard report?')&&reviewHazard(h?._id,'VERIFIED'));tr.querySelector('.reject')?.addEventListener('click',()=>confirm('Reject this hazard report and update reporter reputation?')&&reviewHazard(h?._id,'REJECTED'));host.appendChild(tr)}}catch(e){host.innerHTML='<tr><td colspan="7">Hazards unavailable.</td></tr>';toast(e.message,'error')}}
