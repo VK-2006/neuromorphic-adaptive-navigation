@@ -72,9 +72,13 @@ async function requestCurrentLocation(){
   if(!navigator.geolocation){toast('Location permission is unavailable in this browser. Enter a destination after enabling location access.','error');return}
   toast('Allow Navora to access your location to set the starting point automatically.','info');
   navigator.geolocation.getCurrentPosition(async p=>{
-    if(!sourceMarker||!map)return;
+    if(!map)return;
     const c=[p.coords.latitude,p.coords.longitude];
-    sourceMarker.setLatLng(c);map.setView(c,15);await syncField('source',sourceMarker.getLatLng());
+    if(!sourceMarker){
+      sourceMarker=window.L.marker(c,{draggable:true}).addTo(map);
+      sourceMarker.on('dragend',()=>syncField('source',sourceMarker.getLatLng()));
+    }else sourceMarker.setLatLng(c);
+    map.setView(c,15);await syncField('source',sourceMarker.getLatLng());
     const use=document.getElementById('use-location');if(use)use.textContent='Refresh location';
     toast(`Current location detected · ±${fmtShortDistance(p.coords.accuracy||0)}`,'success');
   },e=>{
