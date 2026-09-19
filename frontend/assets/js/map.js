@@ -121,7 +121,10 @@ async function searchPlaces(id,q){
   }catch(e){box.innerHTML=`<div class="suggestion muted">Search unavailable · ${esc(e.message)}</div>`}
 }
 function choosePlace(id,p){
-  const marker=id==='source'?sourceMarker:destMarker;if(!marker||!map)return;
+  if(!map)return;
+  let marker=id==='source'?sourceMarker:destMarker;
+  if(id==='destination'&&!marker){marker=destMarker=window.L.marker([p.lat,p.lng],{draggable:true}).addTo(map);marker.on('dragend',()=>syncField('destination',destMarker.getLatLng()))}
+  if(!marker)return;
   marker.setLatLng([p.lat,p.lng]);setCoords(id,p.lat,p.lng,p.label||p.name);document.getElementById(`${id}-suggestions`).innerHTML='';map.setView([p.lat,p.lng],15);
 }
 function useLocation(){requestCurrentLocation();}
