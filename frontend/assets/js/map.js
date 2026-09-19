@@ -3,7 +3,7 @@ import{api,toast,createTileLayer}from'./api.js';
 const mapEl=document.getElementById('map');
 let map,routeLayers=[],hazardLayers=[],selected=null,selectedRoute=null,currentRoutes=[],sourceMarker,destMarker;
 let searchTimers={},geocodingCaps={typeahead:false,effective:'nominatim'},unitMode='METRIC',highAccuracyGps=true;
-const fallbackSource=[17.385,78.4867],fallbackDest=[17.4375,78.4483];
+const defaultMapView=[20.5937,78.9629];
 
 const arr=v=>Array.isArray(v)?v:[];
 const clamp01=v=>Math.max(0,Math.min(1,Number(v)||0));
@@ -54,7 +54,7 @@ async function init(){
   if(!mapEl||!window.L){showMapUnavailable();return}
   try{
     const tileLayer=await createTileLayer();
-    map=window.L.map('map',{zoomControl:false}).setView(fallbackSource,12);
+    map=window.L.map('map',{zoomControl:false}).setView(defaultMapView,5);
     tileLayer.addTo(map);
     window.L.control.zoom({position:'bottomright'}).addTo(map);
     sourceMarker=window.L.marker(fallbackSource,{draggable:true}).addTo(map);
@@ -68,6 +68,20 @@ async function init(){
   }catch(e){showMapUnavailable();toast(`Map initialization failed: ${e.message}`,'error')}
 }
 
+async function requestCurrentLocation(){
+  if(!navigator.geolocation){toast('Location permission is unavailable in this browser. Enter a destination after enabling location access.','error');return}
+  toast('Allow Navora to access your location to set the starting point automatically.','info');
+  navigator.geolocation.getCurrentPosition(async p=>{
+    if(!sourceMarker||!map)return;
+    const c=[p.coords.latitude,p.coords.longitude];
+    sourceMarker.setLatLng(c);map.setView(c,15);await syncField('source',sourceMarker.getLatLng());
+    const use=document.getElementById('use-location');if(use)use.textContent='Refresh location';
+    toast(`Current location detected · ±${fmtShortDistance(p.coords.accuracy||0)}`,'success');
+  },e=>{
+    const use=document.getElementById('use-location');if(use)use.textContent='Allow location';
+    toast(`Location permission needed: ${e.message}`,'warning');
+  },{enableHighAccuracy:highAccuracyGps,maximumAge:3000,timeout:15000});
+}
 function setCoords(id,lat,lng,label){
   const el=document.getElementById(id);if(!el)return;
   el.dataset.lat=Number(lat);el.dataset.lng=Number(lng);if(label)el.value=label;
@@ -110,14 +124,7 @@ function choosePlace(id,p){
   const marker=id==='source'?sourceMarker:destMarker;if(!marker||!map)return;
   marker.setLatLng([p.lat,p.lng]);setCoords(id,p.lat,p.lng,p.label||p.name);document.getElementById(`${id}-suggestions`).innerHTML='';map.setView([p.lat,p.lng],15);
 }
-function useLocation(){
-  if(!navigator.geolocation)return toast('Geolocation is unavailable in this browser.','error');
-  navigator.geolocation.getCurrentPosition(async p=>{
-    if(!sourceMarker||!map)return;
-    const c=[p.coords.latitude,p.coords.longitude];sourceMarker.setLatLng(c);map.setView(c,16);await syncField('source',sourceMarker.getLatLng());
-    toast(`Live GPS source set · ±${fmtShortDistance(p.coords.accuracy||0)}`,'success');
-  },e=>toast(`Location unavailable: ${e.message}`,'error'),{enableHighAccuracy:highAccuracyGps,maximumAge:3000,timeout:15000});
-}
+function useLocation(){requestCurrentLocation();}
 function parseInput(id){
   const el=document.getElementById(id);if(!el)throw new Error(`${id} field unavailable`);
   const lat=Number(el.dataset.lat),lng=Number(el.dataset.lng);
