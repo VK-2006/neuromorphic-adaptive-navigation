@@ -106,7 +106,7 @@ function recoverFromServiceFailure(error){
 async function start(){
   const session=await userSession(),u=session.user,needs=protectedPages.has(page)||adminPages.has(page);
   if(needs&&!u){
-    if(session.error&&Number(session.error.status)!==401){recoverFromServiceFailure(session.error);return}
+    if(session.error?.body?.code==='ACCOUNT_BLOCKED'){document.body.classList.remove('navora-booting');return}if(session.error&&Number(session.error.status)!==401){recoverFromServiceFailure(session.error);return}
     saveReturnTo();replacePage(`login.html?returnTo=${encodeURIComponent(returnTo())}`,{skipActiveTransition:true});return;
   }
   if(needs&&u)sessionStorage.removeItem('navora:returnTo');
