@@ -57,8 +57,8 @@ async function init(){
     map=window.L.map('map',{zoomControl:false}).setView(defaultMapView,5);
     tileLayer.addTo(map);
     window.L.control.zoom({position:'bottomright'}).addTo(map);
-    sourceMarker=window.L.marker(fallbackSource,{draggable:true}).addTo(map);
-    destMarker=window.L.marker(fallbackDest,{draggable:true}).addTo(map);
+    sourceMarker=null;
+    destMarker=null;
     map.on('click',async e=>{destMarker.setLatLng(e.latlng);await syncField('destination',e.latlng)});
     sourceMarker.on('dragend',()=>syncField('source',sourceMarker.getLatLng()));
     destMarker.on('dragend',()=>syncField('destination',destMarker.getLatLng()));
