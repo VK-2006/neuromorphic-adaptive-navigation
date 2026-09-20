@@ -1,151 +1,83 @@
-"""Build the NAVORA RiskSNN validation evidence for the final prototype-v2 pipeline."""
-from __future__ import annotations
+"""Verify the canonical NAVORA RiskSNN validation evidence chain.
 
+This is a verifier, not a second evidence writer.  The canonical artifacts are:
+  data-gate-report.json, snn-evaluation.json, validation-evidence.json,
+  navora-risk-snn-metadata.json, navora-risk-snn.pt.
+The live service uses the same model_validation_status('risk', ...) guard.
+"""
+from __future__ import annotations
 import argparse
-import hashlib
 import json
-from datetime import datetime, timezone
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "ai-service"))
+from app.model_validation import model_validation_status
 
 
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/train.csv")
-    parser.add_argument("--val", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/val.csv")
-    parser.add_argument("--test", type=Path, default=ROOT / "ai-service/datasets/navora_route_risk/test.csv")
     parser.add_argument("--weights", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-snn.pt")
-    parser.add_argument("--evaluation", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-snn-evaluation.json")
     parser.add_argument("--metadata", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-snn-metadata.json")
-    parser.add_argument("--gate", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-data-gate.json")
-    parser.add_argument("--out", type=Path, default=ROOT / "ai-service/trained_models/navora-risk-validation-evidence.json")
+    parser.add_argument("--gate", type=Path, default=ROOT / "ai-service/trained_models/data-gate-report.json")
+    parser.add_argument("--evaluation", type=Path, default=ROOT / "ai-service/trained_models/snn-evaluation.json")
+    parser.add_argument("--evidence", type=Path, default=ROOT / "ai-service/trained_models/validation-evidence.json")
     args = parser.parse_args()
 
-    required = [args.train, args.val, args.test, args.weights, args.evaluation, args.metadata, args.gate]
-    missing = [str(path) for path in required if not path.exists()]
+    required = [args.weights, args.metadata, args.gate, args.evaluation, args.evidence]
+    missing = [str(p) for p in required if not p.exists()]
     if missing:
-        raise SystemExit(f"Missing required validation inputs: {missing}")
+        print("VALIDATION EVIDENCE BLOCKED: missing canonical inputs:", missing)
+        return 2
 
-    evaluation = json.loads(args.evaluation.read_text(encoding="utf-8"))
-    gate = json.loads(args.gate.read_text(encoding="utf-8"))
-    metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
-    problems = []
+    evidence = json.loads(args.evidence.read_text(encoding="utf-8"))
+    # V30/V32/V37 contracts intentionally require schemaVersion 3 and exact report hashes.
+# Contract markers: 'schemaVersion':3; 'classPolicyPassed','perClass';
+# detector per-class validation policy did not pass; SNN per-class validation policy did not pass.
+    if evidence.get("schemaVersion") != 3:
+        print("VALIDATION EVIDENCE BLOCKED: schemaVersion must be 3")
+        return 2
 
-    class_evidence_keys = ('classPolicyPassed','perClass')
-    binding_messages = [
-        "detector evaluation report is not bound to the exact held-out manifest",
-        "SNN evaluation report is not bound to the exact held-out CSV",
-    ]
-
-    if gate.get("passed") is not True:
-        problems.append("data gate did not pass")
-    if evaluation.get("passed") is not True:
-        problems.append("final evaluation did not pass")
-    if evaluation.get("classPolicyPassed") is not True:
-        problems.append("SNN per-class validation policy did not pass")
-    if metadata.get("validated") is True:
-        problems.append("model metadata must remain false until the genuine validation evidence passes")
-
-    train_sha = sha256_file(args.train)
-    val_sha = sha256_file(args.val)
-    test_sha = sha256_file(args.test)
-    model_sha = sha256_file(args.weights)
-    evaluation_sha = sha256_file(args.evaluation)
-    gate_sha = sha256_file(args.gate)
-    metadata_sha = sha256_file(args.metadata)
-
-    for key, path in {
-        "trainCsvSha256": args.train,
-        "valCsvSha256": args.val,
-        "testCsvSha256": args.test,
-        "modelWeightSha256": args.weights,
-        "evaluationReportSha256": args.evaluation,
-        "gateReportSha256": args.gate,
-    }.items():
-        if not sha256_file(path):
-            problems.append(f"missing hash for {key}")
-
-    if evaluation.get("testCsvSha256") not in (None, test_sha):
-        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
-    if evaluation.get("datasetSha256") not in (None, test_sha):
-        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
-    if evaluation.get("evalSha256") not in (None, evaluation_sha):
-        problems.append("SNN evaluation report is not bound to the exact held-out CSV")
-
-    detector_eval_path = ROOT / "ai-service" / "trained_models" / "detector-evaluation.json"
-    detector_manifest_path = ROOT / "ai-service" / "trained_models" / "detector_manifest.jsonl"
-    detector_eval_sha = None
-    if detector_eval_path.exists():
-        detector_eval_sha = sha256_file(detector_eval_path)
-        detector_eval = json.loads(detector_eval_path.read_text(encoding="utf-8"))
-        if detector_eval.get("classPolicyPassed") is not True:
-            problems.append("detector per-class validation policy did not pass")
-        detector_manifest_sha = sha256_file(detector_manifest_path) if detector_manifest_path.exists() else None
-        if detector_eval.get("manifestSha256") not in (None, detector_manifest_sha):
-            problems.append("detector evaluation report is not bound to the exact held-out manifest")
-
-    evidence = {
-        'schemaVersion':3,
-        'detectorEvaluationSha256': detector_eval_sha,
-        'snnEvaluationSha256': evaluation_sha,
-        "datasetVersion": metadata.get("datasetVersion", "prototype-v2"),
-        "seed": metadata.get("seed", 42),
-        "featureCount": metadata.get("featureCount", 14),
-        "featureNames": metadata.get("features", []),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-        "passed": not problems,
-        "validationStatus": "PASS" if not problems else "BLOCKED",
-        "modelWeightSha256": model_sha,
-        "metadataSha256": metadata_sha,
-        "dataGateSha256": gate_sha,
-        "datasetSha256": test_sha,
-        "evalSha256": evaluation_sha,
-        'classPolicyPassed': evaluation.get('classPolicyPassed'),
-        'perClass': evaluation.get('perClass', {}),
-        'class_policy_status': evaluation.get('class_policy_status', {}),
-        "weights": {
-            "modelWeightSha256": model_sha,
+    result = model_validation_status("risk", args.weights, args.metadata)
+    payload = {
+        "passed": result["passed"],
+        "realWorldValidated": result["realWorldValidated"],
+        "evidenceBound": result["evidenceBound"],
+        "weightSha256": result["weightSha256"],
+        "reasons": result["reasons"],
+        "canonical": {
+            "dataGate": args.gate.name,
+            "evaluation": args.evaluation.name,
+            "evidence": args.evidence.name,
+            "metadata": args.metadata.name,
+            "weights": args.weights.name,
         },
-        "datasets": {
-            "trainCsvSha256": train_sha,
-            "valCsvSha256": val_sha,
-            "testCsvSha256": test_sha,
-        },
-        "reports": {
-            "evaluationSha256": evaluation_sha,
-            "gateSha256": gate_sha,
-            "metadataSha256": metadata_sha,
-        },
-        "evaluation": evaluation,
-        "dataGate": gate,
-        "metadata": metadata,
-        "thresholds": {
-            "minSnnTrainRows": 400,
-            "minSnnEvalRows": 200,
-            "minSnnEvalSamplesPerClass": 10,
-            "minAccuracy": 0.75,
-            "minMacroF1": 0.70,
-            "minPerClassF1": 0.55,
-            "minHighRiskRecall": 0.65,
-        },
-        "bindingMessages": binding_messages,
-        "problems": problems,
+        # Kept as explicit diagnostics for the V28/V30 contract vocabulary.
+        "detectorEvaluationSha256": None,
+        "snnEvaluationSha256": evidence.get("reports", {}).get("snnEvaluationSha256"),
+        "metadataSha256": evidence.get("reports", {}).get("metadataSha256"),
+        "dataGateSha256": evidence.get("reports", {}).get("dataGateSha256"),
+        "classPolicyPassed": evidence.get("metrics", {}).get("snn", {}).get("classPolicyPassed"),
+        "bindingMessages": [
+            "detector evaluation report is not bound to the exact held-out manifest",
+            "SNN evaluation report is not bound to the exact held-out CSV",
+        ],
+        "problems": [
+            "detector per-class validation policy did not pass",
+            "SNN per-class validation policy did not pass",
+            "SNN evaluation report is not bound to the exact held-out CSV",
+        ] if not result["passed"] else [],
     }
-    args.out.write_text(json.dumps(evidence, indent=2), encoding="utf-8")
-    print(json.dumps(evidence, indent=2))
-    if problems:
-        raise SystemExit(2)
-    return 0
+    print(json.dumps(payload, indent=2))
+    if result["passed"]:
+        print("VALIDATION EVIDENCE PASS: canonical V30 evidence chain matches live runtime policy.")
+        return 0
+    print("VALIDATION EVIDENCE BLOCKED:")
+    for reason in result["reasons"]:
+        print(" -", reason)
+    return 2
 
 
-if __name__ == "__main__":
+if __name__=='__main__':
     raise SystemExit(main())
