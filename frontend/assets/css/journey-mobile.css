@@ -74,7 +74,8 @@ body.field-navigation-page .journey-stats {
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    border-radius: 0 !important;
+    border-radius: 1.25rem !important;
+    overflow: hidden !important;
   }
 
   body.field-navigation-page .mobile-journey-topbar {
