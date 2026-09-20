@@ -173,6 +173,7 @@ function connectSocket(){
   socket=window.io({withCredentials:true,reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:800,reconnectionDelayMax:5000});
   socket.on('connect',()=>setFieldChip('socket-state','REALTIME ON'));
   socket.on('disconnect',()=>setFieldChip('socket-state','REALTIME RETRY'));
+  socket.on('account:blocked',event=>window.Navora?.accountBlocked(event?.message));
   socket.emit('journey:join',{journeyId:jid()},ack=>{if(!ack?.ok)toast('Journey socket authorization failed','error')});
   socket.on('route:updated',({route:r})=>{if(!r)return;routeDoc=r;route=r.coordinates||[];drawRoute();toast('Route updated across connected devices')});
   socket.on('hazard:alerts',alerts=>alerts?.forEach(a=>toast(`${a.risk||'HAZARD'}: ${a.type} ${fmtShortDistance(a.distanceAhead)} ahead`,'warning')));

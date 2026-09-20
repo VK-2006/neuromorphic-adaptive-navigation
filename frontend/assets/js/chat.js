@@ -53,6 +53,7 @@ function updateTyping(x){
 function setupSocket(){
   if(!window.io)return;state.socket=window.io({withCredentials:true});
   state.socket.on('connect',()=>{if(state.roomId)joinRealtime(state.roomId)});
+  state.socket.on('account:blocked',event=>window.Navora?.accountBlocked(event?.message));
   state.socket.on('connect_error',e=>toast(`Realtime chat unavailable: ${e.message}. Secure REST sending stays available.`,'warning'));
   state.socket.on('presence:snapshot',x=>{state.onlineUsers=new Set(asArray(x?.userIds).map(String));document.querySelectorAll('[data-message-id]').forEach(n=>{const m=state.messages.get(n.dataset.messageId);if(m)upsertMessage(m)})});
   state.socket.on('presence:user',x=>{x.online?state.onlineUsers.add(String(x.userId)):state.onlineUsers.delete(String(x.userId));for(const m of state.messages.values())if(String(m.user?.id)===String(x.userId))upsertMessage(m)});

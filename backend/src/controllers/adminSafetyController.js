@@ -1,6 +1,7 @@
 const User=require('../models/User');
 const AuditLog=require('../models/AuditLog');
 const RefreshToken=require('../models/RefreshToken');
+const Notification=require('../models/Notification');
 
 exports.updateUser=async(req,res)=>{
   const target=await User.findById(req.params.id);
@@ -24,7 +25,14 @@ exports.updateUser=async(req,res)=>{
   if(req.body.disabled===false)patch.disabledAt=null;
 
   Object.assign(target,patch);await target.save();
-  if(wantsDisable)await RefreshToken.updateMany({userId:target._id,revokedAt:null},{$set:{revokedAt:new Date()}});
+  if(wantsDisable){
+    await RefreshToken.updateMany({userId:target._id,revokedAt:null},{$set:{revokedAt:new Date()}});
+    const notification=await Notification.create({userId:target._id,type:'ACCOUNT_BLOCKED',title:'Account blocked',message:'Your account has been blocked by an administrator.',data:{code:'ACCOUNT_BLOCKED'}});
+    const io=req.app.get('io');
+    io?.to(`user:${String(target._id)}`).emit('notification:new',notification);
+    io?.to(`user:${String(target._id)}`).emit('account:blocked',{code:'ACCOUNT_BLOCKED',message:'Your account has been blocked by an administrator.'});
+    io?.in(`user:${String(target._id)}`).disconnectSockets(true);
+  }
   await AuditLog.create({
     actorId:req.user._id,action:'USER_ADMIN_UPDATE',targetType:'User',targetId:target._id,
     result:JSON.stringify({role:patch.role??target.role,disabled:target.disabledAt!=null})

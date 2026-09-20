@@ -106,7 +106,7 @@ function recoverFromServiceFailure(error){
 async function start(){
   const session=await userSession(),u=session.user,needs=protectedPages.has(page)||adminPages.has(page);
   if(needs&&!u){
-    if(session.error?.body?.code==='ACCOUNT_BLOCKED'){document.body.classList.remove('navora-booting');return}if(session.error&&Number(session.error.status)!==401){recoverFromServiceFailure(session.error);return}
+    if(session.error?.body?.code==='ACCOUNT_BLOCKED'){document.body.classList.remove('navora-booting');window.Navora?.accountBlocked(session.error.body.message);return}if(session.error&&Number(session.error.status)!==401){recoverFromServiceFailure(session.error);return}
     saveReturnTo();replacePage(`login.html?returnTo=${encodeURIComponent(returnTo())}`,{skipActiveTransition:true});return;
   }
   if(needs&&u)sessionStorage.removeItem('navora:returnTo');
@@ -118,7 +118,7 @@ async function start(){
   else{document.body.classList.add('navora-public');buildPublicNav(u)}
   document.body.classList.remove('navora-booting');mobile();
 }
-window.addEventListener('navora:auth-required',event=>{if(!protectedPages.has(page)&&!adminPages.has(page))return;if(event.detail?.message)toast(event.detail.message,event.detail?.blocked?'error':'warning');saveReturnTo();setTimeout(()=>replacePage(`login.html?returnTo=${encodeURIComponent(returnTo())}`,{skipActiveTransition:true}),event.detail?.blocked?700:0)});
+window.addEventListener('navora:auth-required',event=>{if(!protectedPages.has(page)&&!adminPages.has(page))return;if(event.detail?.message)toast(event.detail.message,event.detail?.blocked?'error':'warning');if(event.detail?.blocked){sessionStorage.removeItem('navora:returnTo');setTimeout(()=>replacePage('login.html?reason=account-blocked',{skipActiveTransition:true}),700);return}saveReturnTo();replacePage(`login.html?returnTo=${encodeURIComponent(returnTo())}`,{skipActiveTransition:true})});
 start().then(()=>{if(deferredInstallPrompt)showInstallAction()}).catch(e=>{document.body.classList.remove('navora-booting');toast(e.message,'error')});
 if('serviceWorker'in navigator)window.addEventListener('load',async()=>{try{const r=await navigator.serviceWorker.register('/service-worker.js',{updateViaCache:'none'});await r.update().catch(()=>{})}catch{}});
-window.Navora={...(window.Navora||{}),toast};
+window.Navora={...(window.Navora||{}),toast,accountBlocked(message='Your account has been blocked by an administrator.'){toast(message,'error');sessionStorage.removeItem('navora:returnTo');setTimeout(()=>replacePage('login.html?reason=account-blocked',{skipActiveTransition:true}),700)}};
