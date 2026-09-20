@@ -93,4 +93,4 @@ exports.updateContact=async(req,res)=>{
 exports.deleteContact=async(req,res)=>{
   const c=await TrustedContact.findOneAndDelete({_id:req.params.id,userId:req.user._id});ok(res,{deleted:!!c});
 };
-exports.users=async(req,res)=>ok(res,await User.find().select('-passwordHash').limit(200));
+exports.users=async(req,res)=>ok(res,await User.find().select('-passwordHash').sort({role:-1,name:1,email:1}));

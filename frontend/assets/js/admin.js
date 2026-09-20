@@ -3,37 +3,49 @@ const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const arr=v=>Array.isArray(v)?v:[];
 const obj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
 const dt=x=>{if(!x)return'—';const d=new Date(x);return Number.isNaN(d.getTime())?'—':d.toLocaleString()};
+const userRows=v=>{if(Array.isArray(v))return v;if(Array.isArray(v?.users))return v.users;if(Array.isArray(v?.data))return v.data;if(Array.isArray(v?.data?.users))return v.data.users;return[]};
+const userLocation=u=>[u?.city,u?.country].filter(Boolean).join(', ')||'—';
+function userActions(u){
+  const id=esc(u?._id),disabled=Boolean(u?.disabledAt);
+  return`<button type="button" class="btn-navora btn-ghost view" data-id="${id}">View profile</button><button type="button" class="btn-navora btn-ghost save">Save role</button><button type="button" class="btn-navora btn-ghost toggle">${disabled?'Unblock':'Block'}</button>`;
+}
+function userRow(u){
+  const role=u?.role==='ADMIN'?'ADMIN':'USER',disabled=Boolean(u?.disabledAt);
+  return`<tr data-id="${esc(u?._id)}" data-role="${role}" data-disabled="${disabled}"><td><strong>${esc(u?.name||'Unnamed user')}</strong><br><small>${esc(u?.email||'—')}</small></td><td><select class="input role" aria-label="Role for ${esc(u?.name||u?.email)}"><option ${role==='USER'?'selected':''}>USER</option><option ${role==='ADMIN'?'selected':''}>ADMIN</option></select></td><td>${esc(u?.phone||'—')}</td><td>${esc(userLocation(u))}</td><td>${u?.emailVerified?'Verified':'Not verified'}</td><td>${disabled?'<span class="status-warn">Blocked</span>':'<span class="status-ok">Active</span>'}</td><td>${dt(u?.lastLoginAt)}</td><td class="admin-table-actions">${userActions(u)}</td></tr>`;
+}
+function bindUserRows(host){
+  host.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.querySelector('.view')?.addEventListener('click',()=>{
+      const cells=[...tr.querySelectorAll('td')].map(cell=>cell.textContent.trim()).join(' · ');
+      toast(cells,'info');
+    });
+    tr.querySelector('.save')?.addEventListener('click',()=>{
+      const next=tr.querySelector('.role')?.value||'USER';
+      if(tr.dataset.role==='ADMIN'&&next==='USER'&&!confirm('Demote this administrator to USER? Last-admin and self-demotion rules are enforced by the backend.'))return;
+      patchUser(tr.dataset.id,{role:next});
+    });
+    tr.querySelector('.toggle')?.addEventListener('click',()=>{
+      const disable=tr.dataset.disabled!=='true';
+      if(disable&&!confirm('Block this user account? The user will lose authenticated access.'))return;
+      patchUser(tr.dataset.id,{disabled:disable});
+    });
+  });
+}
 async function overview(){const host=document.getElementById('admin-overview');if(!host)return;try{const d=obj(await api('/admin/overview'));for(const[k,v]of Object.entries(d)){const el=document.querySelector(`[data-admin-metric="${CSS.escape(k)}"]`);if(el)el.textContent=String(v??'—')}}catch(e){toast(e.message,'error')}}
 async function health(){const host=document.getElementById('admin-health-data');if(!host)return;try{const d=obj(await api('/admin/health')),entries=Object.entries(d);host.innerHTML=entries.length?entries.map(([k,raw])=>{const v=obj(raw),status=String(v.status??raw??'unknown');return`<tr><td>${esc(k)}</td><td class="${status==='ok'?'status-ok':'status-warn'}">${esc(status)}</td><td>${esc(v.detail||'')}</td></tr>`}).join(''):'<tr><td colspan="3">No health data.</td></tr>'}catch(e){host.innerHTML='<tr><td colspan="3">Health data unavailable.</td></tr>';toast(e.message,'error')}}
 async function users(){
-  const adminHost=document.getElementById('admin-users-admin-data');
-  const userHost=document.getElementById('admin-users-user-data');
-  if(!adminHost&&!userHost)return;
+  const adminHost=document.getElementById('admin-users-admin-data'),userHost=document.getElementById('admin-users-user-data'),legacyHost=document.getElementById('admin-users-data'),errorHost=document.getElementById('admin-users-error');
+  if(!adminHost&&!userHost&&!legacyHost)return;
   try{
-    const rows=arr(await api('/admin/users'));
-    const admins=rows.filter(u=>String(u?.role||'USER').toUpperCase()==='ADMIN');
-    const users=rows.filter(u=>String(u?.role||'USER').toUpperCase()!=='ADMIN');
-    const render=(list)=>list.length?list.map(u=>{
-      const id=esc(u?._id),disabled=Boolean(u?.disabledAt),role=esc(u?.role||'USER');
-      const profile='<div class="admin-user-profile"><strong>'+esc(u?.name||'Unnamed user')+'</strong><br><small>'+esc(u?.email||'')+'</small></div>';
-      const contact='<div>'+esc(u?.phone||'—')+'<br><small>'+esc(u?.preferredLanguage||'—')+'</small></div>';
-      const location='<div>'+esc(u?.city||'—')+'<br><small>'+esc(u?.country||'—')+'</small></div>';
-      const detail='<div class="admin-user-detail" hidden><div><strong>User ID</strong><br><small>'+id+'</small></div><div><strong>Member since</strong><br>'+dt(u?.createdAt)+'</div><div><strong>Preferences</strong><br>Safety '+Math.round((Number(u?.preferences?.safety)||0)*100)+'% · Traffic '+Math.round((Number(u?.preferences?.traffic)||0)*100)+'% · Familiarity '+Math.round((Number(u?.preferences?.familiarity)||0)*100)+'%</div><div><strong>Units / voice</strong><br>'+esc(u?.preferences?.units||'—')+' · '+esc(u?.preferences?.voiceLanguage||'—')+'</div></div>';
-      return '<tr data-id="'+id+'" data-role="'+role+'" data-disabled="'+disabled+'"><td>'+profile+detail+'</td><td><select class="input role" aria-label="Role"><option '+(u?.role==='USER'?'selected':'')+'>USER</option><option '+(u?.role==='ADMIN'?'selected':'')+'>ADMIN</option></select></td><td>'+contact+'</td><td>'+location+'</td><td>'+(u?.emailVerified?'Yes':'No')+'</td><td>'+(disabled?'<span class="status-warn">Blocked</span>':'<span class="status-ok">Active</span>')+'</td><td>'+dt(u?.lastLoginAt)+'</td><td class="admin-table-actions"><button type="button" class="btn-navora btn-ghost view">View profile</button><button type="button" class="btn-navora btn-ghost save">Save role</button><button type="button" class="btn-navora btn-ghost toggle">'+(disabled?'Unblock':'Block')+'</button></td></tr>';
-    }).join(''):'<tr><td colspan="8">No accounts.</td></tr>';
-    if(adminHost)adminHost.innerHTML=render(admins);
-    if(userHost)userHost.innerHTML=render(users);
-    const adminCount=document.getElementById('admin-users-admin-count');if(adminCount)adminCount.textContent='('+admins.length+')';
-    const userCount=document.getElementById('admin-users-user-count');if(userCount)userCount.textContent='('+users.length+')';
-    [adminHost,userHost].filter(Boolean).forEach(host=>host.querySelectorAll('tr[data-id]').forEach(tr=>{
-      tr.querySelector('.view')?.addEventListener('click',()=>{const detail=tr.querySelector('.admin-user-detail');if(!detail)return;detail.hidden=!detail.hidden;const button=tr.querySelector('.view');if(button)button.textContent=detail.hidden?'View profile':'Hide profile';});
-      tr.querySelector('.save')?.addEventListener('click',()=>{const next=tr.querySelector('.role')?.value||'USER';if(tr.dataset.role==='ADMIN'&&next==='USER'&&!confirm('Demote this administrator to USER? Last-admin and self-demotion rules are enforced by the backend.'))return;patchUser(tr.dataset.id,{role:next});});
-      tr.querySelector('.toggle')?.addEventListener('click',()=>{const block=tr.querySelector('.toggle')?.textContent==='Block';if(block&&!confirm('Block this user account? The user will lose authenticated access.'))return;patchUser(tr.dataset.id,{disabled:block});});
-    }));
+    const rows=userRows(await api('/admin/users')),admins=rows.filter(u=>u?.role==='ADMIN'),usersOnly=rows.filter(u=>u?.role!=='ADMIN');
+    const render=(host,list)=>{if(!host)return;host.innerHTML=list.length?list.map(userRow).join(''):`<tr><td colspan="${host===legacyHost?'5':'8'}">No ${host===adminHost?'admin accounts':'normal users'}.</td></tr>`;bindUserRows(host)};
+    if(legacyHost)render(legacyHost,rows);else{render(adminHost,admins);render(userHost,usersOnly)}
+    if(errorHost)errorHost.classList.add('hidden');
   }catch(e){
-    if(adminHost)adminHost.innerHTML='<tr><td colspan="8">Administrators unavailable.</td></tr>';
-    if(userHost)userHost.innerHTML='<tr><td colspan="8">Users unavailable.</td></tr>';
-    toast(e.message,'error')
+    const message=`Unable to load users: ${e.message||'Server error'}`;
+    if(errorHost){errorHost.textContent=message;errorHost.classList.remove('hidden')}
+    [adminHost,userHost,legacyHost].forEach(host=>{if(host)host.innerHTML=`<tr><td colspan="${host===legacyHost?'5':'8'}">${esc(message)}</td></tr>`});
+    console.error('Admin users load failed',e);toast(message,'error')
   }
 }
 async function patchUser(id,body){try{await api(`/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(body)});toast('User updated','success');await users()}catch(e){toast(e.message,'error')}}
