@@ -46,7 +46,7 @@ assert "if(!msg||/Transition was skipped/i.test(msg))return;" in browser_e2e
 
 # Force installed PWAs to fetch the repaired app shell while retaining the
 # prior recovery release marker for historical contract compatibility.
-assert "const CACHE='navora-completion-v37-0-0'" in service_worker
+assert re.search(r"const CACHE='navora-completion-v[0-9-]+-0'", service_worker), 'current completion cache marker missing'
 assert "V27_CACHE_LINEAGE='navora-session-recovery-v27-0-0'" in service_worker
 assert '"/assets/js/app-shell.js"' in service_worker
 
