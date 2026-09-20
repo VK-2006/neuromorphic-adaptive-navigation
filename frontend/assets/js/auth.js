@@ -115,6 +115,8 @@ $('reset-form')?.addEventListener('submit',e=>{
   });
 });
 
+function authErrorMessage(e){return e?.body?.code==='ACCOUNT_BLOCKED'?'Admin Blocked — Your account has been blocked by an administrator.':e?.message||'Authentication failed'}
+
 async function passkey(){
   try{
     if(!window.PublicKeyCredential)throw new Error('Passkeys are not supported in this browser.');
@@ -124,7 +126,7 @@ async function passkey(){
     if(!c)throw new Error('Passkey creation was cancelled.');
     await api('/auth/passkeys/register/verify',{method:'POST',body:JSON.stringify(window.NavoraWebAuthn.credentialToJSON(c))});
     toast('Passkey registered','success');
-  }catch(e){toast(`Passkey: ${e.message}`,'error')}
+  }catch(e){toast(e?.body?.code==='ACCOUNT_BLOCKED'?authErrorMessage(e):`Passkey: ${e.message}`,'error')}
 }
 
 async function passkeyLogin(){
@@ -137,7 +139,7 @@ async function passkeyLogin(){
     if(!c)throw new Error('Passkey sign-in was cancelled.');
     await api('/auth/passkeys/auth/verify',{method:'POST',body:JSON.stringify({userId:d.userId,response:window.NavoraWebAuthn.credentialToJSON(c)})});
     finishAuth();
-  }catch(e){toast(`Passkey: ${e.message}`,'error')}
+  }catch(e){toast(e?.body?.code==='ACCOUNT_BLOCKED'?authErrorMessage(e):`Passkey: ${e.message}`,'error')}
 }
 document.querySelector('[data-passkey]')?.addEventListener('click',passkey);
 document.querySelector('[data-passkey-login]')?.addEventListener('click',passkeyLogin);
