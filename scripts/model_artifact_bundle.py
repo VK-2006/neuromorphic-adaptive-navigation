@@ -7,9 +7,8 @@ ROOT=Path(__file__).resolve().parents[1]
 MODEL=ROOT/'ai-service'/'trained_models'
 OUT=ROOT/'model-artifacts'
 FILES=[
-    'detector.pt','risk_snn.pt','metadata.json',
-    'data-gate-report.json','detector-evaluation.json','snn-evaluation.json',
-    'validation-evidence.json'
+    'navora-risk-snn.pt','navora-risk-snn-metadata.json',
+    'data-gate-report.json','snn-evaluation.json','validation-evidence.json'
 ]
 
 def sha(path):
@@ -23,7 +22,7 @@ def main():
     rc=subprocess.run([sys.executable,str(ROOT/'scripts/model_readiness.py')]).returncode
     if rc!=0:
         return rc
-    meta=MODEL/'metadata.json'
+    meta=MODEL/'navora-risk-snn-metadata.json'
     if not meta.exists() or json.loads(meta.read_text(encoding='utf-8')).get('validated') is not True:
         print('MODEL BUNDLE BLOCKED: models are not independently validated yet.')
         return 2
