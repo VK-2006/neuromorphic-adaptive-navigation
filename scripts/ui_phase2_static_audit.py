@@ -68,7 +68,7 @@ for token in [
 sw=(ROOT/'frontend/service-worker.js').read_text(encoding='utf-8')
 m=re.search(r"const CACHE='([^']+)';",sw)
 cache=m.group(1) if m else None
-if cache!='navora-completion-v42-0-0':
+if cache!='navora-completion-v43-0-0':
     errors.append(f'service-worker cache mismatch: {cache!r}')
 for token in ['/assets/css/premium-ui.css','/assets/js/premium-ui.js','navora-v7-functional-product-1']:
     if token not in sw: errors.append(f'service-worker.js missing {token}')
@@ -81,5 +81,5 @@ if errors:
 print('NAVORA UI STATIC AUDIT: PASS')
 print('HTML pages:',len(htmls))
 print('Premium UI runtime version: 12.3.4')
-print('Service-worker cache: navora-completion-v42-0-0')
+print('Service-worker cache: navora-completion-v43-0-0')
 print('DOM/function shell/theme/responsive/reduced-motion contracts: PASS')

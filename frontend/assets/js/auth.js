@@ -22,7 +22,7 @@ function status(form,msg,type='info'){
   if(!el)return toast(msg,type);
   el.textContent=msg;el.dataset.type=type;el.classList.remove('hidden');
 }
-if(new URLSearchParams(location.search).get('reason')==='account-blocked')status(document.querySelector('form'),'Your account has been blocked by an administrator.','error');
+if(new URLSearchParams(location.search).get('reason')==='account-blocked')status(document.querySelector('form'),'Admin Blocked — Your account has been blocked by an administrator.','error');
 
 function busy(form,on,label='Please wait…'){
   const b=form?.querySelector('button[type="submit"]');if(!b)return;
