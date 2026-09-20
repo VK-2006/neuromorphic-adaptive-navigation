@@ -1,7 +1,7 @@
 const API_BASE='/api/v1';let refreshPromise=null;
 export class ApiError extends Error{constructor(message,status=0,body=null){super(message);this.name='ApiError';this.status=status;this.body=body}}
 async function parse(r){let body=null;try{body=await r.json()}catch{}return{r,body}}
-async function refresh(){if(!refreshPromise)refreshPromise=fetch(`${API_BASE}/auth/refresh`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'}}).then(r=>{if(!r.ok)throw new ApiError('Session expired',r.status);return r}).finally(()=>refreshPromise=null);return refreshPromise}
+async function refresh(){if(!refreshPromise)refreshPromise=fetch(`${API_BASE}/auth/refresh`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'}}).then(async r=>{if(!r.ok){let body=null;try{body=await r.json()}catch{};if(r.status===403&&body?.code==='ACCOUNT_BLOCKED'){window.dispatchEvent(new CustomEvent('navora:auth-required',{detail:{path:'/auth/refresh',message:'Admin Blocked — Your account has been blocked by an administrator.',blocked:true}}));throw new ApiError('Admin Blocked — Your account has been blocked by an administrator.',r.status,body)}throw new ApiError(body?.message||'Session expired',r.status,body)}return r}).finally(()=>refreshPromise=null);return refreshPromise}
 function requestInit(options={}){
   const headers=new Headers(options.headers||{});
   const body=options.body;
