@@ -39,7 +39,7 @@ async function users(){
   try{
     const rows=userRows(await api('/admin/users')),admins=rows.filter(u=>u?.role==='ADMIN'),usersOnly=rows.filter(u=>u?.role!=='ADMIN');
     const render=(host,list)=>{if(!host)return;host.innerHTML=list.length?list.map(userRow).join(''):`<tr><td colspan="${host===legacyHost?'5':'8'}">No ${host===adminHost?'admin accounts':'normal users'}.</td></tr>`;bindUserRows(host)};
-    if(legacyHost)render(legacyHost,rows);else{render(adminHost,admins);render(userHost,usersOnly)}
+    if(adminHost||userHost){render(adminHost,admins);render(userHost,usersOnly)}else if(legacyHost)render(legacyHost,rows)
     if(errorHost)errorHost.classList.add('hidden');
   }catch(e){
     const message=`Unable to load users: ${e.message||'Server error'}`;
